@@ -1,0 +1,49 @@
+:root {
+  --ccs-black: #0a0a0a;
+  --ccs-black-soft: #141414;
+  --ccs-gray: #262626;
+  --ccs-gray-light: #525252;
+  --ccs-white: #fafafa;
+  --ccs-white-dim: #a3a3a3;
+  --ccs-orange: #f97316;
+  --ccs-orange-hover: #ea580c;
+  --ccs-orange-light: #fed7aa;
+  --ccs-orange-glow: rgba(249, 115, 22, 0.25);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  background: var(--ccs-black);
+  color: var(--ccs-white);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+input,
+button,
+select {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+button {
+  cursor: pointer;
+}
