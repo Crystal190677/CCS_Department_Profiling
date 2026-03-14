@@ -1,0 +1,12 @@
+node_modules/
+vendor/
+dist/
+.env
+.env.backup
+*.db
+*.db-journal
+.DS_Store
+*.log
+.env.local
+.env.*.local
+.storage/
