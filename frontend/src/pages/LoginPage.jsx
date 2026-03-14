@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './LoginPage.css';
 
 const ROLES = [
@@ -53,7 +53,7 @@ const ROLES = [
 export default function LoginPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    email: '',
+    identifier: '',
     password: '',
     role: '',
   });
@@ -69,7 +69,7 @@ export default function LoginPage() {
 
   const handleBack = () => {
     setShowLoginForm(false);
-    setForm((prev) => ({ ...prev, email: '', password: '' }));
+    setForm((prev) => ({ ...prev, identifier: '', password: '' }));
     setError('');
   };
 
@@ -101,7 +101,8 @@ export default function LoginPage() {
 
       localStorage.setItem('ccs_token', data.data.token);
       localStorage.setItem('ccs_user', JSON.stringify(data.data.user));
-      navigate('/dashboard');
+      const role = data.data.user.role;
+      navigate(role === 'ADMIN' || role === 'FACULTY' ? '/admin-dashboard' : '/dashboard');
     } catch (err) {
       setError('Unable to connect. Please ensure the backend is running.');
       setLoading(false);
@@ -152,16 +153,18 @@ export default function LoginPage() {
 
             <form className="login-form" onSubmit={handleSubmit}>
               <div className="login-field">
-                <label htmlFor="email">Email</label>
+                <label htmlFor="identifier">
+                  {form.role === 'STUDENT' ? 'Student number or email' : 'Email'}
+                </label>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@ccs.edu"
-                  value={form.email}
+                  id="identifier"
+                  name="identifier"
+                  type="text"
+                  placeholder={form.role === 'STUDENT' ? '2024-001 or you@ccs.edu' : 'you@ccs.edu'}
+                  value={form.identifier}
                   onChange={handleChange}
                   required
-                  autoComplete="email"
+                  autoComplete="username"
                   disabled={loading}
                 />
               </div>
@@ -193,8 +196,13 @@ export default function LoginPage() {
             </form>
 
             <p className="login-demo">
-              Demo: admin@ccs.edu / faculty@ccs.edu / officer@ccs.edu / student@ccs.edu — Password: admin123
+              Demo: admin@ccs.edu / faculty@ccs.edu / officer@ccs.edu / 2024-001 (student) — Password: admin123
             </p>
+            {form.role === 'STUDENT' && (
+              <p className="login-signup-link">
+                Don&apos;t have an account? <Link to="/signup">Sign up</Link>
+              </p>
+            )}
           </div>
         )}
       </main>

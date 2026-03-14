@@ -1,0 +1,167 @@
+.student-dashboard {
+  max-width: 900px;
+}
+
+.dashboard-welcome {
+  background: var(--ccs-orange);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+}
+
+.dashboard-welcome-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.25rem;
+}
+
+.dashboard-welcome-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dashboard-notifications {
+  background: var(--ccs-bg-card);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid var(--ccs-border);
+  margin-bottom: 2rem;
+}
+
+.notifications-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+  margin-bottom: 1rem;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.notification-item {
+  padding: 0.75rem;
+  background: var(--ccs-bg);
+  border-radius: 8px;
+  border-left: 3px solid var(--ccs-orange);
+}
+
+.notification-item.unread {
+  border-left-color: var(--ccs-orange);
+  background: rgba(249, 115, 22, 0.06);
+}
+
+.notification-item p {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--ccs-text-muted);
+}
+
+.notification-date {
+  font-size: 0.75rem;
+  color: var(--ccs-text-dim);
+  margin-top: 0.5rem;
+  display: block;
+}
+
+.dashboard-announcements {
+  background: var(--ccs-bg-card);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid var(--ccs-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.announcements-header {
+  margin-bottom: 1.5rem;
+}
+
+.announcements-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.announcements-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--ccs-orange);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.announcements-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+  margin-bottom: 0.125rem;
+}
+
+.announcements-subtitle {
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+}
+
+.announcements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.announcement-card {
+  background: var(--ccs-bg);
+  border: 1px solid var(--ccs-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.announcement-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+  margin-bottom: 0.5rem;
+}
+
+.announcement-content {
+  font-size: 0.9375rem;
+  color: var(--ccs-text);
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.announcement-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.announcement-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.announcement-author {
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+}
+
+.announcement-tag {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  background: var(--ccs-orange);
+  color: white;
+  border-radius: 999px;
+}
+
+.announcement-date {
+  font-size: 0.75rem;
+  color: var(--ccs-text-dim);
+}

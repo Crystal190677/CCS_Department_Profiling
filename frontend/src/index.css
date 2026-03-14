@@ -1,8 +1,38 @@
-:root {
+:root,
+[data-theme="light"] {
+  --ccs-bg: #faf8f5;
+  --ccs-bg-card: #ffffff;
+  --ccs-header-bg: #ffffff;
+  --ccs-sidebar-bg: #ffffff;
+  --ccs-text: #1f2937;
+  --ccs-text-muted: #6b7280;
+  --ccs-text-dim: #9ca3af;
+  --ccs-border: #e5e7eb;
   --ccs-black: #0a0a0a;
   --ccs-black-soft: #141414;
   --ccs-gray: #262626;
   --ccs-gray-light: #525252;
+  --ccs-white: #fafafa;
+  --ccs-white-dim: #a3a3a3;
+  --ccs-orange: #f97316;
+  --ccs-orange-hover: #ea580c;
+  --ccs-orange-light: #fed7aa;
+  --ccs-orange-glow: rgba(249, 115, 22, 0.25);
+}
+
+[data-theme="dark"] {
+  --ccs-bg: #0f0f0f;
+  --ccs-bg-card: #1a1a1a;
+  --ccs-header-bg: #141414;
+  --ccs-sidebar-bg: #141414;
+  --ccs-text: #fafafa;
+  --ccs-text-muted: #a3a3a3;
+  --ccs-text-dim: #737373;
+  --ccs-border: #262626;
+  --ccs-black: #0a0a0a;
+  --ccs-black-soft: #1a1a1a;
+  --ccs-gray: #404040;
+  --ccs-gray-light: #737373;
   --ccs-white: #fafafa;
   --ccs-white-dim: #a3a3a3;
   --ccs-orange: #f97316;
@@ -27,8 +57,8 @@ html {
 
 body {
   font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
-  background: var(--ccs-black);
-  color: var(--ccs-white);
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
   min-height: 100vh;
   line-height: 1.5;
 }

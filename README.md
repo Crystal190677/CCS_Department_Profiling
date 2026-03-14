@@ -84,14 +84,21 @@ npm run dev
 
 Frontend runs at **http://localhost:5173**
 
+## Key Features
+
+- **Authentication**: Login (email or student number), logout, sign-up (students: student number + password)
+- **Admin/Faculty Dashboard**: Smart filter and search to find students who qualify for activities/sports; enroll students directly; students receive notifications
+- **Student Dashboard**: View announcements, profile management, enrollment notifications
+- **Student Profiles**: Height, weight, course, sports/activity interests used for qualification filtering
+
 ## Test Credentials (after seeding)
 
-| Role    | Email           | Password  |
-|---------|-----------------|-----------|
-| Admin   | admin@ccs.edu   | admin123  |
-| Faculty | faculty@ccs.edu | admin123  |
-| Officer | officer@ccs.edu | admin123  |
-| Student | student@ccs.edu | admin123  |
+| Role    | Email / Identifier | Password  |
+|---------|--------------------|-----------|
+| Admin   | admin@ccs.edu      | admin123  |
+| Faculty | faculty@ccs.edu    | admin123  |
+| Officer | officer@ccs.edu    | admin123  |
+| Student | 2024-001 or student@ccs.edu | admin123  |
 
 ## Design Theme
 
