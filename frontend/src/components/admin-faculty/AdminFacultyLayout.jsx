@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from '../../context/DarkModeContext';
+import NotificationsBell from '../NotificationsBell';
 import '../students/StudentLayout.css';
 
 const MENU_ITEMS = [
@@ -96,6 +97,7 @@ export default function AdminFacultyLayout() {
           >
             {isDark ? <SunIcon /> : <MoonIcon />}
           </button>
+          <NotificationsBell />
           <div className="dashboard-user">
             <div className="dashboard-avatar">{getInitial(user.name)}</div>
             <div className="dashboard-user-info">

@@ -113,6 +113,11 @@ function MerchCard({ item, onOrder, ordering }) {
 
   return (
     <article className="merch-card">
+      {item.image_url && (
+        <div className="merch-card-img-wrap">
+          <img src={item.image_url} alt={item.name} className="merch-card-img" />
+        </div>
+      )}
       <div className="merch-card-body">
         <h3 className="merch-card-name">{item.name}</h3>
         {item.description && <p className="merch-card-desc">{item.description}</p>}

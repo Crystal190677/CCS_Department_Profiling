@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from '../../context/DarkModeContext';
+import NotificationsBell from '../NotificationsBell';
 import './StudentLayout.css';
 
 const MENU_ITEMS_BASE = [
@@ -11,6 +12,7 @@ const MENU_ITEMS_BASE = [
 ];
 
 const MENU_ITEM_OFFICER_MERCH = { path: '/dashboard/manage-merch', label: 'Manage Merchandise', icon: 'package', officerOnly: true };
+const MENU_ITEM_OFFICER_HISTORY = { path: '/dashboard/student-history', label: 'Student history', icon: 'history', officerOnly: true };
 
 function Icon({ name, className }) {
   const cls = `sidebar-icon sidebar-icon-${name} ${className || ''}`;
@@ -57,6 +59,14 @@ function Icon({ name, className }) {
       </svg>
     );
   }
+  if (name === 'history') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+    );
+  }
   return null;
 }
 
@@ -96,7 +106,10 @@ function LogoutIcon() {
 
 function getMenuItems(user) {
   const items = [...MENU_ITEMS_BASE];
-  if (user?.role === 'OFFICER') items.push(MENU_ITEM_OFFICER_MERCH);
+  if (user?.role === 'OFFICER') {
+    items.push(MENU_ITEM_OFFICER_MERCH);
+    items.push(MENU_ITEM_OFFICER_HISTORY);
+  }
   return items;
 }
 
@@ -141,6 +154,7 @@ export default function StudentLayout() {
           >
             {isDark ? <SunIcon /> : <MoonIcon />}
           </button>
+          <NotificationsBell />
           <div className="dashboard-user">
             <div className="dashboard-avatar">{getInitial(user.name)}</div>
             <div className="dashboard-user-info">

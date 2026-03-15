@@ -30,6 +30,138 @@
   margin-bottom: 0;
 }
 
+.profile-academic {
+  margin-top: 1rem;
+}
+
+.profile-academic-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+  margin: 0 0 0.75rem 0;
+}
+
+.profile-gpa-list {
+  margin-top: 0.5rem;
+}
+
+.profile-gpa-list ul {
+  margin: 0.25rem 0 0 1rem;
+  padding: 0;
+}
+
+.profile-form-hint {
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+  margin: -0.5rem 0 1rem 0;
+}
+
+.profile-na-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.profile-na-item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--ccs-border);
+  font-size: 0.9375rem;
+}
+
+.profile-na-item:last-child {
+  border-bottom: none;
+}
+
+.profile-na-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+.profile-na-badge-pending {
+  background: rgba(249, 115, 22, 0.2);
+  color: var(--ccs-orange);
+}
+
+.profile-na-badge-approved {
+  background: rgba(34, 197, 94, 0.2);
+  color: #16a34a;
+}
+
+.profile-na-badge-rejected {
+  background: rgba(239, 68, 68, 0.2);
+  color: #dc2626;
+}
+
+.profile-na-desc {
+  color: var(--ccs-text-muted);
+}
+
+.profile-skill-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.profile-skill-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--ccs-border);
+}
+
+.profile-skill-item:last-child {
+  border-bottom: none;
+}
+
+.profile-skill-proficiency {
+  color: var(--ccs-text-muted);
+  font-weight: normal;
+}
+
+.profile-skill-links {
+  margin-top: 0.35rem;
+}
+
+.profile-skill-links a {
+  font-size: 0.875rem;
+  color: var(--ccs-orange);
+  margin-right: 1rem;
+}
+
+.profile-skill-links a:hover {
+  text-decoration: underline;
+}
+
+.profile-skill-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.profile-skill-actions button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+}
+
+.profile-skill-actions button:hover {
+  background: rgba(249, 115, 22, 0.1);
+  border-color: var(--ccs-orange);
+  color: var(--ccs-orange);
+}
+
+.profile-skill-actions button:last-child:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
 .profile-form {
   margin-top: 1.5rem;
   padding: 1.5rem;
@@ -57,12 +189,21 @@
 }
 
 .profile-form-row input,
-.profile-form-row textarea {
+.profile-form-row textarea,
+.profile-form-row select,
+.profile-form-select {
   width: 100%;
+  max-width: 320px;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--ccs-border);
   border-radius: 6px;
   font-size: 0.9375rem;
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+}
+
+.profile-form-select {
+  display: block;
 }
 
 .profile-message {
@@ -88,4 +229,89 @@
 .profile-save-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.profile-conduct-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--ccs-border);
+  font-size: 0.9375rem;
+}
+
+.profile-conduct-item:last-child {
+  border-bottom: none;
+}
+
+.profile-conduct-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+.profile-conduct-violation {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.profile-conduct-commendation {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.profile-conduct-date {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+  margin-top: 0.25rem;
+}
+
+.profile-conduct-dispute-btn {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+}
+
+.profile-conduct-dispute-btn:hover {
+  background: rgba(249, 115, 22, 0.1);
+  border-color: var(--ccs-orange);
+  color: var(--ccs-orange);
+}
+
+.profile-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.profile-modal {
+  background: var(--ccs-bg-card);
+  border-radius: 8px;
+  padding: 1.5rem;
+  max-width: 440px;
+  width: 90%;
+  border: 1px solid var(--ccs-border);
+}
+
+.profile-modal h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--ccs-text);
+}
+
+.profile-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }

@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Merchandise;
-use App\Models\MerchandiseOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class MerchandiseController extends Controller
 {
@@ -33,13 +33,20 @@ class MerchandiseController extends Controller
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'is_available' => 'boolean',
+            'image' => 'nullable|file|image|max:2048',
         ]);
 
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('merchandise', 'public');
+        }
+
         $merchandise = Merchandise::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'price' => $request->price,
+            'name' => $request->input('name'),
+            'description' => $request->input('description'),
+            'price' => $request->input('price'),
             'is_available' => $request->boolean('is_available', true),
+            'image_path' => $imagePath,
             'created_by' => $request->user()->id,
         ]);
 
@@ -59,12 +66,29 @@ class MerchandiseController extends Controller
             'description' => 'nullable|string',
             'price' => 'sometimes|numeric|min:0',
             'is_available' => 'boolean',
+            'image' => 'nullable|file|image|max:2048',
         ]);
 
-        $merchandise->fill($request->only(['name', 'description', 'price', 'is_available']));
+        if ($request->has('name')) {
+            $merchandise->name = $request->input('name');
+        }
+        if ($request->has('description')) {
+            $merchandise->description = $request->input('description');
+        }
+        if ($request->has('price')) {
+            $merchandise->price = $request->input('price');
+        }
         if ($request->has('is_available')) {
             $merchandise->is_available = $request->boolean('is_available');
         }
+
+        if ($request->hasFile('image')) {
+            if ($merchandise->image_path && Storage::disk('public')->exists($merchandise->image_path)) {
+                Storage::disk('public')->delete($merchandise->image_path);
+            }
+            $merchandise->image_path = $request->file('image')->store('merchandise', 'public');
+        }
+
         $merchandise->save();
 
         return response()->json([

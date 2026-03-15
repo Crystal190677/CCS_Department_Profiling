@@ -27,6 +27,7 @@ class User extends Authenticatable
         'student_number',
         'password',
         'role',
+        'is_sports_faculty',
     ];
 
     /**
@@ -49,6 +50,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_sports_faculty' => 'boolean',
         ];
     }
 
@@ -75,5 +77,25 @@ class User extends Authenticatable
     public function merchandiseOrders(): HasMany
     {
         return $this->hasMany(MerchandiseOrder::class);
+    }
+
+    public function nonAcademicEntries(): HasMany
+    {
+        return $this->hasMany(StudentNonAcademicEntry::class);
+    }
+
+    public function skillEntries(): HasMany
+    {
+        return $this->hasMany(StudentSkillEntry::class);
+    }
+
+    public function interestDeclarations(): HasMany
+    {
+        return $this->hasMany(StudentInterestDeclaration::class)->with('activity');
+    }
+
+    public function conductEntries(): HasMany
+    {
+        return $this->hasMany(StudentConductEntry::class);
     }
 }

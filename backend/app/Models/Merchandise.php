@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Merchandise extends Model
 {
@@ -23,6 +24,18 @@ class Merchandise extends Model
         'price' => 'decimal:2',
         'is_available' => 'boolean',
     ];
+
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        if (!$this->image_path) {
+            return null;
+        }
+        return Storage::disk('public')->exists($this->image_path)
+            ? url(Storage::disk('public')->url($this->image_path))
+            : null;
+    }
 
     public function createdByUser(): BelongsTo
     {

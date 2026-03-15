@@ -97,6 +97,7 @@ class AuthController extends Controller
             'student_number' => $user->student_number,
             'name' => $user->name,
             'role' => $user->role,
+            'is_sports_faculty' => (bool) ($user->is_sports_faculty ?? false),
         ];
     }
 }

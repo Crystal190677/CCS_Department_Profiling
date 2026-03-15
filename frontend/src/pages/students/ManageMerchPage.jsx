@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ConfirmModal from '../../components/ConfirmModal';
 import './ManageMerchPage.css';
 
 function getAuthHeaders() {
@@ -22,8 +23,11 @@ export default function ManageMerchPage() {
   const [editingItem, setEditingItem] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', price: '', is_available: true });
+  const [formImage, setFormImage] = useState(null);
   const [saving, setSaving] = useState(false);
   const [updatingPayment, setUpdatingPayment] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState({ open: false, itemId: null });
+  const [deleting, setDeleting] = useState(false);
 
   const loadUser = useCallback(() => {
     const userData = localStorage.getItem('ccs_user');
@@ -67,6 +71,7 @@ export default function ManageMerchPage() {
     setEditingItem(null);
     setShowAddForm(true);
     setForm({ name: '', description: '', price: '', is_available: true });
+    setFormImage(null);
   };
 
   const handleEditItem = (item) => {
@@ -78,44 +83,66 @@ export default function ManageMerchPage() {
       price: String(item.price),
       is_available: item.is_available,
     });
+    setFormImage(null);
   };
 
   const handleSaveItem = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.price || Number(form.price) < 0) return;
+    if (!form.name.trim() || form.price === '' || Number(form.price) < 0) return;
     setSaving(true);
     try {
-      const payload = {
-        name: form.name.trim(),
-        description: form.description.trim() || null,
-        price: Number(form.price),
-        is_available: !!form.is_available,
-      };
       const url = editingItem
         ? `/api/merchandise/${editingItem.id}`
         : '/api/merchandise';
       const method = editingItem ? 'PUT' : 'POST';
-      const res = await fetch(url, {
-        method,
-        headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
-      });
+      const token = localStorage.getItem('ccs_token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      let body;
+      if (formImage) {
+        const fd = new FormData();
+        fd.append('name', form.name.trim());
+        fd.append('description', form.description.trim() || '');
+        fd.append('price', Number(form.price));
+        fd.append('is_available', form.is_available ? '1' : '0');
+        fd.append('image', formImage);
+        body = fd;
+      } else {
+        body = JSON.stringify({
+          name: form.name.trim(),
+          description: form.description.trim() || null,
+          price: Number(form.price),
+          is_available: !!form.is_available,
+        });
+        headers['Content-Type'] = 'application/json';
+      }
+      const res = await fetch(url, { method, headers, body });
       const data = await res.json();
       if (data.success) {
         fetchItems();
         setEditingItem(null);
         setShowAddForm(false);
         setForm({ name: '', description: '', price: '', is_available: true });
+        setFormImage(null);
       }
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDeleteItem = async (id) => {
-    if (!window.confirm('Delete this item?')) return;
-    await fetch(`/api/merchandise/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
-    fetchItems();
+  const handleDeleteItem = (id) => {
+    setConfirmDelete({ open: true, itemId: id });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete.itemId) return;
+    setDeleting(true);
+    try {
+      await fetch(`/api/merchandise/${confirmDelete.itemId}`, { method: 'DELETE', headers: getAuthHeaders() });
+      fetchItems();
+      setConfirmDelete({ open: false, itemId: null });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handlePaymentStatusChange = async (orderId, status) => {
@@ -137,6 +164,17 @@ export default function ManageMerchPage() {
 
   return (
     <div className="manage-merch-page">
+      <ConfirmModal
+        open={confirmDelete.open}
+        title="Delete item"
+        message="Are you sure you want to delete this merchandise item? This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDelete({ open: false, itemId: null })}
+      />
       <h1>Manage Merchandise</h1>
       <p className="manage-merch-desc">Post and manage department merchandise. Accept GCash or cash and set payment status to &quot;Paid Online&quot; or &quot;Paid (Cash)&quot;.</p>
 
@@ -188,6 +226,23 @@ export default function ManageMerchPage() {
                 onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
                 required
               />
+              <div className="manage-merch-image-row">
+                <label>Image (optional)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFormImage(e.target.files?.[0] || null)}
+                />
+                {(editingItem?.image_url || formImage) && (
+                  <div className="manage-merch-image-preview">
+                    {formImage ? (
+                      <img src={URL.createObjectURL(formImage)} alt="Preview" />
+                    ) : editingItem?.image_url ? (
+                      <img src={editingItem.image_url} alt={editingItem.name} />
+                    ) : null}
+                  </div>
+                )}
+              </div>
               <label className="manage-merch-check">
                 <input
                   type="checkbox"
@@ -200,7 +255,7 @@ export default function ManageMerchPage() {
                 {editingItem ? 'Update' : 'Create'}
               </button>
               {(editingItem || showAddForm) && (
-                <button type="button" className="manage-merch-btn" onClick={() => { setEditingItem(null); setShowAddForm(false); setForm({ name: '', description: '', price: '', is_available: true }); }}>
+                <button type="button" className="manage-merch-btn" onClick={() => { setEditingItem(null); setShowAddForm(false); setForm({ name: '', description: '', price: '', is_available: true }); setFormImage(null); }}>
                   Cancel
                 </button>
               )}
@@ -209,6 +264,11 @@ export default function ManageMerchPage() {
           <ul className="manage-merch-list">
             {items.map((item) => (
               <li key={item.id} className="manage-merch-li">
+                {item.image_url && (
+                  <div className="manage-merch-li-img">
+                    <img src={item.image_url} alt={item.name} />
+                  </div>
+                )}
                 <div>
                   <strong>{item.name}</strong> — ₱{Number(item.price).toFixed(2)}
                   {!item.is_available && <span className="manage-merch-badge">Unavailable</span>}

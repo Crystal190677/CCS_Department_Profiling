@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
 
         $users = [
             ['name' => 'System Admin', 'email' => 'admin@ccs.edu', 'student_number' => null, 'role' => 'ADMIN'],
-            ['name' => 'John Faculty', 'email' => 'faculty@ccs.edu', 'student_number' => null, 'role' => 'FACULTY'],
+            ['name' => 'John Faculty', 'email' => 'faculty@ccs.edu', 'student_number' => null, 'role' => 'FACULTY', 'is_sports_faculty' => true],
             ['name' => 'Jane Officer', 'email' => 'officer@ccs.edu', 'student_number' => null, 'role' => 'OFFICER'],
             ['name' => 'Alex Student', 'email' => 'student@ccs.edu', 'student_number' => '1', 'role' => 'STUDENT'],
         ];
@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
                     'student_number' => $data['student_number'],
                     'password' => $password,
                     'role' => $data['role'],
+                    'is_sports_faculty' => $data['is_sports_faculty'] ?? false,
                 ]
             );
 

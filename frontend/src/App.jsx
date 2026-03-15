@@ -7,6 +7,7 @@ import StudentAnnouncementsPage from './pages/students/AnnouncementsPage';
 import StudentMerchStorePage from './pages/students/MerchStorePage';
 import ManageMerchPage from './pages/students/ManageMerchPage';
 import StudentMyProfilePage from './pages/students/MyProfilePage';
+import StudentHistoryPage from './pages/students/StudentHistoryPage';
 import AdminFacultyLayout from './components/admin-faculty/AdminFacultyLayout';
 import StudentProfilingDashboard from './pages/admin-faculty/StudentProfilingDashboard';
 
@@ -21,6 +22,7 @@ function App() {
         <Route path="merch-store" element={<StudentMerchStorePage />} />
         <Route path="manage-merch" element={<ManageMerchPage />} />
         <Route path="my-profile" element={<StudentMyProfilePage />} />
+        <Route path="student-history" element={<StudentHistoryPage />} />
       </Route>
       <Route path="/admin-dashboard" element={<AdminFacultyLayout />}>
         <Route index element={<StudentProfilingDashboard />} />

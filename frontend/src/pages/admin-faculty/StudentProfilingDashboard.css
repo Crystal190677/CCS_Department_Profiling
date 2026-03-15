@@ -288,3 +288,397 @@
   color: #dc2626;
   border-color: rgba(239, 68, 68, 0.3);
 }
+
+.spd-academic-cell {
+  font-size: 0.8125rem;
+}
+
+.spd-physical-cell {
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.spd-physical-extra {
+  display: block;
+  color: var(--ccs-text-muted);
+  font-size: 0.75rem;
+  margin-top: 0.15rem;
+}
+
+.spd-academic-gpa {
+  display: block;
+  font-weight: 500;
+  color: var(--ccs-text);
+}
+
+.spd-academic-standing {
+  display: block;
+  color: var(--ccs-text-muted);
+}
+
+.spd-actions-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.spd-edit-profile-btn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+  border-radius: 6px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.spd-edit-profile-btn:hover {
+  background: rgba(249, 115, 22, 0.1);
+  border-color: var(--ccs-orange);
+  color: var(--ccs-orange);
+}
+
+.spd-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.spd-modal {
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 12px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.spd-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--ccs-border);
+}
+
+.spd-modal-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+  margin: 0;
+}
+
+.spd-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--ccs-text-muted);
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.spd-modal-close:hover {
+  color: var(--ccs-text);
+}
+
+.spd-modal-form {
+  padding: 1.25rem;
+}
+
+.spd-modal-fieldset {
+  border: none;
+  margin: 0 0 1.25rem 0;
+  padding: 0;
+}
+
+.spd-modal-fieldset legend {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ccs-text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.spd-modal-row {
+  margin-bottom: 0.75rem;
+}
+
+.spd-modal-row label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ccs-text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.spd-modal-row input,
+.spd-modal-row select,
+.spd-modal-row textarea {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--ccs-border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+}
+
+.spd-modal-row-inline {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.spd-modal-row-inline > div {
+  flex: 1;
+}
+
+.spd-modal-row-inline label {
+  display: block;
+}
+
+.spd-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ccs-border);
+}
+
+.spd-modal-cancel {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--ccs-border);
+  background: transparent;
+  color: var(--ccs-text-muted);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9375rem;
+}
+
+.spd-modal-cancel:hover {
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+}
+
+.spd-reject-inline {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.spd-reject-inline input {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--ccs-border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  min-width: 120px;
+}
+
+.spd-entries-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.spd-entries-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--ccs-border);
+}
+
+.spd-entries-item:last-child {
+  border-bottom: none;
+}
+
+.spd-entries-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.profile-skill-links {
+  margin-top: 0.35rem;
+}
+
+.profile-skill-links a {
+  font-size: 0.875rem;
+  color: var(--ccs-orange);
+  margin-right: 1rem;
+}
+
+.profile-skill-links a:hover {
+  text-decoration: underline;
+}
+
+.profile-na-badge-approved {
+  background: rgba(34, 197, 94, 0.2);
+  color: #16a34a;
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.profile-na-badge-rejected {
+  background: rgba(239, 68, 68, 0.2);
+  color: #dc2626;
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.spd-modal-conduct {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.spd-conduct-desc {
+  font-size: 0.875rem;
+  color: var(--ccs-text-muted);
+  margin: -0.5rem 0 1rem 0;
+}
+
+.spd-conduct-list {
+  list-style: none;
+  margin: 0 0 1rem 0;
+  padding: 0;
+}
+
+.spd-conduct-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--ccs-border);
+  font-size: 0.9375rem;
+}
+
+.spd-conduct-item:last-child {
+  border-bottom: none;
+}
+
+.spd-conduct-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+.spd-conduct-violation .spd-conduct-badge {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.spd-conduct-commendation .spd-conduct-badge {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.spd-conduct-date {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+  margin-top: 0.25rem;
+}
+
+.spd-conduct-dispute-pending {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+}
+
+.spd-conduct-dispute-resolved {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ccs-text-muted);
+  margin-top: 0.25rem;
+}
+
+.spd-conduct-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.spd-conduct-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ccs-border);
+}
+
+.spd-modal-legend {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.spd-activity-setup {
+  margin-bottom: 2rem;
+}
+
+.spd-activity-setup-toolbar {
+  margin-bottom: 1rem;
+}
+
+.spd-criteria-summary {
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+}
+
+.spd-criteria-summary span {
+  margin-right: 0.5rem;
+}
+
+.spd-modal-activity-setup {
+  max-height: 90vh;
+  overflow-y: auto;
+  max-width: 560px;
+}
+
+.spd-modal-checkgroup {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.spd-modal-checkgroup label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.spd-modal-multi {
+  min-height: 80px;
+  width: 100%;
+}
+
+.spd-modal-row-inline {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.spd-modal-row-inline label {
+  margin-bottom: 0;
+}
+
+.spd-modal-row-inline input[type="number"],
+.spd-modal-row-inline input[type="text"] {
+  width: 100%;
+  max-width: 120px;
+}
+
+.spd-interests-cell {
+  font-size: 0.8125rem;
+}
