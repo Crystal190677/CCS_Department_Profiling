@@ -66,4 +66,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserNotification::class)->orderByDesc('created_at');
     }
+
+    public function officerPositions(): HasMany
+    {
+        return $this->hasMany(OfficerPosition::class);
+    }
+
+    public function merchandiseOrders(): HasMany
+    {
+        return $this->hasMany(MerchandiseOrder::class);
+    }
 }

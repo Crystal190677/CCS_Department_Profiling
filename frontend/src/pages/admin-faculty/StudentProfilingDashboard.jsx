@@ -19,6 +19,13 @@ export default function StudentProfilingDashboard() {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(null);
   const [error, setError] = useState('');
+  const [officerActivityId, setOfficerActivityId] = useState('');
+  const [officerPositions, setOfficerPositions] = useState([]);
+  const [studentsForOfficers, setStudentsForOfficers] = useState([]);
+  const [assignUserId, setAssignUserId] = useState('');
+  const [assignPosition, setAssignPosition] = useState('President');
+  const [assigningOfficer, setAssigningOfficer] = useState(false);
+  const [removingOfficer, setRemovingOfficer] = useState(null);
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
 
   const fetchStudents = useCallback(async () => {
@@ -36,6 +43,31 @@ export default function StudentProfilingDashboard() {
     const data = await res.json();
     if (data.success) setActivities(data.data || []);
   }, []);
+
+  const fetchOfficerPositions = useCallback(async () => {
+    if (!officerActivityId) {
+      setOfficerPositions([]);
+      return;
+    }
+    const res = await fetch(`/api/officer-positions?activity_id=${officerActivityId}`, { headers: getAuthHeaders() });
+    const data = await res.json();
+    if (data.success) setOfficerPositions(data.data || []);
+  }, [officerActivityId]);
+
+  const fetchStudentsForOfficers = useCallback(async () => {
+    const res = await fetch('/api/students?per_page=500&include_officers=1', { headers: getAuthHeaders() });
+    const data = await res.json();
+    if (data.success) setStudentsForOfficers(data.data?.data || []);
+  }, []);
+
+  useEffect(() => {
+    if (officerActivityId) fetchOfficerPositions();
+    else setOfficerPositions([]);
+  }, [officerActivityId, fetchOfficerPositions]);
+
+  useEffect(() => {
+    if (user?.role === 'ADMIN' || user?.role === 'FACULTY') fetchStudentsForOfficers();
+  }, [user?.role, fetchStudentsForOfficers]);
 
   useEffect(() => {
     const token = localStorage.getItem('ccs_token');
@@ -70,6 +102,52 @@ export default function StudentProfilingDashboard() {
 
   const isEnrolled = (student, activityId) =>
     student.enrollments?.some((e) => e.activity_id === activityId);
+
+  const handleAssignOfficer = async (e) => {
+    e.preventDefault();
+    if (!officerActivityId || !assignUserId || !assignPosition.trim()) return;
+    setAssigningOfficer(true);
+    setError('');
+    try {
+      const res = await fetch('/api/officer-positions', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          activity_id: Number(officerActivityId),
+          user_id: Number(assignUserId),
+          position: assignPosition.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchOfficerPositions();
+        setAssignUserId('');
+      } else {
+        setError(data.message || 'Failed to assign');
+      }
+    } catch (err) {
+      setError('Request failed');
+    } finally {
+      setAssigningOfficer(false);
+    }
+  };
+
+  const handleRemoveOfficer = async (positionId) => {
+    setRemovingOfficer(positionId);
+    try {
+      const res = await fetch(`/api/officer-positions/${positionId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) fetchOfficerPositions();
+      else setError(data.message || 'Failed to remove');
+    } catch (err) {
+      setError('Request failed');
+    } finally {
+      setRemovingOfficer(null);
+    }
+  };
 
   if (!user?.role) return null;
 
@@ -197,6 +275,76 @@ export default function StudentProfilingDashboard() {
           </table>
         </div>
       )}
+
+      <section className="spd-officer-section">
+        <h2 className="spd-officer-title">Assign officer positions</h2>
+        <p className="spd-officer-desc">Assign students or officers to roles (e.g., President, VP, Secretary) per activity.</p>
+        <div className="spd-officer-toolbar">
+          <select
+            value={officerActivityId}
+            onChange={(e) => setOfficerActivityId(e.target.value)}
+            className="spd-filter-select"
+          >
+            <option value="">Select activity</option>
+            {activities.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
+          {officerActivityId && (
+            <form className="spd-officer-form" onSubmit={handleAssignOfficer}>
+              <select
+                value={assignUserId}
+                onChange={(e) => setAssignUserId(e.target.value)}
+                className="spd-filter-select"
+                required
+              >
+                <option value="">Select person</option>
+                {studentsForOfficers.map((u) => (
+                  <option key={u.id} value={u.id}>{u.name} {u.student_number ? `(${u.student_number})` : ''} — {u.role}</option>
+                ))}
+              </select>
+              <select
+                value={assignPosition}
+                onChange={(e) => setAssignPosition(e.target.value)}
+                className="spd-filter-select"
+              >
+                <option value="President">President</option>
+                <option value="VP">VP</option>
+                <option value="Secretary">Secretary</option>
+                <option value="Treasurer">Treasurer</option>
+                <option value="Other">Other</option>
+              </select>
+              <button type="submit" className="spd-search-btn" disabled={assigningOfficer || !assignUserId}>
+                {assigningOfficer ? 'Assigning…' : 'Assign'}
+              </button>
+            </form>
+          )}
+        </div>
+        {officerActivityId && (
+          <div className="spd-officer-list">
+            {officerPositions.length === 0 ? (
+              <p className="spd-muted">No officer positions assigned for this activity.</p>
+            ) : (
+              <ul className="spd-officer-ul">
+                {officerPositions.map((p) => (
+                  <li key={p.id} className="spd-officer-li">
+                    <span className="spd-officer-role">{p.position}</span>
+                    <span className="spd-officer-name">{p.user?.name} {p.user?.student_number && `(${p.user.student_number})`}</span>
+                    <button
+                      type="button"
+                      className="spd-officer-remove"
+                      onClick={() => handleRemoveOfficer(p.id)}
+                      disabled={removingOfficer === p.id}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

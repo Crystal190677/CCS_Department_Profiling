@@ -3,12 +3,14 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from '../../context/DarkModeContext';
 import './StudentLayout.css';
 
-const MENU_ITEMS = [
+const MENU_ITEMS_BASE = [
   { path: '/dashboard', label: 'Dashboard', icon: 'grid' },
   { path: '/dashboard/announcements', label: 'Announcements', icon: 'megaphone' },
   { path: '/dashboard/merch-store', label: 'Merch Store', icon: 'tag' },
   { path: '/dashboard/my-profile', label: 'My Profile', icon: 'person' },
 ];
+
+const MENU_ITEM_OFFICER_MERCH = { path: '/dashboard/manage-merch', label: 'Manage Merchandise', icon: 'package', officerOnly: true };
 
 function Icon({ name, className }) {
   const cls = `sidebar-icon sidebar-icon-${name} ${className || ''}`;
@@ -43,6 +45,15 @@ function Icon({ name, className }) {
       <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         <circle cx="12" cy="7" r="4" />
+      </svg>
+    );
+  }
+  if (name === 'package') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+        <line x1="12" y1="22.08" x2="12" y2="12" />
       </svg>
     );
   }
@@ -83,11 +94,18 @@ function LogoutIcon() {
   );
 }
 
+function getMenuItems(user) {
+  const items = [...MENU_ITEMS_BASE];
+  if (user?.role === 'OFFICER') items.push(MENU_ITEM_OFFICER_MERCH);
+  return items;
+}
+
 export default function StudentLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDark, toggleDarkMode } = useDarkMode();
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
+  const menuItems = getMenuItems(user);
 
   useEffect(() => {
     const token = localStorage.getItem('ccs_token');
@@ -131,6 +149,7 @@ export default function StudentLayout() {
             </div>
             <button type="button" className="dashboard-logout-btn" onClick={handleLogout} aria-label="Logout">
               <LogoutIcon />
+              <span className="dashboard-logout-text">Logout</span>
             </button>
           </div>
         </div>
@@ -138,7 +157,7 @@ export default function StudentLayout() {
 
       <aside className="dashboard-sidebar">
         <nav className="sidebar-nav">
-          {MENU_ITEMS.map((item) => {
+          {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <button

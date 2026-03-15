@@ -5,6 +5,7 @@ import StudentLayout from './components/students/StudentLayout';
 import StudentDashboardPage from './pages/students/DashboardPage';
 import StudentAnnouncementsPage from './pages/students/AnnouncementsPage';
 import StudentMerchStorePage from './pages/students/MerchStorePage';
+import ManageMerchPage from './pages/students/ManageMerchPage';
 import StudentMyProfilePage from './pages/students/MyProfilePage';
 import AdminFacultyLayout from './components/admin-faculty/AdminFacultyLayout';
 import StudentProfilingDashboard from './pages/admin-faculty/StudentProfilingDashboard';
@@ -18,6 +19,7 @@ function App() {
         <Route index element={<StudentDashboardPage />} />
         <Route path="announcements" element={<StudentAnnouncementsPage />} />
         <Route path="merch-store" element={<StudentMerchStorePage />} />
+        <Route path="manage-merch" element={<ManageMerchPage />} />
         <Route path="my-profile" element={<StudentMyProfilePage />} />
       </Route>
       <Route path="/admin-dashboard" element={<AdminFacultyLayout />}>

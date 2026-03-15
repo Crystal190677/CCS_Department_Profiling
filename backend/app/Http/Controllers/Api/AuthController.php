@@ -16,21 +16,21 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'identifier' => 'required|string', // email or student_number
+            'identifier' => 'required|string',
             'password' => 'required|string',
             'role' => 'required|string|in:' . implode(',', self::ROLES),
         ]);
 
-        $user = $this->findUser($request->identifier, $request->role);
+        $user = $this->findUser($request->input('identifier'), $request->input('role'));
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (!$user || !Hash::check($request->input('password'), $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials',
             ], 401);
         }
 
-        if ($user->role !== $request->role) {
+        if ($user->role !== $request->input('role')) {
             return response()->json([
                 'success' => false,
                 'message' => "Access denied. This account is registered as {$user->role}. Please select the correct role.",
@@ -81,8 +81,8 @@ class AuthController extends Controller
     private function findUser(string $identifier, string $role): ?User
     {
         if ($role === 'STUDENT') {
-            return User::where('student_number', $identifier)
-                ->orWhere('email', $identifier)
+            return User::where('role', 'STUDENT')
+                ->where('student_number', $identifier)
                 ->first();
         }
 

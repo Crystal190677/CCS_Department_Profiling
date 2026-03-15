@@ -6,7 +6,7 @@ const ROLES = [
   {
     value: 'ADMIN',
     label: 'Admin',
-    description: 'Full system access and control',
+    description: 'Full access to all system features (except certain private user info). Enroll students, assign officer roles (e.g., President, VP, Secretary), manage all records.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -16,7 +16,7 @@ const ROLES = [
   {
     value: 'FACULTY',
     label: 'Faculty',
-    description: 'Manage students and announcements',
+    description: 'View and analyze student profiles, enroll students into activities or organizations, and assign officer positions.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
@@ -27,7 +27,7 @@ const ROLES = [
   {
     value: 'OFFICER',
     label: 'Officer',
-    description: 'Post merch and announcements',
+    description: 'Students with elevated privileges: post and manage department merchandise (e.g., ID laces, membership cards, shirts), accept GCash or cash, track payment status (Paid Online / Paid Cash).',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -40,7 +40,7 @@ const ROLES = [
   {
     value: 'STUDENT',
     label: 'Student',
-    description: 'View content and manage profile',
+    description: 'Access own profile, receive enrollment notifications, and view relevant information.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -154,17 +154,17 @@ export default function LoginPage() {
             <form className="login-form" onSubmit={handleSubmit}>
               <div className="login-field">
                 <label htmlFor="identifier">
-                  {form.role === 'STUDENT' ? 'Student number or email' : 'Email'}
+                  {form.role === 'STUDENT' ? 'Student number' : 'Email'}
                 </label>
                 <input
                   id="identifier"
                   name="identifier"
                   type="text"
-                  placeholder={form.role === 'STUDENT' ? '2024-001 or you@ccs.edu' : 'you@ccs.edu'}
+                  placeholder={form.role === 'STUDENT' ? 'e.g. 1' : 'you@ccs.edu'}
                   value={form.identifier}
                   onChange={handleChange}
                   required
-                  autoComplete="username"
+                  autoComplete={form.role === 'STUDENT' ? 'username' : 'username'}
                   disabled={loading}
                 />
               </div>
@@ -196,7 +196,7 @@ export default function LoginPage() {
             </form>
 
             <p className="login-demo">
-              Demo: admin@ccs.edu / faculty@ccs.edu / officer@ccs.edu / 2024-001 (student) — Password: admin123
+              Demo: admin@ccs.edu / faculty@ccs.edu / officer@ccs.edu — Student: 1 / password123
             </p>
             {form.role === 'STUDENT' && (
               <p className="login-signup-link">

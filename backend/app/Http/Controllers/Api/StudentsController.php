@@ -7,6 +7,7 @@ use App\Models\Activity;
 use App\Models\Enrollment;
 use App\Models\User;
 use App\Models\UserNotification;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,12 +15,17 @@ class StudentsController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = User::with(['studentProfile', 'enrollments.activity'])
-            ->where('role', 'STUDENT');
+        $query = User::with(['studentProfile', 'enrollments.activity', 'officerPositions.activity']);
+        if (!$request->boolean('include_officers')) {
+            $query->where('role', 'STUDENT');
+        } else {
+            $query->whereIn('role', ['STUDENT', 'OFFICER']);
+        }
 
         // Search: name, student_number, email
-        if ($search = $request->get('search')) {
-            $query->where(function ($q) use ($search) {
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function (Builder $q) use ($search): void {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('student_number', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%");
@@ -27,7 +33,8 @@ class StudentsController extends Controller
         }
 
         // Filter by activity
-        if ($activityId = $request->get('activity_id')) {
+        if ($request->filled('activity_id')) {
+            $activityId = $request->input('activity_id');
             $activity = Activity::find($activityId);
             if ($activity) {
                 $query->whereDoesntHave('enrollments', fn ($q) => $q->where('activity_id', $activityId))
@@ -38,7 +45,8 @@ class StudentsController extends Controller
         }
 
         // Filter by qualification (smart filter)
-        if ($qualifyFor = $request->get('qualify_for')) {
+        if ($request->filled('qualify_for')) {
+            $qualifyFor = $request->input('qualify_for');
             $activity = Activity::find($qualifyFor);
             if ($activity) {
                 $query->whereDoesntHave('enrollments', fn ($q) => $q->where('activity_id', $activity->id))
@@ -48,7 +56,7 @@ class StudentsController extends Controller
             }
         }
 
-        $students = $query->orderBy('name')->paginate($request->get('per_page', 15));
+        $students = $query->orderBy('name')->paginate((int) $request->input('per_page', 15));
 
         return response()->json([
             'success' => true,
@@ -63,13 +71,19 @@ class StudentsController extends Controller
             'activity_id' => 'required|exists:activities,id',
         ]);
 
-        $student = User::findOrFail($request->student_id);
+        $authUser = $request->user();
+        if (!$authUser) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
+        }
+
+        $student = User::findOrFail($request->input('student_id'));
         if ($student->role !== 'STUDENT') {
             return response()->json(['success' => false, 'message' => 'User is not a student'], 400);
         }
 
+        $activityId = $request->input('activity_id');
         $exists = Enrollment::where('user_id', $student->id)
-            ->where('activity_id', $request->activity_id)
+            ->where('activity_id', $activityId)
             ->exists();
 
         if ($exists) {
@@ -78,12 +92,12 @@ class StudentsController extends Controller
 
         $enrollment = Enrollment::create([
             'user_id' => $student->id,
-            'activity_id' => $request->activity_id,
-            'enrolled_by' => $request->user()->id,
+            'activity_id' => $activityId,
+            'enrolled_by' => $authUser->id,
         ]);
 
         $activity = $enrollment->activity;
-        $enrolledBy = $request->user()->name;
+        $enrolledBy = $authUser->name;
 
         UserNotification::create([
             'user_id' => $student->id,
@@ -100,12 +114,15 @@ class StudentsController extends Controller
         ], 201);
     }
 
-    private function applyQualificationFilter($query, Activity $activity): void
+    /**
+     * @param  Builder<User>  $query
+     */
+    private function applyQualificationFilter(Builder $query, Activity $activity): void
     {
         $criteria = $activity->criteria ?? [];
         $activityName = strtolower($activity->name);
 
-        $query->whereHas('studentProfile', function ($sub) use ($criteria, $activityName) {
+        $query->whereHas('studentProfile', function (Builder $sub) use ($criteria, $activityName) {
             if (!empty($criteria['min_height'])) {
                 $sub->where('height_cm', '>=', $criteria['min_height']);
             }
@@ -121,7 +138,7 @@ class StudentsController extends Controller
             if (!empty($criteria['courses'])) {
                 $sub->whereIn('course', (array) $criteria['courses']);
             }
-            $sub->where(function ($inner) use ($activityName) {
+            $sub->where(function (Builder $inner) use ($activityName) {
                 $inner->whereJsonContains('sports_interests', $activityName)
                     ->orWhereJsonContains('activity_interests', $activityName)
                     ->orWhere('sports_interests', 'like', "%{$activityName}%")

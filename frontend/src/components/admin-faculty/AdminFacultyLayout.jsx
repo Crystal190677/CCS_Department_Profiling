@@ -104,6 +104,7 @@ export default function AdminFacultyLayout() {
             </div>
             <button type="button" className="dashboard-logout-btn" onClick={handleLogout} aria-label="Logout">
               <LogoutIcon />
+              <span className="dashboard-logout-text">Logout</span>
             </button>
           </div>
         </div>

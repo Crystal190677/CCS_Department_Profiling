@@ -12,13 +12,13 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $password = Hash::make('admin123');
+        $password = Hash::make('password123');
 
         $users = [
             ['name' => 'System Admin', 'email' => 'admin@ccs.edu', 'student_number' => null, 'role' => 'ADMIN'],
             ['name' => 'John Faculty', 'email' => 'faculty@ccs.edu', 'student_number' => null, 'role' => 'FACULTY'],
             ['name' => 'Jane Officer', 'email' => 'officer@ccs.edu', 'student_number' => null, 'role' => 'OFFICER'],
-            ['name' => 'Alex Student', 'email' => 'student@ccs.edu', 'student_number' => '2024-001', 'role' => 'STUDENT'],
+            ['name' => 'Alex Student', 'email' => 'student@ccs.edu', 'student_number' => '1', 'role' => 'STUDENT'],
         ];
 
         foreach ($users as $data) {

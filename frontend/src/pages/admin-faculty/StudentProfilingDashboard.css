@@ -202,3 +202,89 @@
   font-size: 0.8125rem;
   color: var(--ccs-text-dim);
 }
+
+.spd-officer-section {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ccs-border);
+}
+
+.spd-officer-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+  margin-bottom: 0.25rem;
+}
+
+.spd-officer-desc {
+  font-size: 0.875rem;
+  color: var(--ccs-text-muted);
+  margin-bottom: 1rem;
+}
+
+.spd-officer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.spd-officer-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.spd-officer-list {
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.spd-officer-ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.spd-officer-li {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--ccs-border);
+}
+
+.spd-officer-li:last-child {
+  border-bottom: none;
+}
+
+.spd-officer-role {
+  font-weight: 600;
+  color: var(--ccs-orange);
+  min-width: 6rem;
+}
+
+.spd-officer-name {
+  flex: 1;
+  color: var(--ccs-text);
+}
+
+.spd-officer-remove {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+  border: 1px solid var(--ccs-border);
+  background: transparent;
+  color: var(--ccs-text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.spd-officer-remove:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.3);
+}

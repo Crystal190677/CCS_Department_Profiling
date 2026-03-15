@@ -1,0 +1,84 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Merchandise;
+use App\Models\MerchandiseOrder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class MerchandiseController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $query = Merchandise::with('createdByUser:id,name');
+
+        if ($request->boolean('available_only')) {
+            $query->where('is_available', true);
+        }
+
+        $items = $query->orderBy('name')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $items,
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'is_available' => 'boolean',
+        ]);
+
+        $merchandise = Merchandise::create([
+            'name' => $request->name,
+            'description' => $request->description,
+            'price' => $request->price,
+            'is_available' => $request->boolean('is_available', true),
+            'created_by' => $request->user()->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Merchandise created',
+            'data' => $merchandise->load('createdByUser:id,name'),
+        ], 201);
+    }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $merchandise = Merchandise::findOrFail($id);
+
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'sometimes|numeric|min:0',
+            'is_available' => 'boolean',
+        ]);
+
+        $merchandise->fill($request->only(['name', 'description', 'price', 'is_available']));
+        if ($request->has('is_available')) {
+            $merchandise->is_available = $request->boolean('is_available');
+        }
+        $merchandise->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Merchandise updated',
+            'data' => $merchandise->load('createdByUser:id,name'),
+        ]);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $merchandise = Merchandise::findOrFail($id);
+        $merchandise->delete();
+
+        return response()->json(['success' => true, 'message' => 'Merchandise deleted']);
+    }
+}

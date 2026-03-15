@@ -24,4 +24,9 @@ class Activity extends Model
     {
         return $this->hasMany(Enrollment::class);
     }
+
+    public function officerPositions(): HasMany
+    {
+        return $this->hasMany(OfficerPosition::class);
+    }
 }
