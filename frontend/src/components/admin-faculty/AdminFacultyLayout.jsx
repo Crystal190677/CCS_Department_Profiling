@@ -1,15 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from '../../context/DarkModeContext';
 import NotificationsBell from '../NotificationsBell';
 import '../students/StudentLayout.css';
-
-const MENU_ITEMS = [
-  { path: '/admin-dashboard', label: 'Dashboard', icon: 'dashboard', exact: true },
-  { path: '/admin-dashboard/profiling', label: 'Student Profiling', icon: 'grid' },
-  { path: '/admin-dashboard/announcements', label: 'Announcements', icon: 'megaphone' },
-  { path: '/admin-dashboard/profile-settings', label: 'Profile settings', icon: 'settings' },
-];
+import './AdminFacultyLayout.css';
 
 function Icon({ name, className }) {
   const cls = `sidebar-icon sidebar-icon-${name} ${className || ''}`;
@@ -36,6 +30,33 @@ function Icon({ name, className }) {
       <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="12" cy="12" r="3" />
         <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+      </svg>
+    );
+  }
+  if (name === 'audit') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+        <rect x="9" y="3" width="6" height="4" rx="1" />
+        <path d="M9 12h6M9 16h4" />
+      </svg>
+    );
+  }
+  if (name === 'user-plus') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="8.5" cy="7" r="4" />
+        <line x1="20" y1="8" x2="20" y2="14" />
+        <line x1="23" y1="11" x2="17" y2="11" />
+      </svg>
+    );
+  }
+  if (name === 'school') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+        <path d="M6 12v5c3 3 9 3 12 0v-5" />
       </svg>
     );
   }
@@ -81,6 +102,23 @@ export default function AdminFacultyLayout() {
   const location = useLocation();
   const { isDark, toggleDarkMode } = useDarkMode();
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
+
+  const menuItems = useMemo(() => {
+    const base = [
+      { path: '/admin-dashboard', label: 'Dashboard', icon: 'dashboard', exact: true },
+      { path: '/admin-dashboard/profiling', label: 'Student Profiling', icon: 'grid' },
+      { path: '/admin-dashboard/announcements', label: 'Announcements', icon: 'megaphone' },
+      { path: '/admin-dashboard/profile-settings', label: 'Profile settings', icon: 'settings' },
+    ];
+    if (user.role === 'ADMIN') {
+      return [
+        base[0],
+        { path: '/admin/audit-log', label: 'Audit log', icon: 'audit' },
+        ...base.slice(1),
+      ];
+    }
+    return base;
+  }, [user.role]);
 
   useEffect(() => {
     const token = localStorage.getItem('ccs_token');
@@ -132,7 +170,7 @@ export default function AdminFacultyLayout() {
       </header>
       <aside className="dashboard-sidebar">
         <nav className="sidebar-nav">
-          {MENU_ITEMS.map((item) => {
+          {menuItems.map((item) => {
             const isActive =
               item.path === '/admin-dashboard'
                 ? location.pathname === '/admin-dashboard'
@@ -149,6 +187,33 @@ export default function AdminFacultyLayout() {
               </button>
             );
           })}
+          {user.role === 'ADMIN' ? (
+            <>
+              <span className="admin-sidebar-section-label">Account management</span>
+              <button
+                type="button"
+                className={`sidebar-item ${location.pathname === '/admin-dashboard/add-student' ? 'active' : ''}`}
+                onClick={() => navigate('/admin-dashboard/add-student')}
+              >
+                <Icon
+                  name="user-plus"
+                  className={location.pathname === '/admin-dashboard/add-student' ? 'active' : ''}
+                />
+                <span>Add student</span>
+              </button>
+              <button
+                type="button"
+                className={`sidebar-item ${location.pathname === '/admin-dashboard/create-faculty' ? 'active' : ''}`}
+                onClick={() => navigate('/admin-dashboard/create-faculty')}
+              >
+                <Icon
+                  name="school"
+                  className={location.pathname === '/admin-dashboard/create-faculty' ? 'active' : ''}
+                />
+                <span>Create faculty</span>
+              </button>
+            </>
+          ) : null}
         </nav>
       </aside>
       <main className="dashboard-content">

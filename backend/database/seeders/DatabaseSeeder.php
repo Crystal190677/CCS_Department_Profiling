@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Activity;
 use App\Models\Announcement;
+use App\Models\AuditLog;
 use App\Models\StudentProfile;
 use App\Models\StudentSkillEntry;
 use App\Models\User;
@@ -42,8 +43,10 @@ class DatabaseSeeder extends Seeder
                     [
                         'height_cm' => 170,
                         'weight_kg' => 65,
-                        'course' => 'BS Computer Science',
-                        'year_level' => '2',
+                        'course' => 'BSCS',
+                        'year_level' => '2nd yr',
+                        'section' => 'A',
+                        'academic_standing' => 'Regular',
                         'sports_interests' => ['basketball', 'volleyball'],
                         'activity_interests' => ['hackathon', 'chess'],
                     ]
@@ -75,6 +78,26 @@ class DatabaseSeeder extends Seeder
                 ['name' => $data['name']],
                 array_merge($data, ['is_active' => true])
             );
+        }
+
+        $adminUser = User::where('email', 'admin@ccs.edu')->first();
+        if ($adminUser && AuditLog::query()->count() === 0) {
+            $samples = [
+                ['created', 'Student: Alex Student (#1)', now()->subDays(3)],
+                ['updated', 'Student/officer role → OFFICER: Jane Officer (#OFC001)', now()->subDays(2)],
+                ['deleted', 'Student: Archived record (#9999)', now()->subDay()],
+                ['created', 'Faculty account: John Faculty (faculty@ccs.edu)', now()->subHours(20)],
+                ['updated', 'Announcement: Upcoming Hackathon 2026', now()->subHours(6)],
+            ];
+            foreach ($samples as [$action, $target, $at]) {
+                AuditLog::query()->insert([
+                    'action' => $action,
+                    'target' => $target,
+                    'performer_id' => $adminUser->id,
+                    'created_at' => $at,
+                    'updated_at' => $at,
+                ]);
+            }
         }
 
         $facultyUser = User::where('email', 'faculty@ccs.edu')->first();

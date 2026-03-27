@@ -1,0 +1,177 @@
+.admin-account-page {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 0 0.25rem 2rem;
+}
+
+.admin-account-page h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  color: var(--ccs-text);
+}
+
+.admin-account-page .admin-account-lead {
+  margin: 0 0 1.25rem;
+  font-size: 0.9rem;
+  color: var(--ccs-text-muted);
+  line-height: 1.5;
+}
+
+.admin-account-card {
+  border-radius: 14px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg-card);
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='dark'] .admin-account-card {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.admin-account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-account-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-account-row label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ccs-text-muted);
+}
+
+.admin-account-row input[type='text'],
+.admin-account-row input[type='email'],
+.admin-account-row input[type='password'] {
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+  font-size: 0.9rem;
+}
+
+.admin-account-row-check label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: var(--ccs-text);
+  cursor: pointer;
+}
+
+.admin-account-row-check input {
+  margin-top: 0.2rem;
+}
+
+.admin-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+}
+
+.admin-account-actions .admin-account-btn-primary {
+  padding: 0.5rem 1.1rem;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--ccs-orange) 0%, #c2410c 100%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.admin-account-actions .admin-account-btn-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.admin-account-actions .admin-account-btn-ghost {
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--ccs-border);
+  background: transparent;
+  color: var(--ccs-text);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.admin-account-error {
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+[data-theme='dark'] .admin-account-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.admin-account-success {
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+[data-theme='dark'] .admin-account-success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.admin-add-student-page .admin-account-card {
+  margin-bottom: 2rem;
+}
+
+.admin-account-label-static {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ccs-text-muted);
+}
+
+.admin-account-readonly {
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--ccs-border);
+  font-size: 0.9rem;
+  color: var(--ccs-text);
+}
+
+[data-theme='dark'] .admin-account-readonly {
+  background: rgba(248, 250, 252, 0.06);
+}
+
+.admin-account-row select {
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+  font-size: 0.9rem;
+}
+
+.admin-account-muted {
+  color: var(--ccs-text-muted);
+  font-size: 0.9rem;
+}

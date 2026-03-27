@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -35,6 +36,12 @@ class FacultyAccountsController extends Controller
             'role' => 'FACULTY',
             'is_sports_faculty' => $request->boolean('is_sports_faculty'),
         ]);
+
+        AuditLogger::log(
+            'created',
+            'Faculty account: '.$user->name.' ('.$user->email.')',
+            $auth
+        );
 
         return response()->json([
             'success' => true,

@@ -188,11 +188,6 @@
   margin-bottom: 1.5rem;
 }
 
-.spd-hero-desc {
-  max-width: 58rem;
-  line-height: 1.5;
-}
-
 .spd-toolbar {
   display: flex;
   gap: 1rem;
@@ -1274,4 +1269,221 @@
 
 .spd-q-enroll {
   margin-left: auto;
+}
+
+/* Main view: Browse vs Class lists */
+.spd-profiling-view-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
+  padding: 0.2rem;
+  border-radius: 12px;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  max-width: 28rem;
+}
+
+.spd-profiling-view-tab {
+  flex: 1;
+  padding: 0.55rem 0.85rem;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ccs-text-muted);
+  cursor: pointer;
+}
+
+.spd-profiling-view-tab:hover {
+  color: var(--ccs-text);
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.spd-profiling-view-tab.active {
+  background: linear-gradient(135deg, var(--ccs-orange) 0%, #c2410c 100%);
+  color: #fff;
+  box-shadow: 0 2px 10px var(--ccs-orange-glow);
+}
+
+.spd-class-lists-view {
+  margin-bottom: 2rem;
+}
+
+.spd-class-lists-intro {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--ccs-text-muted);
+  line-height: 1.5;
+  max-width: 44rem;
+}
+
+.spd-class-lists-course-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.spd-class-lists-course-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg-card);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ccs-text);
+  cursor: pointer;
+}
+
+.spd-class-lists-course-tab.active {
+  border-color: var(--ccs-orange);
+  background: rgba(249, 115, 22, 0.1);
+  color: var(--ccs-orange);
+}
+
+.spd-class-lists-section-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.spd-class-lists-section-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+  cursor: pointer;
+}
+
+.spd-class-lists-section-tab.active {
+  border-color: var(--ccs-orange);
+  background: rgba(249, 115, 22, 0.12);
+  color: var(--ccs-orange);
+}
+
+.spd-class-lists-tab-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--ccs-text-muted);
+}
+
+.spd-class-lists-course-tab.active .spd-class-lists-tab-count,
+.spd-class-lists-section-tab.active .spd-class-lists-tab-count {
+  background: rgba(255, 255, 255, 0.35);
+  color: inherit;
+}
+
+.spd-class-lists-meta {
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+  margin-bottom: 1rem;
+}
+
+.spd-class-lists-cap--over {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .spd-class-lists-cap--over {
+  color: #fca5a5;
+}
+
+.spd-class-lists-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 720px) {
+  .spd-class-lists-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .spd-class-lists-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.spd-class-lists-card {
+  border: 1px solid var(--ccs-border);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  background: var(--ccs-bg-card);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.spd-class-lists-card-head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.spd-class-lists-card-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ccs-text);
+}
+
+.spd-class-lists-card-meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ccs-text-muted);
+}
+
+.spd-class-lists-standing {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+}
+
+.spd-class-lists-standing--regular {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+}
+
+.spd-class-lists-standing--irregular {
+  background: rgba(234, 179, 8, 0.22);
+  color: #a16207;
+}
+
+.spd-class-lists-card-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.spd-class-lists-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--ccs-border);
 }

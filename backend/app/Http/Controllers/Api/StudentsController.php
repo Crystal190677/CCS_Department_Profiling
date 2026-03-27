@@ -12,6 +12,7 @@ use App\Models\UserNotification;
 use App\Services\ActivityQualificationScoringService;
 use App\Services\ActivityQualificationService;
 use App\Services\QualifiedStudentPresentationService;
+use App\Support\AuditLogger;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -153,9 +154,9 @@ class StudentsController extends Controller
             'email' => 'required|email|max:255|unique:users,email',
             'student_number' => 'required|string|max:50|unique:users,student_number',
             'password' => 'nullable|string|min:6',
-            'course' => 'nullable|string|max:255',
-            'year_level' => 'nullable|string|max:50',
-            'section' => 'nullable|string|max:50',
+            'course' => 'required|string|in:BSCS,BSIT',
+            'section' => 'required|string|in:A,B,C,D,E',
+            'academic_standing' => 'required|string|in:Regular,Irregular',
         ]);
 
         $hasInitialPassword = !empty($validated['password']);
@@ -170,9 +171,10 @@ class StudentsController extends Controller
 
         StudentProfile::create([
             'user_id' => $user->id,
-            'course' => $validated['course'] ?? null,
-            'year_level' => $validated['year_level'] ?? null,
-            'section' => $validated['section'] ?? null,
+            'course' => $validated['course'],
+            'year_level' => '1st yr',
+            'section' => $validated['section'],
+            'academic_standing' => $validated['academic_standing'],
         ]);
 
         return response()->json([
@@ -201,7 +203,10 @@ class StudentsController extends Controller
             return response()->json(['success' => false, 'message' => 'Cannot delete your own account'], 400);
         }
 
+        $label = 'Student: '.$student->name.' (#'.$student->student_number.')';
         $student->delete();
+
+        AuditLogger::log('deleted', $label, $authUser);
 
         return response()->json(['success' => true, 'message' => 'Student removed']);
     }
@@ -231,6 +236,12 @@ class StudentsController extends Controller
 
         $target->role = $validated['role'];
         $target->save();
+
+        AuditLogger::log(
+            'updated',
+            'Student/officer role → '.$validated['role'].': '.$target->name.' (#'.$target->student_number.')',
+            $authUser
+        );
 
         return response()->json([
             'success' => true,

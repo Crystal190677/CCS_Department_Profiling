@@ -12,6 +12,9 @@ import StudentHistoryPage from './pages/students/StudentHistoryPage';
 import AdminFacultyLayout from './components/admin-faculty/AdminFacultyLayout';
 import StudentProfilingDashboard from './pages/admin-faculty/StudentProfilingDashboard';
 import AdminDashboardPage from './pages/admin-faculty/AdminDashboardPage';
+import AuditLogPage from './pages/admin-faculty/AuditLogPage';
+import AdminAddStudentPage from './pages/admin-faculty/AdminAddStudentPage';
+import AdminCreateFacultyPage from './pages/admin-faculty/AdminCreateFacultyPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 
 function App() {
@@ -32,8 +35,13 @@ function App() {
       <Route path="/admin-dashboard" element={<AdminFacultyLayout />}>
         <Route index element={<AdminDashboardPage />} />
         <Route path="profiling" element={<StudentProfilingDashboard />} />
+        <Route path="add-student" element={<AdminAddStudentPage />} />
+        <Route path="create-faculty" element={<AdminCreateFacultyPage />} />
         <Route path="announcements" element={<StudentAnnouncementsPage />} />
         <Route path="profile-settings" element={<ProfileSettingsPage />} />
+      </Route>
+      <Route path="/admin" element={<AdminFacultyLayout />}>
+        <Route path="audit-log" element={<AuditLogPage />} />
       </Route>
       <Route path="/" element={<Navigate to="/login" replace />} />
     </Routes>

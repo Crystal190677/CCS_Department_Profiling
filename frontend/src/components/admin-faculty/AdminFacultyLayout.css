@@ -1,0 +1,11 @@
+.admin-sidebar-section-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ccs-text-muted);
+  padding: 0.85rem 1rem 0.4rem;
+  margin-top: 0.35rem;
+  border-top: 1px solid var(--ccs-border);
+}

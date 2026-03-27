@@ -1,7 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import ConfirmModal from '../../components/ConfirmModal';
+import {
+  COURSE_OPTIONS,
+  SECTION_LETTERS,
+  SECTION_CAPACITY,
+  YEAR_LEVEL_OPTIONS,
+  mapLegacyCourseToSelect,
+  mapLegacySectionToSelect,
+  buildClassListTree,
+} from '../../constants/academicPlacement';
 import './StudentProfilingDashboard.css';
 
 function getAuthHeaders() {
@@ -163,25 +172,12 @@ export default function StudentProfilingDashboard() {
   const [browseSkill, setBrowseSkill] = useState('');
   const [browseCourse, setBrowseCourse] = useState('');
   const [studentListLayout, setStudentListLayout] = useState('table');
-  const [addStudentOpen, setAddStudentOpen] = useState(false);
-  const [addStudentForm, setAddStudentForm] = useState({
-    name: '',
-    email: '',
-    student_number: '',
-    password: '',
-    course: '',
-    year_level: '',
-    section: '',
-  });
-  const [savingNewStudent, setSavingNewStudent] = useState(false);
-  const [createFacultyOpen, setCreateFacultyOpen] = useState(false);
-  const [createFacultyForm, setCreateFacultyForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    is_sports_faculty: false,
-  });
-  const [savingFaculty, setSavingFaculty] = useState(false);
+  const [profilingMainView, setProfilingMainView] = useState('browse');
+  const [classListCourse, setClassListCourse] = useState('BSCS');
+  const [classListSection, setClassListSection] = useState('A');
+  const [classListRoster, setClassListRoster] = useState([]);
+  const [classListLoading, setClassListLoading] = useState(false);
+  const [classListRefreshKey, setClassListRefreshKey] = useState(0);
   const [roleUpdatingId, setRoleUpdatingId] = useState(null);
   const [deleteStudentId, setDeleteStudentId] = useState(null);
   const [deletingStudent, setDeletingStudent] = useState(false);
@@ -208,8 +204,10 @@ export default function StudentProfilingDashboard() {
     }
     const res = await fetch(`/api/students?${params}`, { headers: getAuthHeaders() });
     const data = await res.json();
-    if (data.success) setStudents(data.data.data || []);
-    else setError(data.message || 'Failed to load students');
+    if (data.success) {
+      setStudents(data.data.data || []);
+      setClassListRefreshKey((k) => k + 1);
+    } else setError(data.message || 'Failed to load students');
   }, [search, activityFilter, listSection, listYear, listSkill, listInterestOnly, listSort, listSortDir, browseSkill, browseCourse]);
 
   const fetchActivities = useCallback(async () => {
@@ -234,74 +232,6 @@ export default function StudentProfilingDashboard() {
     if (data.success) setStudentsForOfficers(data.data?.data || []);
   }, []);
 
-  const submitNewStudent = async (e) => {
-    e.preventDefault();
-    setSavingNewStudent(true);
-    setError('');
-    try {
-      const body = {
-        name: addStudentForm.name.trim(),
-        email: addStudentForm.email.trim(),
-        student_number: addStudentForm.student_number.trim(),
-        course: addStudentForm.course.trim() || null,
-        year_level: addStudentForm.year_level.trim() || null,
-        section: addStudentForm.section.trim() || null,
-      };
-      if (addStudentForm.password.trim()) body.password = addStudentForm.password.trim();
-      const res = await fetch('/api/students', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setAddStudentOpen(false);
-        setAddStudentForm({
-          name: '',
-          email: '',
-          student_number: '',
-          password: '',
-          course: '',
-          year_level: '',
-          section: '',
-        });
-        fetchStudents();
-        fetchStudentsForOfficers();
-      } else setError(data.message || 'Could not create student');
-    } catch {
-      setError('Request failed');
-    } finally {
-      setSavingNewStudent(false);
-    }
-  };
-
-  const submitCreateFaculty = async (e) => {
-    e.preventDefault();
-    setSavingFaculty(true);
-    setError('');
-    try {
-      const res = await fetch('/api/faculty-accounts', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: createFacultyForm.name.trim(),
-          email: createFacultyForm.email.trim(),
-          password: createFacultyForm.password,
-          is_sports_faculty: createFacultyForm.is_sports_faculty,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCreateFacultyOpen(false);
-        setCreateFacultyForm({ name: '', email: '', password: '', is_sports_faculty: false });
-      } else setError(data.message || 'Could not create faculty');
-    } catch {
-      setError('Request failed');
-    } finally {
-      setSavingFaculty(false);
-    }
-  };
-
   const patchStudentRole = async (studentId, role) => {
     setRoleUpdatingId(studentId);
     setError('');
@@ -315,6 +245,7 @@ export default function StudentProfilingDashboard() {
       if (data.success) {
         fetchStudents();
         fetchStudentsForOfficers();
+        setClassListRefreshKey((k) => k + 1);
       } else setError(data.message || 'Could not update role');
     } catch {
       setError('Request failed');
@@ -334,6 +265,7 @@ export default function StudentProfilingDashboard() {
         setDeleteStudentId(null);
         fetchStudents();
         fetchStudentsForOfficers();
+        setClassListRefreshKey((k) => k + 1);
       } else setError(data.message || 'Delete failed');
     } catch {
       setError('Request failed');
@@ -433,6 +365,27 @@ export default function StudentProfilingDashboard() {
       setFullProfile(null);
     }
   };
+
+  const fetchClassListRoster = useCallback(async () => {
+    setClassListLoading(true);
+    try {
+      const res = await fetch('/api/students?per_page=500&include_officers=1', { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (data.success && data.data?.data) setClassListRoster(data.data.data);
+      else setClassListRoster([]);
+    } catch {
+      setClassListRoster([]);
+    } finally {
+      setClassListLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (profilingMainView !== 'class_lists') return;
+    fetchClassListRoster();
+  }, [profilingMainView, classListRefreshKey, fetchClassListRoster]);
+
+  const classListTree = useMemo(() => buildClassListTree(classListRoster), [classListRoster]);
 
   const fetchRankAudit = async () => {
     if (!activityFilter) return;
@@ -919,11 +872,11 @@ export default function StudentProfilingDashboard() {
       photo_url: p.photo_url ?? '',
       height_cm: p.height_cm ?? '',
       weight_kg: p.weight_kg ?? '',
-      course: p.course ?? '',
+      course: mapLegacyCourseToSelect(p.course) || '',
       year_level: p.year_level ?? '',
       current_gpa: p.current_gpa ?? '',
       academic_standing: p.academic_standing ?? '',
-      section: p.section ?? '',
+      section: mapLegacySectionToSelect(p.section) || '',
       failed_units: p.failed_units ?? '',
       incomplete_grades: p.incomplete_grades ?? '',
       enrolled_units: p.enrolled_units ?? '',
@@ -976,6 +929,7 @@ export default function StudentProfilingDashboard() {
         setEditProfileStudent(null);
         setProfileForm(null);
         fetchStudents();
+        setClassListRefreshKey((k) => k + 1);
       } else {
         setError(data.message || 'Failed to save profile');
       }
@@ -994,14 +948,38 @@ export default function StudentProfilingDashboard() {
         <div className="ccs-gradient-hero-pattern" aria-hidden />
         <div className="ccs-gradient-hero-inner">
           <h1 className="ccs-gradient-hero-title">Student Profiling Dashboard</h1>
-          <p className="ccs-gradient-hero-subtitle spd-hero-desc">
-            Comprehensive student records: personal &amp; academic profile, non-academic activities, conduct (violations),
-            endorsed skills, and affiliations (activity interests, enrollments, sports interests). Add students, browse the full roster,
-            open any full profile, and edit or remove records. Use skill or course filters (e.g. Programming, Basketball) with table or card layout.
-          </p>
         </div>
       </header>
 
+      <div className="spd-profiling-view-tabs" role="tablist" aria-label="Profiling view">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={profilingMainView === 'browse'}
+          className={`spd-profiling-view-tab ${profilingMainView === 'browse' ? 'active' : ''}`}
+          onClick={() => setProfilingMainView('browse')}
+        >
+          Browse &amp; filter
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={profilingMainView === 'class_lists'}
+          className={`spd-profiling-view-tab ${profilingMainView === 'class_lists' ? 'active' : ''}`}
+          onClick={() => setProfilingMainView('class_lists')}
+        >
+          Class lists
+        </button>
+      </div>
+
+      {error && (
+        <div className="spd-error" role="alert">
+          {error}
+        </div>
+      )}
+
+      {profilingMainView === 'browse' && (
+      <>
       <div className="spd-toolbar">
         <div className="spd-search">
           <svg className="spd-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1063,16 +1041,6 @@ export default function StudentProfilingDashboard() {
               Cards
             </button>
           </div>
-        )}
-        {user.role === 'ADMIN' && (
-          <>
-            <button type="button" className="spd-edit-profile-btn" onClick={() => setAddStudentOpen(true)}>
-              Add student
-            </button>
-            <button type="button" className="spd-edit-profile-btn" onClick={() => setCreateFacultyOpen(true)}>
-              Create faculty
-            </button>
-          </>
         )}
       </div>
 
@@ -1173,12 +1141,6 @@ export default function StudentProfilingDashboard() {
               Rank override log
             </button>
           )}
-        </div>
-      )}
-
-      {error && (
-        <div className="spd-error" role="alert">
-          {error}
         </div>
       )}
 
@@ -1612,46 +1574,141 @@ export default function StudentProfilingDashboard() {
         </div>
       )}
 
-      {createFacultyOpen && (
-        <div className="spd-modal-overlay" onClick={() => !savingFaculty && setCreateFacultyOpen(false)}>
-          <div className="spd-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="spd-modal-header">
-              <h3>Create faculty account</h3>
-              <button type="button" className="spd-modal-close" onClick={() => !savingFaculty && setCreateFacultyOpen(false)} aria-label="Close">×</button>
-            </div>
-            <form className="spd-modal-form" onSubmit={submitCreateFaculty}>
-              <p className="spd-muted">Faculty cannot self-register. Share the password you set here securely with the new faculty member.</p>
-              <div className="spd-modal-row">
-                <label>Full name</label>
-                <input value={createFacultyForm.name} onChange={(e) => setCreateFacultyForm((f) => ({ ...f, name: e.target.value }))} required />
-              </div>
-              <div className="spd-modal-row">
-                <label>Email (login)</label>
-                <input type="email" value={createFacultyForm.email} onChange={(e) => setCreateFacultyForm((f) => ({ ...f, email: e.target.value }))} required />
-              </div>
-              <div className="spd-modal-row">
-                <label>Password</label>
-                <input type="password" value={createFacultyForm.password} onChange={(e) => setCreateFacultyForm((f) => ({ ...f, password: e.target.value }))} required minLength={8} />
-              </div>
-              <div className="spd-modal-row spd-modal-row-check">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={createFacultyForm.is_sports_faculty}
-                    onChange={(e) => setCreateFacultyForm((f) => ({ ...f, is_sports_faculty: e.target.checked }))}
-                  />
-                  {' '}
-                  Sports faculty (can view full physical profile fields)
-                </label>
-              </div>
-              <div className="spd-modal-actions">
-                <button type="button" className="spd-modal-cancel" onClick={() => !savingFaculty && setCreateFacultyOpen(false)}>Cancel</button>
-                <button type="submit" className="spd-search-btn" disabled={savingFaculty}>{savingFaculty ? 'Creating…' : 'Create faculty'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
+      </>
       )}
+
+      {profilingMainView === 'class_lists' && (() => {
+        const sectionKeys = [...SECTION_LETTERS, 'Unassigned', 'Other'];
+        const branch = classListTree[classListCourse] || {};
+        const listForTab = branch[classListSection] || [];
+        const overCap = listForTab.length > SECTION_CAPACITY;
+        const sectionLabel = (s) => (s === 'Unassigned' ? 'No section' : s === 'Other' ? 'Other' : `Section ${s}`);
+
+        return (
+          <div className="spd-class-lists-view">
+            <p className="spd-class-lists-intro">
+              Students are grouped by program and section, sorted alphabetically by name (then student number). Typical section size: {SECTION_CAPACITY}.
+            </p>
+            <div className="spd-class-lists-course-tabs" role="tablist" aria-label="Program">
+              {['BSCS', 'BSIT'].map((c) => {
+                const b = classListTree[c] || {};
+                const total = sectionKeys.reduce((acc, s) => acc + (b[s]?.length || 0), 0);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    role="tab"
+                    aria-selected={classListCourse === c}
+                    className={`spd-class-lists-course-tab ${classListCourse === c ? 'active' : ''}`}
+                    onClick={() => {
+                      setClassListCourse(c);
+                      setClassListSection('A');
+                    }}
+                  >
+                    {c}
+                    <span className="spd-class-lists-tab-count">{total}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="spd-class-lists-section-tabs" role="tablist" aria-label="Section">
+              {sectionKeys.map((s) => {
+                const n = (branch[s] || []).length;
+                if ((s === 'Unassigned' || s === 'Other') && n === 0) return null;
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    role="tab"
+                    aria-selected={classListSection === s}
+                    className={`spd-class-lists-section-tab ${classListSection === s ? 'active' : ''}`}
+                    onClick={() => setClassListSection(s)}
+                  >
+                    {sectionLabel(s)}
+                    <span className="spd-class-lists-tab-count">{n}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="spd-class-lists-meta">
+              {classListLoading ? (
+                <span className="spd-muted">Loading roster…</span>
+              ) : (
+                <>
+                  <strong>{listForTab.length}</strong> in this section
+                  <span className={overCap ? 'spd-class-lists-cap spd-class-lists-cap--over' : 'spd-class-lists-cap'}>
+                    {' '}
+                    · {SECTION_CAPACITY} typical max
+                    {overCap ? ' (over typical capacity)' : ''}
+                  </span>
+                </>
+              )}
+            </div>
+            {classListLoading ? (
+              <div className="spd-loading">Loading class list…</div>
+            ) : listForTab.length === 0 ? (
+              <p className="spd-qualified-empty">No students in {sectionLabel(classListSection)} for {classListCourse}.</p>
+            ) : (
+              <ul className="spd-class-lists-cards">
+                {listForTab.map((student) => {
+                  const p = student.student_profile || {};
+                  const skills = student.skill_entries || [];
+                  return (
+                    <li key={student.id} className="spd-class-lists-card">
+                      <div className="spd-class-lists-card-head">
+                        <QualifiedStudentAvatar name={student.name} photoUrl={p.photo_url} />
+                        <div className="spd-class-lists-card-info">
+                          <h3 className="spd-class-lists-card-name">{student.name}</h3>
+                          <p className="spd-class-lists-card-meta">{student.email}</p>
+                          <p className="spd-class-lists-card-meta">
+                            #{student.student_number || '—'}
+                            {p.year_level ? ` · ${p.year_level}` : ''}
+                            {p.course ? ` · ${p.course}` : ''}
+                          </p>
+                          {p.academic_standing && (
+                            <span className={`spd-class-lists-standing spd-class-lists-standing--${String(p.academic_standing).toLowerCase()}`}>
+                              {p.academic_standing}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {skills.length > 0 ? (
+                        <div className="spd-class-lists-card-skills">
+                          {skills.slice(0, 6).map((sk) => (
+                            <span key={sk.id} className="spd-tag">
+                              {sk.skill}
+                              {sk.proficiency_level ? ` · ${sk.proficiency_level}` : ''}
+                            </span>
+                          ))}
+                          {skills.length > 6 ? <span className="spd-muted">+{skills.length - 6} more</span> : null}
+                        </div>
+                      ) : null}
+                      <div className="spd-class-lists-card-actions">
+                        <button type="button" className="spd-edit-profile-btn" onClick={() => openFullProfile(student)}>
+                          Full profile
+                        </button>
+                        {(user.role === 'ADMIN' || user.role === 'FACULTY') && (
+                          <>
+                            <button type="button" className="spd-edit-profile-btn" onClick={() => openEntriesModal(student)}>Entries</button>
+                            <button type="button" className="spd-edit-profile-btn" onClick={() => openSkillsModal(student)}>Skills</button>
+                            <button type="button" className="spd-edit-profile-btn" onClick={() => openConductModal(student)}>Conduct</button>
+                          </>
+                        )}
+                        {user.role === 'ADMIN' && (
+                          <>
+                            <button type="button" className="spd-edit-profile-btn" onClick={() => openEditProfile(student)}>Edit profile</button>
+                            <button type="button" className="spd-officer-remove" onClick={() => setDeleteStudentId(student.id)}>Delete</button>
+                          </>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        );
+      })()}
 
       <ConfirmModal
         open={deleteStudentId != null}
@@ -1664,54 +1721,8 @@ export default function StudentProfilingDashboard() {
         onCancel={() => !deletingStudent && setDeleteStudentId(null)}
       />
 
-      {addStudentOpen && (
-        <div className="spd-modal-overlay" onClick={() => !savingNewStudent && setAddStudentOpen(false)}>
-          <div className="spd-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="spd-modal-header">
-              <h3>Add student</h3>
-              <button type="button" className="spd-modal-close" onClick={() => !savingNewStudent && setAddStudentOpen(false)} aria-label="Close">×</button>
-            </div>
-            <form className="spd-modal-form" onSubmit={submitNewStudent}>
-              <p className="spd-muted">
-                Pre-enrolls a student record. Leave password blank so they must use “Claim your account” with their student number; or set an initial password if you will share it with them.
-              </p>
-              <div className="spd-modal-row">
-                <label>Full name</label>
-                <input value={addStudentForm.name} onChange={(e) => setAddStudentForm((f) => ({ ...f, name: e.target.value }))} required />
-              </div>
-              <div className="spd-modal-row">
-                <label>Email</label>
-                <input type="email" value={addStudentForm.email} onChange={(e) => setAddStudentForm((f) => ({ ...f, email: e.target.value }))} required />
-              </div>
-              <div className="spd-modal-row">
-                <label>Student number</label>
-                <input value={addStudentForm.student_number} onChange={(e) => setAddStudentForm((f) => ({ ...f, student_number: e.target.value }))} required />
-              </div>
-              <div className="spd-modal-row">
-                <label>Initial password (optional)</label>
-                <input type="password" value={addStudentForm.password} onChange={(e) => setAddStudentForm((f) => ({ ...f, password: e.target.value }))} minLength={6} placeholder="Leave blank for claim-only activation" />
-              </div>
-              <div className="spd-modal-row">
-                <label>Course (optional)</label>
-                <input value={addStudentForm.course} onChange={(e) => setAddStudentForm((f) => ({ ...f, course: e.target.value }))} />
-              </div>
-              <div className="spd-modal-row">
-                <label>Year level (optional)</label>
-                <input value={addStudentForm.year_level} onChange={(e) => setAddStudentForm((f) => ({ ...f, year_level: e.target.value }))} />
-              </div>
-              <div className="spd-modal-row">
-                <label>Section (optional)</label>
-                <input value={addStudentForm.section} onChange={(e) => setAddStudentForm((f) => ({ ...f, section: e.target.value }))} />
-              </div>
-              <div className="spd-modal-actions">
-                <button type="button" className="spd-modal-cancel" onClick={() => !savingNewStudent && setAddStudentOpen(false)}>Cancel</button>
-                <button type="submit" className="spd-search-btn" disabled={savingNewStudent}>{savingNewStudent ? 'Saving…' : 'Create student'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
+      {profilingMainView === 'browse' && (
+      <>
       <section className="spd-officer-section">
         <h2 className="spd-officer-title">Assign officer positions</h2>
         <p className="spd-officer-desc">Assign students or officers to roles (e.g., President, VP, Secretary) per activity.</p>
@@ -1822,6 +1833,8 @@ export default function StudentProfilingDashboard() {
             </div>
           )}
         </section>
+      )}
+      </>
       )}
 
       {skillsModalStudent && (
@@ -1956,15 +1969,46 @@ export default function StudentProfilingDashboard() {
                 </div>
                 <div className="spd-modal-row">
                   <label>Course / Program</label>
-                  <input value={profileForm.course} onChange={(e) => handleProfileFormChange('course', e.target.value)} placeholder="BS Computer Science" />
+                  {editProfileStudent.student_profile?.course &&
+                  !['BSCS', 'BSIT'].includes(String(editProfileStudent.student_profile.course)) &&
+                  !mapLegacyCourseToSelect(editProfileStudent.student_profile.course) ? (
+                    <p className="spd-muted spd-modal-legacy-hint">
+                      Stored program: <strong>{editProfileStudent.student_profile.course}</strong>. Choose BSCS or BSIT below to align with class lists.
+                    </p>
+                  ) : null}
+                  <select value={profileForm.course} onChange={(e) => handleProfileFormChange('course', e.target.value)}>
+                    <option value="">— Select —</option>
+                    {COURSE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="spd-modal-row">
                   <label>Year level</label>
-                  <input value={profileForm.year_level} onChange={(e) => handleProfileFormChange('year_level', e.target.value)} placeholder="2" />
+                  <select value={profileForm.year_level} onChange={(e) => handleProfileFormChange('year_level', e.target.value)}>
+                    <option value="">—</option>
+                    {YEAR_LEVEL_OPTIONS.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                    {profileForm.year_level && !YEAR_LEVEL_OPTIONS.includes(profileForm.year_level) ? (
+                      <option value={profileForm.year_level}>{profileForm.year_level} (current)</option>
+                    ) : null}
+                  </select>
                 </div>
                 <div className="spd-modal-row">
-                  <label>Section</label>
-                  <input value={profileForm.section} onChange={(e) => handleProfileFormChange('section', e.target.value)} placeholder="A" />
+                  <label>Section (A–E)</label>
+                  <select value={profileForm.section} onChange={(e) => handleProfileFormChange('section', e.target.value)}>
+                    <option value="">—</option>
+                    {SECTION_LETTERS.map((s) => (
+                      <option key={s} value={s}>
+                        Section {s}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="spd-modal-row">
                   <label>Current GPA</label>

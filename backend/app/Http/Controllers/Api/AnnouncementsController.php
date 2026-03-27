@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
+use App\Support\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -46,6 +47,12 @@ class AnnouncementsController extends Controller
             'tag' => $validated['tag'] ?? 'general',
             'image_path' => $imagePath,
         ]);
+
+        AuditLogger::log(
+            'created',
+            'Announcement: '.$announcement->title,
+            $request->user()
+        );
 
         return response()->json([
             'success' => true,
@@ -99,15 +106,18 @@ class AnnouncementsController extends Controller
         ]);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
         $announcement = Announcement::findOrFail($id);
+        $title = $announcement->title;
 
         if ($announcement->image_path && Storage::disk('public')->exists($announcement->image_path)) {
             Storage::disk('public')->delete($announcement->image_path);
         }
 
         $announcement->delete();
+
+        AuditLogger::log('deleted', 'Announcement: '.$title, $request->user());
 
         return response()->json([
             'success' => true,

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ActivitiesController;
+use App\Http\Controllers\Api\AdminAuditLogController;
 use App\Http\Controllers\Api\AdminStatsController;
 use App\Http\Controllers\Api\AnnouncementsController;
 use App\Http\Controllers\Api\AuthController;
@@ -106,6 +107,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::put('students/{id}/profile', [StudentProfileController::class, 'updateForStudent'])->middleware('admin.faculty');
     Route::patch('users/{id}', [UsersController::class, 'update']);
+
+    Route::middleware('admin.only')->group(function () {
+        Route::get('admin/audit-log', [AdminAuditLogController::class, 'index']);
+    });
 
     Route::middleware('officer.or.admin.faculty')->group(function () {
         Route::get('students/list-for-officers', [StudentsController::class, 'listForOfficers']);
