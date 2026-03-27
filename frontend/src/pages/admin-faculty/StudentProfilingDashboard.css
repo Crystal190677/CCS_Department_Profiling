@@ -2,6 +2,188 @@
   max-width: 1100px;
 }
 
+.spd-phase4-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 10px;
+}
+
+.spd-phase4-input {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--ccs-border);
+  border-radius: 8px;
+  background: var(--ccs-bg-card);
+  color: var(--ccs-text);
+  font-size: 0.875rem;
+  width: 6.5rem;
+}
+
+.spd-phase4-skill {
+  width: 10rem;
+}
+
+.spd-phase4-check {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--ccs-text);
+  cursor: pointer;
+}
+
+.spd-phase4-sort {
+  min-width: 11rem;
+}
+
+.spd-q-card-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--ccs-border);
+}
+
+.spd-q-compare-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  color: var(--ccs-text-muted);
+}
+
+.spd-q-admin-boost {
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  background: rgba(234, 88, 12, 0.08);
+  border-radius: 8px;
+  color: var(--ccs-text);
+}
+
+.spd-q-clear-boost {
+  margin-left: 0.5rem;
+}
+
+.spd-modal-full-profile {
+  max-width: 640px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.spd-full-profile-body {
+  overflow-y: auto;
+  padding: 0 0.25rem 1rem;
+  max-height: calc(90vh - 4rem);
+}
+
+.spd-fp-loading {
+  padding: 1rem;
+}
+
+.spd-fp-section {
+  margin-bottom: 1.25rem;
+}
+
+.spd-fp-section h4 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ccs-text-muted);
+  margin: 0 0 0.5rem;
+}
+
+.spd-fp-dl {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.spd-fp-dl li {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--ccs-border);
+}
+
+.spd-fp-dl span:first-child {
+  min-width: 7rem;
+  color: var(--ccs-text-muted);
+}
+
+.spd-fp-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.spd-fp-badge {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ccs-orange);
+}
+
+.spd-modal-compare {
+  max-width: 920px;
+  max-height: 90vh;
+}
+
+.spd-compare-scroll {
+  overflow-x: auto;
+  max-height: 70vh;
+}
+
+.spd-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.spd-compare-table th,
+.spd-compare-table td {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--ccs-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.spd-compare-table thead th {
+  background: var(--ccs-bg-card);
+  font-weight: 600;
+}
+
+.spd-modal-audit {
+  max-width: 900px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.spd-audit-table-wrap {
+  overflow: auto;
+  max-height: 60vh;
+}
+
+.spd-audit-reason {
+  max-width: 14rem;
+  white-space: normal;
+  word-break: break-word;
+}
+
 .spd-header {
   margin-bottom: 1.5rem;
 }
@@ -190,6 +372,12 @@
   background: rgba(34, 197, 94, 0.15);
   border-color: #22c55e;
   color: #22c55e;
+}
+
+.spd-enroll-btn.spd-enroll-pending.enrolled {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: #ca8a04;
+  color: #a16207;
 }
 
 .spd-empty {
@@ -638,10 +826,21 @@
   margin-right: 0.5rem;
 }
 
+.spd-criteria-summary-wrap {
+  white-space: normal;
+  max-width: 22rem;
+  line-height: 1.4;
+}
+
+.spd-activity-hint {
+  font-size: 0.8125rem;
+  margin: 0 0 0.75rem;
+}
+
 .spd-modal-activity-setup {
   max-height: 90vh;
   overflow-y: auto;
-  max-width: 560px;
+  max-width: 600px;
 }
 
 .spd-modal-checkgroup {
@@ -681,4 +880,255 @@
 
 .spd-interests-cell {
   font-size: 0.8125rem;
+}
+
+.spd-rank-score {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ccs-orange);
+  white-space: nowrap;
+}
+
+/* Step 4 — qualified student list (activity filter) */
+.spd-qualified-wrap {
+  margin-bottom: 2rem;
+}
+
+.spd-qualified-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ccs-text);
+  margin-bottom: 0.35rem;
+}
+
+.spd-qualified-desc {
+  font-size: 0.875rem;
+  color: var(--ccs-text-muted);
+  margin-bottom: 1.25rem;
+  max-width: 42rem;
+  line-height: 1.5;
+}
+
+.spd-qualified-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--ccs-text-muted);
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 12px;
+}
+
+.spd-qualified-cards {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.spd-qualified-card {
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.spd-qualified-card-top {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.spd-q-avatar-wrap {
+  flex-shrink: 0;
+}
+
+.spd-q-photo-img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--ccs-border);
+  display: block;
+}
+
+.spd-q-photo-fallback {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--ccs-orange);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.spd-q-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.spd-q-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.spd-q-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ccs-text);
+}
+
+.spd-q-interest {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.spd-q-interest.yes {
+  color: #16a34a;
+}
+
+.spd-q-interest.no {
+  color: var(--ccs-text-dim);
+}
+
+.spd-q-meta {
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+  margin: 0 0 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.spd-q-meta-item {
+  white-space: nowrap;
+}
+
+.spd-q-academic {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.spd-q-gpa {
+  font-weight: 600;
+  color: var(--ccs-text);
+}
+
+.spd-q-standing {
+  padding: 0.15rem 0.5rem;
+  background: rgba(234, 88, 12, 0.12);
+  color: var(--ccs-orange);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.spd-q-score-block {
+  flex-shrink: 0;
+  text-align: right;
+  min-width: 5rem;
+}
+
+.spd-q-pct {
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ccs-orange);
+  line-height: 1.1;
+}
+
+.spd-q-stars {
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  margin-top: 0.2rem;
+}
+
+.spd-q-stars .spd-star {
+  color: var(--ccs-border);
+}
+
+.spd-q-stars .spd-star-on {
+  color: var(--ccs-orange);
+}
+
+.spd-q-skills {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--ccs-border);
+}
+
+.spd-q-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ccs-text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.spd-q-skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.spd-q-skill-tag {
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--ccs-text);
+}
+
+.spd-q-skill-tag.bonus {
+  background: rgba(234, 88, 12, 0.1);
+}
+
+.spd-q-skill-tier {
+  font-style: normal;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  margin-left: 0.35rem;
+  opacity: 0.75;
+}
+
+.spd-q-flags {
+  margin: 0.65rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+  line-height: 1.45;
+}
+
+.spd-q-flags li::marker {
+  color: var(--ccs-orange);
+}
+
+.spd-q-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--ccs-border);
+  align-items: center;
+}
+
+.spd-q-enroll {
+  margin-left: auto;
 }

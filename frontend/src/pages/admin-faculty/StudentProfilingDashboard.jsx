@@ -11,6 +11,93 @@ function getAuthHeaders() {
   };
 }
 
+function initialsFromName(name) {
+  if (!name || typeof name !== 'string') return '?';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function QualifiedStudentAvatar({ name, photoUrl }) {
+  const [broken, setBroken] = useState(false);
+  if (photoUrl && !broken) {
+    return <img src={photoUrl} alt="" className="spd-q-photo-img" onError={() => setBroken(true)} />;
+  }
+  return <div className="spd-q-photo-fallback" aria-hidden>{initialsFromName(name)}</div>;
+}
+
+function activityCriteriaSummary(activity) {
+  const c = activity?.criteria || {};
+  const parts = [];
+  if (c.min_gpa != null && c.min_gpa !== '') parts.push(`GPA≥${c.min_gpa}`);
+  if (c.max_failed_units != null && c.max_failed_units !== '') parts.push(`failed≤${c.max_failed_units}`);
+  if (Array.isArray(c.academic_standings) && c.academic_standings.length) parts.push(c.academic_standings.join('/'));
+  if (c.year_level_min != null && c.year_level_min !== '') parts.push(`Yr≥${c.year_level_min}`);
+  if (c.enrolled_units_min != null && c.enrolled_units_min !== '') parts.push(`units≥${c.enrolled_units_min}`);
+  if (c.min_height_cm != null && c.min_height_cm !== '') parts.push(`H≥${c.min_height_cm}cm`);
+  if (c.require_preferred_position) parts.push('position req.');
+  if (Array.isArray(c.required_skills) && c.required_skills.length) parts.push(`${c.required_skills.length} skill(s)`);
+  if (Array.isArray(c.bonus_skills) && c.bonus_skills.length) parts.push(`+${c.bonus_skills.length} bonus`);
+  const permitsMajorGrave = c.no_major_grave === false || !!c.permit_major_grave_violations;
+  if (!permitsMajorGrave) parts.push('no Maj/Grave');
+  if (c.allow_probationary_and_hold) parts.push('Prob/on-hold OK');
+  if (c.max_minor_violations != null && c.max_minor_violations !== '') parts.push(`minor≤${c.max_minor_violations}`);
+  if (Array.isArray(c.conflicting_activity_ids) && c.conflicting_activity_ids.length) parts.push(`${c.conflicting_activity_ids.length} conflict(s)`);
+  if (activity?.time_slot && !c.skip_schedule_conflict) parts.push('schedule check');
+  if (parts.length === 0) return '—';
+  return parts.join(' · ');
+}
+
+function rosterFilledCount(activity) {
+  if (!activity) return 0;
+  const c = activity.enrollment_counts || {};
+  if (c.roster != null) return Number(c.roster);
+  return (Number(c.active) || 0) + (Number(c.pending_confirmation) || 0) + (Number(c.confirmed) || 0);
+}
+
+function enrollmentStatusForActivity(student, activityId) {
+  return student.enrollments?.find((x) => Number(x.activity_id) === Number(activityId))?.status ?? null;
+}
+
+function enrollmentButtonLabel(student, activityId, activityName) {
+  const st = enrollmentStatusForActivity(student, activityId);
+  if (!st) return `Enroll in ${activityName || 'activity'}`;
+  if (st === 'waitlist') return 'On waitlist';
+  if (st === 'pending_confirmation') return 'Awaiting student confirmation';
+  return '✓ Enrolled';
+}
+
+function qualificationSummaryBullets(student) {
+  const q = student.qualification_detail;
+  if (!q || typeof q !== 'object') {
+    const p = student.student_profile;
+    const bits = [];
+    if (p?.current_gpa != null) bits.push(`GPA ${Number(p.current_gpa).toFixed(2)}`);
+    return bits.length ? bits : ['Meets current qualification filters (see profile for full record).'];
+  }
+  const parts = [];
+  if (q.score_percent != null) parts.push(`Qualification score ${q.score_percent}% (${q.stars ?? 0}/5 stars)`);
+  if (q.declared_interest) parts.push('Declared interest in this activity');
+  const ms = q.matched_skills;
+  if (Array.isArray(ms) && ms.length) {
+    parts.push(`Matched skills: ${ms.map((m) => m.skill).slice(0, 6).join(', ')}${ms.length > 6 ? '…' : ''}`);
+  }
+  const flags = q.flags;
+  if (Array.isArray(flags) && flags.length) parts.push(`Flags: ${flags.slice(0, 2).join('; ')}`);
+  return parts.length ? parts : ['Ranked on the qualified list.'];
+}
+
+function slotSummaryForModal(activity) {
+  if (!activity) return '';
+  const max = activity.max_enrollees;
+  const roster = rosterFilledCount(activity);
+  const wait = activity.enrollment_counts?.waitlist ?? 0;
+  if (max == null) return `Roster: ${roster} (no capacity cap). Waitlist: ${wait}.`;
+  const open = Math.max(0, max - roster);
+  return `Roster: ${roster} of ${max} filled (${open} open). Waitlist: ${wait}.`;
+}
+
 export default function StudentProfilingDashboard() {
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
@@ -19,6 +106,7 @@ export default function StudentProfilingDashboard() {
   const [activityFilter, setActivityFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(null);
+  const [enrollConfirm, setEnrollConfirm] = useState(null);
   const [error, setError] = useState('');
   const [officerActivityId, setOfficerActivityId] = useState('');
   const [officerPositions, setOfficerPositions] = useState([]);
@@ -55,6 +143,22 @@ export default function StudentProfilingDashboard() {
   const [savingActivity, setSavingActivity] = useState(false);
   const [confirmDeleteActivityId, setConfirmDeleteActivityId] = useState(null);
   const [deletingActivity, setDeletingActivity] = useState(false);
+  const [listSection, setListSection] = useState('');
+  const [listYear, setListYear] = useState('');
+  const [listSkill, setListSkill] = useState('');
+  const [listInterestOnly, setListInterestOnly] = useState(false);
+  const [listSort, setListSort] = useState('score');
+  const [listSortDir, setListSortDir] = useState('desc');
+  const [fullProfile, setFullProfile] = useState(null);
+  const [compareIds, setCompareIds] = useState([]);
+  const [compareModalOpen, setCompareModalOpen] = useState(false);
+  const [overrideModal, setOverrideModal] = useState(null);
+  const [overrideReason, setOverrideReason] = useState('');
+  const [overrideBoostPoints, setOverrideBoostPoints] = useState(150);
+  const [savingOverride, setSavingOverride] = useState(false);
+  const [auditModalOpen, setAuditModalOpen] = useState(false);
+  const [auditRows, setAuditRows] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
 
   const typeLabels = { past_activity: 'Past activity', award: 'Award', leadership: 'Leadership' };
@@ -62,12 +166,20 @@ export default function StudentProfilingDashboard() {
   const fetchStudents = useCallback(async () => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
-    if (activityFilter) params.set('qualify_for', activityFilter);
+    if (activityFilter) {
+      params.set('qualify_for', activityFilter);
+      if (listSection.trim()) params.set('profile_section', listSection.trim());
+      if (listYear.trim()) params.set('profile_year_level', listYear.trim());
+      if (listSkill.trim()) params.set('skill', listSkill.trim());
+      if (listInterestOnly) params.set('interest_only', '1');
+      params.set('sort', listSort);
+      params.set('sort_dir', listSortDir);
+    }
     const res = await fetch(`/api/students?${params}`, { headers: getAuthHeaders() });
     const data = await res.json();
     if (data.success) setStudents(data.data.data || []);
     else setError(data.message || 'Failed to load students');
-  }, [search, activityFilter]);
+  }, [search, activityFilter, listSection, listYear, listSkill, listInterestOnly, listSort, listSortDir]);
 
   const fetchActivities = useCallback(async () => {
     const res = await fetch('/api/activities', { headers: getAuthHeaders() });
@@ -143,6 +255,100 @@ export default function StudentProfilingDashboard() {
       setConductLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    setCompareIds([]);
+  }, [activityFilter]);
+
+  useEffect(() => {
+    if (!activityFilter) return;
+    fetchStudents();
+  }, [activityFilter, listSection, listYear, listSkill, listInterestOnly, listSort, listSortDir, fetchStudents]);
+
+  const openFullProfile = async (student) => {
+    setFullProfile({ student, payload: null, loading: true });
+    setError('');
+    try {
+      const res = await fetch(`/api/students/${student.id}/full-profile`, { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (data.success) setFullProfile({ student, payload: data.data, loading: false });
+      else {
+        setError(data.message || 'Failed to load profile');
+        setFullProfile(null);
+      }
+    } catch {
+      setError('Failed to load profile');
+      setFullProfile(null);
+    }
+  };
+
+  const fetchRankAudit = async () => {
+    if (!activityFilter) return;
+    setAuditLoading(true);
+    try {
+      const res = await fetch(`/api/activities/${activityFilter}/rank-overrides`, { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (data.success) setAuditRows(data.data || []);
+      else setAuditRows([]);
+    } catch {
+      setAuditRows([]);
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  const toggleCompare = (id) => {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 4) return prev;
+      return [...prev, id];
+    });
+  };
+
+  const submitRankOverride = async (e) => {
+    e.preventDefault();
+    if (!overrideModal || !activityFilter) return;
+    setSavingOverride(true);
+    setError('');
+    try {
+      const body = {
+        user_id: overrideModal.student.id,
+        type: overrideModal.mode,
+        reason: overrideReason.trim() || null,
+      };
+      if (overrideModal.mode === 'boost') {
+        body.boost_points = Math.min(500, Math.max(1, parseInt(String(overrideBoostPoints), 10) || 150));
+      }
+      const res = await fetch(`/api/activities/${activityFilter}/rank-overrides`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOverrideModal(null);
+        setOverrideReason('');
+        setOverrideBoostPoints(150);
+        fetchStudents();
+      } else setError(data.message || 'Failed to save override');
+    } catch {
+      setError('Request failed');
+    } finally {
+      setSavingOverride(false);
+    }
+  };
+
+  const clearRankOverride = async (userId) => {
+    if (!activityFilter || !userId) return;
+    try {
+      const res = await fetch(`/api/activities/${activityFilter}/rank-overrides/${userId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) fetchStudents();
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('ccs_token');
@@ -326,10 +532,16 @@ export default function StudentProfilingDashboard() {
       enrolled_units_min: c.enrolled_units_min ?? '',
       min_height_cm: c.min_height_cm ?? c.min_height ?? '',
       required_skills: Array.isArray(c.required_skills) ? c.required_skills.map((s) => (typeof s === 'string' ? { skill: s, min_proficiency: 'Intermediate' } : { skill: s.skill || s.name || '', min_proficiency: s.min_proficiency || 'Intermediate' })) : [],
-      bonus_skills: Array.isArray(c.bonus_skills) ? c.bonus_skills : [],
       conflicting_activity_ids: Array.isArray(c.conflicting_activity_ids) ? c.conflicting_activity_ids : [],
-      no_major_grave: !!c.no_major_grave,
+      exclude_major_grave: !((c.no_major_grave === false) || !!c.permit_major_grave_violations),
+      allow_probationary_and_hold: !!c.allow_probationary_and_hold,
       max_minor_violations: c.max_minor_violations ?? '',
+      require_preferred_position: !!c.require_preferred_position,
+      allowed_positions_text: Array.isArray(c.allowed_positions) ? c.allowed_positions.join(', ') : '',
+      skip_schedule_conflict: !!c.skip_schedule_conflict,
+      bonus_skills: Array.isArray(c.bonus_skills)
+        ? c.bonus_skills.map((s) => (typeof s === 'string' ? { skill: s, min_proficiency: 'Intermediate' } : { skill: s.skill || s.name || '', min_proficiency: s.min_proficiency || 'Intermediate' }))
+        : [],
     } : {
       id: null,
       name: '',
@@ -348,8 +560,12 @@ export default function StudentProfilingDashboard() {
       required_skills: [],
       bonus_skills: [],
       conflicting_activity_ids: [],
-      no_major_grave: false,
+      exclude_major_grave: true,
+      allow_probationary_and_hold: false,
       max_minor_violations: '',
+      require_preferred_position: false,
+      allowed_positions_text: '',
+      skip_schedule_conflict: false,
     });
     setActivitySetupOpen(true);
   };
@@ -368,10 +584,17 @@ export default function StudentProfilingDashboard() {
         ...(activityForm.enrolled_units_min !== '' && { enrolled_units_min: parseInt(activityForm.enrolled_units_min, 10) }),
         ...(activityForm.min_height_cm !== '' && { min_height_cm: parseFloat(activityForm.min_height_cm) }),
         ...(activityForm.required_skills?.length > 0 && { required_skills: activityForm.required_skills.filter((s) => s.skill?.trim()) }),
-        ...(activityForm.bonus_skills?.length > 0 && { bonus_skills: activityForm.bonus_skills.filter(Boolean) }),
         ...(activityForm.conflicting_activity_ids?.length > 0 && { conflicting_activity_ids: activityForm.conflicting_activity_ids }),
         ...(activityForm.no_major_grave && { no_major_grave: true }),
         ...(activityForm.max_minor_violations !== '' && { max_minor_violations: parseInt(activityForm.max_minor_violations, 10) }),
+        ...(activityForm.require_preferred_position && { require_preferred_position: true }),
+        ...(activityForm.require_preferred_position && activityForm.allowed_positions_text?.trim() && {
+          allowed_positions: activityForm.allowed_positions_text.split(',').map((s) => s.trim()).filter(Boolean),
+        }),
+        ...(activityForm.skip_schedule_conflict && { skip_schedule_conflict: true }),
+        ...(activityForm.bonus_skills?.length > 0 && {
+          bonus_skills: activityForm.bonus_skills.filter((s) => s.skill?.trim()).map((s) => ({ skill: s.skill.trim(), min_proficiency: s.min_proficiency || 'Intermediate' })),
+        }),
       };
       const payload = {
         name: activityForm.name.trim(),
@@ -456,17 +679,28 @@ export default function StudentProfilingDashboard() {
     } catch (err) { setError('Request failed'); }
   };
 
-  const handleEnroll = async (studentId, activityId) => {
-    setEnrolling(studentId);
+  const openEnrollConfirm = (student, activity) => {
+    if (!activity) return;
+    setError('');
+    setEnrollConfirm({ student, activity });
+  };
+
+  const executeEnroll = async () => {
+    if (!enrollConfirm) return;
+    const { student, activity } = enrollConfirm;
+    setEnrolling(student.id);
     try {
       const res = await fetch('/api/students/enroll', {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ student_id: studentId, activity_id: activityId }),
+        body: JSON.stringify({ student_id: student.id, activity_id: activity.id }),
       });
       const data = await res.json();
       if (data.success) {
+        setEnrollConfirm(null);
         fetchStudents();
+        fetchActivities();
+        if (user.role === 'ADMIN') fetchActivitiesForAdmin();
       } else {
         setError(data.message || 'Enrollment failed');
       }
@@ -530,6 +764,7 @@ export default function StudentProfilingDashboard() {
     const p = student.student_profile || {};
     setEditProfileStudent(student);
     setProfileForm({
+      photo_url: p.photo_url ?? '',
       height_cm: p.height_cm ?? '',
       weight_kg: p.weight_kg ?? '',
       course: p.course ?? '',
@@ -563,6 +798,7 @@ export default function StudentProfilingDashboard() {
     try {
       const payload = {
         ...profileForm,
+        photo_url: profileForm.photo_url?.trim() || null,
         height_cm: profileForm.height_cm !== '' ? parseFloat(profileForm.height_cm) : null,
         weight_kg: profileForm.weight_kg !== '' ? parseFloat(profileForm.weight_kg) : null,
         course: profileForm.course || null,
@@ -625,7 +861,15 @@ export default function StudentProfilingDashboard() {
         <div className="spd-filter">
           <select
             value={activityFilter}
-            onChange={(e) => setActivityFilter(e.target.value)}
+            onChange={(e) => {
+              setActivityFilter(e.target.value);
+              setListSection('');
+              setListYear('');
+              setListSkill('');
+              setListInterestOnly(false);
+              setListSort('score');
+              setListSortDir('desc');
+            }}
             className="spd-filter-select"
           >
             <option value="">All students</option>
@@ -641,6 +885,65 @@ export default function StudentProfilingDashboard() {
           Search
         </button>
       </div>
+
+      {activityFilter && (
+        <div className="spd-phase4-toolbar">
+          <input
+            type="text"
+            className="spd-phase4-input"
+            placeholder="Section"
+            value={listSection}
+            onChange={(e) => setListSection(e.target.value)}
+            aria-label="Filter by section"
+          />
+          <input
+            type="text"
+            className="spd-phase4-input"
+            placeholder="Year level"
+            value={listYear}
+            onChange={(e) => setListYear(e.target.value)}
+            aria-label="Filter by year level"
+          />
+          <input
+            type="text"
+            className="spd-phase4-input spd-phase4-skill"
+            placeholder="Skill contains…"
+            value={listSkill}
+            onChange={(e) => setListSkill(e.target.value)}
+            aria-label="Filter by skill name"
+          />
+          <label className="spd-phase4-check">
+            <input type="checkbox" checked={listInterestOnly} onChange={(e) => setListInterestOnly(e.target.checked)} />
+            Interest only
+          </label>
+          <select className="spd-filter-select spd-phase4-sort" value={listSort} onChange={(e) => setListSort(e.target.value)} aria-label="Sort by">
+            <option value="score">Sort: Qualification score</option>
+            <option value="gpa">Sort: GPA</option>
+            <option value="name">Sort: Name</option>
+          </select>
+          <select className="spd-filter-select spd-phase4-sort" value={listSortDir} onChange={(e) => setListSortDir(e.target.value)} aria-label="Sort direction">
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+          </select>
+          {compareIds.length >= 2 && (
+            <button type="button" className="spd-search-btn" onClick={() => setCompareModalOpen(true)}>
+              Compare ({compareIds.length})
+            </button>
+          )}
+          {user.role === 'ADMIN' && (
+            <button
+              type="button"
+              className="spd-edit-profile-btn"
+              onClick={() => {
+                setAuditModalOpen(true);
+                fetchRankAudit();
+              }}
+            >
+              Rank override log
+            </button>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="spd-error" role="alert">
@@ -662,7 +965,7 @@ export default function StudentProfilingDashboard() {
                   <th>Name</th>
                   <th>Type</th>
                   <th>Slots</th>
-                  <th>Enrolled / Waitlist</th>
+                  <th>Roster / Waitlist</th>
                   <th>Criteria summary</th>
                   <th>Actions</th>
                 </tr>
@@ -678,13 +981,8 @@ export default function StudentProfilingDashboard() {
                       <td><strong>{a.name}</strong>{!a.is_active && <span className="spd-muted"> (inactive)</span>}</td>
                       <td>{a.type}</td>
                       <td>{a.max_enrollees != null ? `${a.max_enrollees} max` : '—'} {a.reserve_slots > 0 ? `, ${a.reserve_slots} waitlist` : ''}</td>
-                      <td>{(a.enrollment_counts?.active ?? 0)} / {(a.enrollment_counts?.waitlist ?? 0)}</td>
-                      <td className="spd-criteria-summary">
-                        {a.criteria?.min_gpa != null && <span>GPA≥{a.criteria.min_gpa}</span>}
-                        {a.criteria?.min_height_cm != null && <span>H≥{a.criteria.min_height_cm}cm</span>}
-                        {a.criteria?.no_major_grave && <span>No Major/Grave</span>}
-                        {!a.criteria?.min_gpa && !a.criteria?.min_height_cm && !a.criteria?.no_major_grave && '—'}
-                      </td>
+                      <td>{(a.enrollment_counts?.roster ?? a.enrollment_counts?.active ?? 0)} / {(a.enrollment_counts?.waitlist ?? 0)}</td>
+                      <td className="spd-criteria-summary spd-criteria-summary-wrap">{activityCriteriaSummary(a)}</td>
                       <td>
                         <button type="button" className="spd-edit-profile-btn" onClick={() => openActivitySetup(a)}>Edit</button>
                         <button type="button" className="spd-officer-remove" onClick={() => handleDeleteActivity(a.id)}>Delete</button>
@@ -711,6 +1009,154 @@ export default function StudentProfilingDashboard() {
 
       {loading ? (
         <div className="spd-loading">Loading students...</div>
+      ) : activityFilter ? (
+        <div className="spd-qualified-wrap">
+          <h2 className="spd-qualified-title">Qualified student list</h2>
+          <p className="spd-qualified-desc">
+            Ranked candidates for <strong>{activities.find((a) => String(a.id) === String(activityFilter))?.name || 'this activity'}</strong>.
+            Scores use GPA, skills, declared interest, participation history, commendations, and sport fit (when applicable).
+          </p>
+          {students.length === 0 ? (
+            <div className="spd-qualified-empty">No qualified students match your search. Adjust filters or criteria.</div>
+          ) : (
+            <ul className="spd-qualified-cards">
+              {students.map((student) => {
+                const q = student.qualification_detail || {};
+                const p = student.student_profile;
+                const fid = Number(activityFilter);
+                const enrolledHere = isEnrolled(student, fid);
+                const stars = typeof q.stars === 'number' ? q.stars : 0;
+                const pct = q.score_percent != null ? Number(q.score_percent) : null;
+                return (
+                  <li key={student.id} className="spd-qualified-card">
+                    <div className="spd-q-card-toolbar">
+                      <label className="spd-q-compare-label">
+                        <input
+                          type="checkbox"
+                          checked={compareIds.includes(student.id)}
+                          onChange={() => toggleCompare(student.id)}
+                        />
+                        Compare
+                      </label>
+                      <button type="button" className="spd-edit-profile-btn" onClick={() => openFullProfile(student)}>
+                        View full profile
+                      </button>
+                    </div>
+                    <div className="spd-qualified-card-top">
+                      <div className="spd-q-avatar-wrap">
+                        <QualifiedStudentAvatar name={student.name} photoUrl={p?.photo_url} />
+                      </div>
+                      <div className="spd-q-main">
+                        <div className="spd-q-name-row">
+                          <h3 className="spd-q-name">{student.name}</h3>
+                          <span className={`spd-q-interest ${q.declared_interest ? 'yes' : 'no'}`}>
+                            {q.declared_interest ? 'Expressed interest' : 'No interest declared'}
+                          </span>
+                        </div>
+                        <p className="spd-q-meta">
+                          {student.student_number && <span className="spd-q-meta-item">#{student.student_number}</span>}
+                          {p?.year_level && <span className="spd-q-meta-item">Year {p.year_level}</span>}
+                          {p?.section && <span className="spd-q-meta-item">Sec. {p.section}</span>}
+                          {p?.course && <span className="spd-q-meta-item">{p.course}</span>}
+                        </p>
+                        <div className="spd-q-academic">
+                          {p?.current_gpa != null && (
+                            <span className="spd-q-gpa">GPA {Number(p.current_gpa).toFixed(2)}</span>
+                          )}
+                          {p?.academic_standing && (
+                            <span className="spd-q-standing">{p.academic_standing}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="spd-q-score-block" title={`Raw score ${q.score_raw ?? '—'} / max ${q.score_max ?? '—'}`}>
+                        <div className="spd-q-pct">{pct != null ? `${pct}%` : '—'}</div>
+                        <div className="spd-q-stars" aria-label={`${stars} of 5 stars`}>
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <span key={i} className={i <= stars ? 'spd-star spd-star-on' : 'spd-star'}>{i <= stars ? '★' : '☆'}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    {Array.isArray(q.matched_skills) && q.matched_skills.length > 0 && (
+                      <div className="spd-q-skills">
+                        <span className="spd-q-label">Matched skills</span>
+                        <div className="spd-q-skill-tags">
+                          {q.matched_skills.map((m, i) => (
+                            <span key={i} className={`spd-q-skill-tag ${m.match_type === 'bonus' ? 'bonus' : 'req'}`}>
+                              {m.skill}
+                              {m.proficiency_level ? ` · ${m.proficiency_level}` : ''}
+                              <em className="spd-q-skill-tier">{m.match_type === 'bonus' ? 'bonus' : 'required'}</em>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {Array.isArray(q.flags) && q.flags.length > 0 && (
+                      <ul className="spd-q-flags">
+                        {q.flags.map((f, i) => (
+                          <li key={i}>{f}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {q.rank_override?.type === 'boost' && (
+                      <div className="spd-q-admin-boost">
+                        <strong>Admin rank boost</strong>
+                        {' '}
+                        (+{q.rank_override.boost_points} pts)
+                        {q.rank_override.reason && (
+                          <span className="spd-muted spd-q-boost-reason"> — {q.rank_override.reason}</span>
+                        )}
+                        {user.role === 'ADMIN' && (
+                          <button type="button" className="spd-officer-remove spd-q-clear-boost" onClick={() => clearRankOverride(student.id)}>
+                            Remove boost
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    <div className="spd-q-actions">
+                      {(user.role === 'ADMIN' || user.role === 'FACULTY') && (
+                        <>
+                          <button type="button" className="spd-edit-profile-btn" onClick={() => openEntriesModal(student)}>Entries</button>
+                          <button type="button" className="spd-edit-profile-btn" onClick={() => openSkillsModal(student)}>Skills</button>
+                          <button type="button" className="spd-edit-profile-btn" onClick={() => openConductModal(student)}>Conduct</button>
+                        </>
+                      )}
+                      {user.role === 'ADMIN' && (
+                        <>
+                          <button type="button" className="spd-edit-profile-btn" onClick={() => openEditProfile(student)}>Edit profile</button>
+                          <button
+                            type="button"
+                            className="spd-officer-remove"
+                            onClick={() => { setOverrideModal({ student, mode: 'exclude' }); setOverrideReason(''); }}
+                          >
+                            Exclude from list
+                          </button>
+                          <button
+                            type="button"
+                            className="spd-edit-profile-btn"
+                            onClick={() => { setOverrideModal({ student, mode: 'boost' }); setOverrideReason(''); setOverrideBoostPoints(150); }}
+                          >
+                            Boost rank
+                          </button>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        className={`spd-enroll-btn spd-q-enroll ${enrolledHere ? 'enrolled' : ''} ${enrollmentStatusForActivity(student, fid) === 'pending_confirmation' ? 'spd-enroll-pending' : ''}`}
+                        disabled={enrolledHere || enrolling === student.id}
+                        onClick={() => openEnrollConfirm(student, activities.find((a) => a.id === fid))}
+                      >
+                        {enrolledHere
+                          ? enrollmentButtonLabel(student, fid, activities.find((a) => a.id === fid)?.name || 'activity')
+                          : `Enroll in ${activities.find((a) => a.id === fid)?.name || 'activity'}`}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       ) : (
         <div className="spd-table-wrap">
           <table className="spd-table">
@@ -729,7 +1175,7 @@ export default function StudentProfilingDashboard() {
             <tbody>
               {students.length === 0 ? (
                 <tr>
-                  <td colSpan={showPhysicalColumn ? 8 : 7} className="spd-empty">
+                  <td colSpan={7 + (showPhysicalColumn ? 1 : 0)} className="spd-empty">
                     No students found. Try adjusting your search or filter.
                   </td>
                 </tr>
@@ -820,12 +1266,12 @@ export default function StudentProfilingDashboard() {
                               <button
                                 key={activity.id}
                                 type="button"
-                                className={`spd-enroll-btn ${enrolled ? 'enrolled' : ''}`}
+                                className={`spd-enroll-btn ${enrolled ? 'enrolled' : ''} ${enrollmentStatusForActivity(student, activity.id) === 'pending_confirmation' ? 'spd-enroll-pending' : ''}`}
                                 disabled={enrolled || enrolling === student.id}
-                                onClick={() => handleEnroll(student.id, activity.id)}
-                                title={enrolled ? 'Enrolled' : `Enroll in ${activity.name}`}
+                                onClick={() => openEnrollConfirm(student, activity)}
+                                title={enrolled ? enrollmentButtonLabel(student, activity.id, activity.name) : `Enroll in ${activity.name}`}
                               >
-                                {enrolled ? '✓ Enrolled' : activity.name}
+                                {enrolled ? enrollmentButtonLabel(student, activity.id, activity.name) : activity.name}
                               </button>
                             );
                           })}
@@ -1082,6 +1528,10 @@ export default function StudentProfilingDashboard() {
               <fieldset className="spd-modal-fieldset">
                 <legend>Academic data</legend>
                 <div className="spd-modal-row">
+                  <label>Photo URL (optional, shown on qualified list)</label>
+                  <input type="url" value={profileForm.photo_url} onChange={(e) => handleProfileFormChange('photo_url', e.target.value)} placeholder="https://…" />
+                </div>
+                <div className="spd-modal-row">
                   <label>Course / Program</label>
                   <input value={profileForm.course} onChange={(e) => handleProfileFormChange('course', e.target.value)} placeholder="BS Computer Science" />
                 </div>
@@ -1104,6 +1554,7 @@ export default function StudentProfilingDashboard() {
                     <option value="Regular">Regular</option>
                     <option value="Irregular">Irregular</option>
                     <option value="Probationary">Probationary</option>
+                    <option value="On hold">On hold</option>
                   </select>
                 </div>
                 <div className="spd-modal-row spd-modal-row-inline">
@@ -1345,9 +1796,14 @@ export default function StudentProfilingDashboard() {
                   <textarea value={activityForm.description} onChange={(e) => setActivityForm((f) => ({ ...f, description: e.target.value }))} rows={2} />
                 </div>
                 <div className="spd-modal-row">
-                  <label>Time slot (optional, for conflict check)</label>
-                  <input value={activityForm.time_slot} onChange={(e) => setActivityForm((f) => ({ ...f, time_slot: e.target.value }))} placeholder="e.g. MWF 3-5PM" />
+                  <label>Time slot (optional)</label>
+                  <input value={activityForm.time_slot} onChange={(e) => setActivityForm((f) => ({ ...f, time_slot: e.target.value }))} placeholder="e.g. MWF 3-5PM — same text on two activities = schedule conflict" />
                 </div>
+                <p className="spd-muted spd-activity-hint">If set, students already enrolled in another activity with the same time slot (exact match, case-insensitive) are excluded unless you disable the check below.</p>
+                <label className="spd-modal-row-inline">
+                  <input type="checkbox" checked={activityForm.skip_schedule_conflict} onChange={(e) => setActivityForm((f) => ({ ...f, skip_schedule_conflict: e.target.checked }))} />
+                  Skip schedule conflict check (ignore time slot overlap rule)
+                </label>
                 <label className="spd-modal-row-inline">
                   <input type="checkbox" checked={activityForm.is_active} onChange={(e) => setActivityForm((f) => ({ ...f, is_active: e.target.checked }))} />
                   Active
@@ -1368,6 +1824,11 @@ export default function StudentProfilingDashboard() {
               </fieldset>
               <fieldset className="spd-modal-fieldset">
                 <legend>Academic requirements</legend>
+                <p className="spd-muted spd-activity-hint">By default, students with <strong>Probationary</strong> or <strong>On hold</strong> standing are excluded. Check below to allow them.</p>
+                <label className="spd-modal-row-inline">
+                  <input type="checkbox" checked={activityForm.allow_probationary_and_hold} onChange={(e) => setActivityForm((f) => ({ ...f, allow_probationary_and_hold: e.target.checked }))} />
+                  Allow Probationary / On-hold students
+                </label>
                 <div className="spd-modal-row spd-modal-row-inline">
                   <div>
                     <label>Min GPA</label>
@@ -1381,7 +1842,7 @@ export default function StudentProfilingDashboard() {
                 <div className="spd-modal-row">
                   <label>Academic standing (leave empty = any)</label>
                   <div className="spd-modal-checkgroup">
-                    {['Regular', 'Irregular', 'Probationary'].map((standing) => (
+                    {['Regular', 'Irregular', 'Probationary', 'On hold'].map((standing) => (
                       <label key={standing}>
                         <input
                           type="checkbox"
@@ -1413,6 +1874,16 @@ export default function StudentProfilingDashboard() {
                   <label>Min height (cm)</label>
                   <input type="number" step="0.01" min="0" value={activityForm.min_height_cm} onChange={(e) => setActivityForm((f) => ({ ...f, min_height_cm: e.target.value }))} placeholder="e.g. 173 for 5&#39;8&quot;" />
                 </div>
+                <label className="spd-modal-row-inline">
+                  <input type="checkbox" checked={activityForm.require_preferred_position} onChange={(e) => setActivityForm((f) => ({ ...f, require_preferred_position: e.target.checked }))} />
+                  Require preferred position on profile
+                </label>
+                {activityForm.require_preferred_position && (
+                  <div className="spd-modal-row">
+                    <label>Allowed positions (optional — comma-separated; leave empty for any)</label>
+                    <input value={activityForm.allowed_positions_text} onChange={(e) => setActivityForm((f) => ({ ...f, allowed_positions_text: e.target.value }))} placeholder="e.g. Point Guard, Center" />
+                  </div>
+                )}
                 <div className="spd-modal-row">
                   <label>Conflicting activities (cannot be enrolled in both)</label>
                   <select
@@ -1433,9 +1904,10 @@ export default function StudentProfilingDashboard() {
               <fieldset className="spd-modal-fieldset">
                 <legend>Conduct</legend>
                 <label className="spd-modal-row-inline">
-                  <input type="checkbox" checked={activityForm.no_major_grave} onChange={(e) => setActivityForm((f) => ({ ...f, no_major_grave: e.target.checked }))} />
-                  No Major or Grave violations
+                  <input type="checkbox" checked={activityForm.exclude_major_grave} onChange={(e) => setActivityForm((f) => ({ ...f, exclude_major_grave: e.target.checked }))} />
+                  Exclude students with Major or Grave violations
                 </label>
+                <p className="spd-muted spd-activity-hint">Uncheck only if this activity may enroll students with active Major/Grave conduct records.</p>
                 <div className="spd-modal-row">
                   <label>Max minor violations allowed</label>
                   <input type="number" min="0" value={activityForm.max_minor_violations} onChange={(e) => setActivityForm((f) => ({ ...f, max_minor_violations: e.target.value }))} placeholder="e.g. 1" />
@@ -1458,11 +1930,300 @@ export default function StudentProfilingDashboard() {
                 ))}
                 <button type="button" className="spd-edit-profile-btn" onClick={() => setActivityForm((f) => ({ ...f, required_skills: [...(f.required_skills || []), { skill: '', min_proficiency: 'Intermediate' }] }))}>+ Add required skill</button>
               </fieldset>
+              <fieldset className="spd-modal-fieldset">
+                <legend>Bonus skills (ranking)</legend>
+                <p className="spd-muted">Not required to qualify. Rank score also uses GPA, declared interest, past activities, awards, commendations, and (for sports) height/position fit.</p>
+                {activityForm.bonus_skills.map((s, i) => (
+                  <div key={i} className="spd-modal-row spd-modal-row-inline">
+                    <input placeholder="Skill name" value={s.skill} onChange={(e) => setActivityForm((f) => ({ ...f, bonus_skills: f.bonus_skills.map((r, j) => j === i ? { ...r, skill: e.target.value } : r) }))} />
+                    <select value={s.min_proficiency} onChange={(e) => setActivityForm((f) => ({ ...f, bonus_skills: f.bonus_skills.map((r, j) => j === i ? { ...r, min_proficiency: e.target.value } : r) }))}>
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                      <option value="Expert">Expert</option>
+                    </select>
+                    <button type="button" className="spd-officer-remove" onClick={() => setActivityForm((f) => ({ ...f, bonus_skills: f.bonus_skills.filter((_, j) => j !== i) }))}>Remove</button>
+                  </div>
+                ))}
+                <button type="button" className="spd-edit-profile-btn" onClick={() => setActivityForm((f) => ({ ...f, bonus_skills: [...(f.bonus_skills || []), { skill: '', min_proficiency: 'Intermediate' }] }))}>+ Add bonus skill</button>
+              </fieldset>
               <div className="spd-modal-actions">
                 <button type="button" className="spd-modal-cancel" onClick={() => { setActivitySetupOpen(false); setActivityForm(null); }}>Cancel</button>
                 <button type="submit" className="spd-search-btn" disabled={savingActivity}>{savingActivity ? 'Saving…' : 'Save activity'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {fullProfile && (
+        <div className="spd-modal-overlay" onClick={() => setFullProfile(null)}>
+          <div className="spd-modal spd-modal-full-profile" onClick={(e) => e.stopPropagation()}>
+            <div className="spd-modal-header">
+              <h3>Full profile — {fullProfile.student?.name}</h3>
+              <button type="button" className="spd-modal-close" onClick={() => setFullProfile(null)} aria-label="Close">×</button>
+            </div>
+            {fullProfile.loading ? (
+              <p className="spd-muted spd-fp-loading">Loading…</p>
+            ) : (
+              <div className="spd-full-profile-body">
+                {(() => {
+                  const d = fullProfile.payload;
+                  const prof = d?.student_profile;
+                  const na = d?.non_academic_entries || [];
+                  const sk = d?.skill_entries || [];
+                  const cd = d?.conduct_entries || [];
+                  const enr = d?.enrollments || [];
+                  const intr = d?.interest_declarations || [];
+                  return (
+                    <>
+                      <section className="spd-fp-section">
+                        <h4>Academic & identity</h4>
+                        <ul className="spd-fp-dl">
+                          <li><span>Email</span>{d?.email}</li>
+                          <li><span>Student #</span>{d?.student_number || '—'}</li>
+                          <li><span>Course</span>{prof?.course || '—'}</li>
+                          <li><span>Year / Section</span>{[prof?.year_level, prof?.section].filter(Boolean).join(' · ') || '—'}</li>
+                          <li><span>GPA</span>{prof?.current_gpa != null ? Number(prof.current_gpa).toFixed(2) : '—'}</li>
+                          <li><span>Standing</span>{prof?.academic_standing || '—'}</li>
+                        </ul>
+                      </section>
+                      <section className="spd-fp-section">
+                        <h4>Skill portfolio</h4>
+                        {sk.length === 0 ? <p className="spd-muted">None.</p> : (
+                          <ul className="spd-fp-list">
+                            {sk.map((s) => (
+                              <li key={s.id}><strong>{s.skill}</strong>{s.proficiency_level ? ` — ${s.proficiency_level}` : ''}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </section>
+                      <section className="spd-fp-section">
+                        <h4>Conduct history</h4>
+                        {cd.length === 0 ? <p className="spd-muted">None.</p> : (
+                          <ul className="spd-fp-list">
+                            {cd.map((c) => (
+                              <li key={c.id}>
+                                <span className="spd-fp-badge">{c.type}{c.severity ? ` · ${c.severity}` : ''}</span>
+                                {' '}{c.title} <span className="spd-muted">({c.recorded_at})</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </section>
+                      <section className="spd-fp-section">
+                        <h4>Achievements & non-academic</h4>
+                        {na.length === 0 ? <p className="spd-muted">None.</p> : (
+                          <ul className="spd-fp-list">
+                            {na.map((e) => (
+                              <li key={e.id}>
+                                <span className="spd-fp-badge">{typeLabels[e.type] || e.type} · {e.status}</span>
+                                {' '}{e.title}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </section>
+                      <section className="spd-fp-section">
+                        <h4>Activity enrollments</h4>
+                        {enr.length === 0 ? <p className="spd-muted">None.</p> : (
+                          <ul className="spd-fp-list">
+                            {enr.map((e) => (
+                              <li key={e.id}>{e.activity?.name || `Activity #${e.activity_id}`} — <em>{e.status}</em></li>
+                            ))}
+                          </ul>
+                        )}
+                      </section>
+                      <section className="spd-fp-section">
+                        <h4>Declared interests</h4>
+                        {intr.length === 0 ? <p className="spd-muted">None.</p> : (
+                          <ul className="spd-fp-list">
+                            {intr.map((i) => (
+                              <li key={i.id}>{i.activity?.name || `Activity #${i.activity_id}`}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </section>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        open={!!enrollConfirm}
+        title="Confirm enrollment"
+        wide
+        message={null}
+        confirmLabel="Confirm enrollment"
+        cancelLabel="Cancel"
+        loading={enrolling !== null}
+        onConfirm={executeEnroll}
+        onCancel={() => !enrolling && setEnrollConfirm(null)}
+      >
+        {enrollConfirm && (
+          <>
+            <p className="spd-muted" style={{ margin: '0 0 0.5rem' }}>
+              Enroll <strong>{enrollConfirm.student.name}</strong> into{' '}
+              <strong>{enrollConfirm.activity.name}</strong>?
+            </p>
+            <p style={{ margin: '0 0 0.35rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ccs-text-muted)' }}>Why they qualified</p>
+            <ul>
+              {qualificationSummaryBullets(enrollConfirm.student).map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+            <div className="confirm-modal-slot">
+              <strong>Slots (before this action)</strong>
+              <br />
+              {slotSummaryForModal(enrollConfirm.activity)}
+              <br />
+              <span style={{ fontSize: '0.8125rem' }}>The system will re-check availability when you confirm to avoid double enrollment.</span>
+            </div>
+          </>
+        )}
+      </ConfirmModal>
+
+      {compareModalOpen && (
+        <div className="spd-modal-overlay" onClick={() => setCompareModalOpen(false)}>
+          <div className="spd-modal spd-modal-compare" onClick={(e) => e.stopPropagation()}>
+            <div className="spd-modal-header">
+              <h3>Compare students</h3>
+              <button type="button" className="spd-modal-close" onClick={() => setCompareModalOpen(false)} aria-label="Close">×</button>
+            </div>
+            <div className="spd-compare-scroll">
+              <table className="spd-compare-table">
+                <thead>
+                  <tr>
+                    <th />
+                    {compareIds.map((id) => {
+                      const s = students.find((x) => x.id === id);
+                      return <th key={id}>{s?.name || `#${id}`}</th>;
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {['GPA', 'Standing', 'Year', 'Section', 'Score %', 'Interest', 'Course'].map((label) => (
+                    <tr key={label}>
+                      <th scope="row">{label}</th>
+                      {compareIds.map((id) => {
+                        const s = students.find((x) => x.id === id);
+                        const qd = s?.qualification_detail || {};
+                        const pr = s?.student_profile;
+                        let val = '—';
+                        if (label === 'GPA') val = pr?.current_gpa != null ? Number(pr.current_gpa).toFixed(2) : '—';
+                        else if (label === 'Standing') val = pr?.academic_standing || '—';
+                        else if (label === 'Year') val = pr?.year_level || '—';
+                        else if (label === 'Section') val = pr?.section || '—';
+                        else if (label === 'Score %') val = qd.score_percent != null ? `${qd.score_percent}%` : '—';
+                        else if (label === 'Interest') val = qd.declared_interest ? 'Yes' : 'No';
+                        else if (label === 'Course') val = pr?.course || '—';
+                        return <td key={id}>{val}</td>;
+                      })}
+                    </tr>
+                  ))}
+                  <tr>
+                    <th scope="row">Matched skills</th>
+                    {compareIds.map((id) => {
+                      const s = students.find((x) => x.id === id);
+                      const ms = s?.qualification_detail?.matched_skills || [];
+                      return (
+                        <td key={id}>
+                          {ms.length === 0 ? '—' : ms.map((m) => m.skill).join(', ')}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {overrideModal && (
+        <div className="spd-modal-overlay" onClick={() => !savingOverride && setOverrideModal(null)}>
+          <div className="spd-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="spd-modal-header">
+              <h3>{overrideModal.mode === 'exclude' ? 'Exclude from qualified list' : 'Boost rank'}</h3>
+              <button type="button" className="spd-modal-close" onClick={() => !savingOverride && setOverrideModal(null)} aria-label="Close">×</button>
+            </div>
+            <form onSubmit={submitRankOverride} className="spd-modal-form">
+              <p className="spd-muted"><strong>{overrideModal.student.name}</strong></p>
+              {overrideModal.mode === 'boost' && (
+                <div className="spd-modal-row">
+                  <label>Boost points (1–500)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={overrideBoostPoints}
+                    onChange={(e) => setOverrideBoostPoints(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+              <div className="spd-modal-row">
+                <label>Reason (audit trail)</label>
+                <textarea
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  rows={3}
+                  placeholder="Explain this manual decision…"
+                  required
+                />
+              </div>
+              <div className="spd-modal-actions">
+                <button type="button" className="spd-modal-cancel" onClick={() => setOverrideModal(null)} disabled={savingOverride}>Cancel</button>
+                <button type="submit" className="spd-search-btn" disabled={savingOverride}>{savingOverride ? 'Saving…' : 'Apply'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {auditModalOpen && (
+        <div className="spd-modal-overlay" onClick={() => setAuditModalOpen(false)}>
+          <div className="spd-modal spd-modal-audit" onClick={(e) => e.stopPropagation()}>
+            <div className="spd-modal-header">
+              <h3>Rank override log</h3>
+              <button type="button" className="spd-modal-close" onClick={() => setAuditModalOpen(false)} aria-label="Close">×</button>
+            </div>
+            {auditLoading ? (
+              <p className="spd-muted">Loading…</p>
+            ) : auditRows.length === 0 ? (
+              <p className="spd-muted">No overrides recorded for this activity.</p>
+            ) : (
+              <div className="spd-audit-table-wrap">
+                <table className="spd-table">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Type</th>
+                      <th>Boost</th>
+                      <th>Reason</th>
+                      <th>By</th>
+                      <th>Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditRows.map((row) => (
+                      <tr key={row.id}>
+                        <td>{row.user?.name} {row.user?.student_number && `(${row.user.student_number})`}</td>
+                        <td>{row.type}</td>
+                        <td>{row.type === 'boost' ? row.boost_points : '—'}</td>
+                        <td className="spd-audit-reason">{row.reason || '—'}</td>
+                        <td>{row.created_by_user?.name || '—'}</td>
+                        <td>{row.updated_at?.slice?.(0, 19)?.replace('T', ' ') || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

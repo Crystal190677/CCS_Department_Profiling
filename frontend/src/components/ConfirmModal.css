@@ -18,6 +18,32 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
+.confirm-modal-wide {
+  max-width: 520px;
+}
+
+.confirm-modal-body {
+  font-size: 0.9375rem;
+  color: var(--ccs-text);
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.confirm-modal-body ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.confirm-modal-body .confirm-modal-slot {
+  font-size: 0.875rem;
+  color: var(--ccs-text-muted);
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--ccs-bg);
+  border-radius: 8px;
+  border: 1px solid var(--ccs-border);
+}
+
 .confirm-modal-title {
   font-size: 1.125rem;
   font-weight: 600;

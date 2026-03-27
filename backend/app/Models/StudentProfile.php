@@ -11,11 +11,14 @@ class StudentProfile extends Model
     public const ACADEMIC_STANDING_IRREGULAR = 'Irregular';
     public const ACADEMIC_STANDING_PROBATIONARY = 'Probationary';
 
+    public const ACADEMIC_STANDING_ON_HOLD = 'On hold';
+
     /** Physical data fields (sensitive); restricted for Officers and non-sports Faculty. */
     public const PHYSICAL_FIELDS = ['height_cm', 'weight_kg', 'dominant_hand', 'preferred_position'];
 
     protected $fillable = [
         'user_id',
+        'photo_url',
         'height_cm',
         'weight_kg',
         'dominant_hand',

@@ -106,6 +106,7 @@ class StudentProfileController extends Controller
         }
 
         $request->validate([
+            'photo_url' => 'nullable|string|max:2048',
             'height_cm' => 'nullable|numeric|min:0',
             'weight_kg' => 'nullable|numeric|min:0',
             'dominant_hand' => 'nullable|string|max:50',
@@ -116,7 +117,7 @@ class StudentProfileController extends Controller
             'gpa_per_semester' => 'nullable|array',
             'gpa_per_semester.*.semester' => 'string|max:30',
             'gpa_per_semester.*.gpa' => 'numeric|min:0|max:5',
-            'academic_standing' => 'nullable|string|in:Regular,Irregular,Probationary',
+            'academic_standing' => 'nullable|string|in:Regular,Irregular,Probationary,On hold',
             'section' => 'nullable|string|max:50',
             'failed_units' => 'nullable|integer|min:0',
             'incomplete_grades' => 'nullable|integer|min:0',
@@ -130,6 +131,7 @@ class StudentProfileController extends Controller
         ]);
 
         $allowed = [
+            'photo_url',
             'height_cm', 'weight_kg', 'dominant_hand', 'preferred_position',
             'course', 'year_level', 'current_gpa', 'gpa_per_semester',
             'academic_standing', 'section', 'failed_units', 'incomplete_grades', 'enrolled_units',

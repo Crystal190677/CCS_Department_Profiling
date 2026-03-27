@@ -3,11 +3,13 @@
 use App\Http\Controllers\Api\ActivitiesController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConductEntriesController;
+use App\Http\Controllers\Api\EnrollmentsController;
 use App\Http\Controllers\Api\InterestDeclarationsController;
 use App\Http\Controllers\Api\MerchandiseController;
 use App\Http\Controllers\Api\MerchandiseOrdersController;
 use App\Http\Controllers\Api\NonAcademicEntriesController;
 use App\Http\Controllers\Api\NotificationsController;
+use App\Http\Controllers\Api\QualificationRankOverridesController;
 use App\Http\Controllers\Api\OfficerPositionsController;
 use App\Http\Controllers\Api\SkillEntriesController;
 use App\Http\Controllers\Api\StudentProfileController;
@@ -48,6 +50,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('conduct-entries/{id}/dispute', [ConductEntriesController::class, 'dispute']);
     Route::patch('conduct-entries/{id}/resolve-dispute', [ConductEntriesController::class, 'resolveDispute']);
 
+    Route::get('enrollments/mine', [EnrollmentsController::class, 'mine']);
+    Route::post('enrollments/{id}/confirm', [EnrollmentsController::class, 'confirm']);
+
     Route::get('interest-declarations', [InterestDeclarationsController::class, 'index']);
     Route::post('interest-declarations', [InterestDeclarationsController::class, 'store']);
     Route::put('interest-declarations/{id}', [InterestDeclarationsController::class, 'update']);
@@ -67,7 +72,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('admin.faculty')->group(function () {
         Route::get('activities', [ActivitiesController::class, 'index']);
         Route::get('students', [StudentsController::class, 'index']);
+        Route::get('students/{id}/full-profile', [StudentsController::class, 'showFullProfile']);
         Route::post('students/enroll', [StudentsController::class, 'enroll']);
+        Route::get('activities/{activityId}/rank-overrides', [QualificationRankOverridesController::class, 'index']);
+        Route::post('activities/{activityId}/rank-overrides', [QualificationRankOverridesController::class, 'store']);
+        Route::delete('activities/{activityId}/rank-overrides/{userId}', [QualificationRankOverridesController::class, 'destroy']);
         Route::get('officer-positions', [OfficerPositionsController::class, 'index']);
         Route::post('officer-positions', [OfficerPositionsController::class, 'store']);
         Route::delete('officer-positions/{id}', [OfficerPositionsController::class, 'destroy']);

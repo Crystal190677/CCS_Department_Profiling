@@ -4,18 +4,29 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
+use App\Models\ActivityStudentRankOverride;
 use App\Models\Enrollment;
-use App\Models\StudentConductEntry;
 use App\Models\StudentProfile;
-use App\Models\StudentSkillEntry;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Services\ActivityQualificationScoringService;
+use App\Services\ActivityQualificationService;
+use App\Services\QualifiedStudentPresentationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class StudentsController extends Controller
 {
+    /**
+     * Phase 3 — Smart filter (qualification engine) for Admin/Faculty dashboard.
+     *
+     * Step 1: Base pool — users with role STUDENT (optional include_officers for officers list).
+     * Step 2: Hard filters — {@see ActivityQualificationService::applyToUserQuery()}.
+     * Step 3: Soft ranking — {@see ActivityQualificationScoringService::applyRankingSelectAndOrder()}.
+     * Step 4: Qualified list presentation + Phase 4 manual filters (section, year, skill, interest_only, sort).
+     */
     public function index(Request $request): JsonResponse
     {
         $query = User::with(['studentProfile', 'enrollments.activity', 'officerPositions.activity', 'interestDeclarations.activity']);
@@ -35,31 +46,70 @@ class StudentsController extends Controller
             });
         }
 
-        // Filter by activity
-        if ($request->filled('activity_id')) {
-            $activityId = $request->input('activity_id');
-            $activity = Activity::find($activityId);
-            if ($activity) {
-                $query->whereDoesntHave('enrollments', fn ($q) => $q->where('activity_id', $activityId))
-                    ->where(function ($q) use ($activity) {
-                        $this->applyQualificationFilter($q, $activity);
-                    });
-            }
-        }
-
-        // Filter by qualification (smart filter)
+        $filterActivity = null;
         if ($request->filled('qualify_for')) {
-            $qualifyFor = $request->input('qualify_for');
-            $activity = Activity::find($qualifyFor);
-            if ($activity) {
-                $query->whereDoesntHave('enrollments', fn ($q) => $q->where('activity_id', $activity->id))
-                    ->where(function ($q) use ($activity) {
-                        $this->applyQualificationFilter($q, $activity);
-                    });
-            }
+            $filterActivity = Activity::find($request->input('qualify_for'));
+        } elseif ($request->filled('activity_id')) {
+            $filterActivity = Activity::find($request->input('activity_id'));
         }
 
-        $students = $query->orderBy('name')->paginate((int) $request->input('per_page', 15));
+        if ($filterActivity) {
+            $aid = $filterActivity->id;
+
+            $excludedIds = ActivityStudentRankOverride::query()
+                ->where('activity_id', $aid)
+                ->where('type', ActivityStudentRankOverride::TYPE_EXCLUDE)
+                ->pluck('user_id');
+            if ($excludedIds->isNotEmpty()) {
+                $query->whereNotIn('users.id', $excludedIds);
+            }
+
+            $query->whereDoesntHave('enrollments', fn ($q) => $q->where('activity_id', $aid))
+                ->where(function ($q) use ($filterActivity) {
+                    ActivityQualificationService::applyToUserQuery($q, $filterActivity);
+                });
+
+            if ($request->filled('profile_section')) {
+                $sec = trim((string) $request->input('profile_section'));
+                $query->whereHas('studentProfile', fn (Builder $q) => $q->where('section', 'like', '%'.$sec.'%'));
+            }
+            if ($request->filled('profile_year_level')) {
+                $yl = trim((string) $request->input('profile_year_level'));
+                $query->whereHas('studentProfile', fn (Builder $q) => $q->where('year_level', $yl));
+            }
+            if ($request->filled('skill')) {
+                $sk = trim((string) $request->input('skill'));
+                $query->whereHas('skillEntries', fn (Builder $q) => $q->where('skill', 'like', '%'.$sk.'%'));
+            }
+            if ($request->boolean('interest_only')) {
+                $query->whereHas('interestDeclarations', fn (Builder $q) => $q->where('activity_id', $aid));
+            }
+
+            $query->select('users.*');
+            $query->with(['skillEntries', 'conductEntries']);
+            $sort = (string) $request->input('sort', 'score');
+            $sortDir = (string) $request->input('sort_dir', 'desc');
+            ActivityQualificationScoringService::applyRankingSelectAndOrder($query, $filterActivity, $sort, $sortDir);
+        } else {
+            $query->orderBy('name');
+        }
+
+        $students = $query->paginate((int) $request->input('per_page', 15));
+
+        if ($filterActivity) {
+            $scoreMax = ActivityQualificationScoringService::theoreticalMaxScore($filterActivity);
+            $boostOverrides = ActivityStudentRankOverride::query()
+                ->where('activity_id', $filterActivity->id)
+                ->where('type', ActivityStudentRankOverride::TYPE_BOOST)
+                ->get()
+                ->keyBy('user_id');
+            $students->getCollection()->transform(function (User $student) use ($filterActivity, $scoreMax, $boostOverrides) {
+                $ov = $boostOverrides->get($student->id);
+                QualifiedStudentPresentationService::appendToUser($student, $filterActivity, $scoreMax, $ov);
+
+                return $student;
+            });
+        }
 
         $authUser = $request->user();
         if ($authUser && ($authUser->role === 'OFFICER' || ($authUser->role === 'FACULTY' && !$authUser->is_sports_faculty))) {
@@ -67,6 +117,7 @@ class StudentsController extends Controller
                 if ($student->relationLoaded('studentProfile') && $student->studentProfile) {
                     $student->studentProfile->makeHidden(StudentProfile::PHYSICAL_FIELDS);
                 }
+
                 return $student;
             });
         }
@@ -74,6 +125,43 @@ class StudentsController extends Controller
         return response()->json([
             'success' => true,
             'data' => $students,
+        ]);
+    }
+
+    /**
+     * Phase 4 — Full profile for faculty/admin review (history, skills, conduct, enrollments, interests).
+     */
+    public function showFullProfile(Request $request, int $id): JsonResponse
+    {
+        $authUser = $request->user();
+        if (!$authUser || !in_array($authUser->role, ['ADMIN', 'FACULTY'], true)) {
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+        }
+
+        $student = User::query()
+            ->with([
+                'studentProfile',
+                'enrollments.activity',
+                'skillEntries',
+                'conductEntries' => fn ($q) => $q->orderByDesc('recorded_at'),
+                'nonAcademicEntries' => fn ($q) => $q->orderByDesc('created_at'),
+                'interestDeclarations.activity',
+            ])
+            ->findOrFail($id);
+
+        if (!in_array($student->role, ['STUDENT', 'OFFICER'], true)) {
+            return response()->json(['success' => false, 'message' => 'Not a student record'], 404);
+        }
+
+        if ($authUser->role === 'FACULTY' && !$authUser->is_sports_faculty) {
+            if ($student->relationLoaded('studentProfile') && $student->studentProfile) {
+                $student->studentProfile->makeHidden(StudentProfile::PHYSICAL_FIELDS);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $student,
         ]);
     }
 
@@ -95,6 +183,9 @@ class StudentsController extends Controller
         ]);
     }
 
+    /**
+     * Phase 5 — Enroll with serialized slot check (lock + recount) and pending student confirmation for roster seats.
+     */
     public function enroll(Request $request): JsonResponse
     {
         $request->validate([
@@ -113,130 +204,91 @@ class StudentsController extends Controller
         }
 
         $activityId = (int) $request->input('activity_id');
-        $activity = Activity::findOrFail($activityId);
 
-        $exists = Enrollment::where('user_id', $student->id)
-            ->where('activity_id', $activityId)
-            ->exists();
+        return DB::transaction(function () use ($request, $authUser, $student, $activityId): JsonResponse {
+            $activity = Activity::whereKey($activityId)->lockForUpdate()->firstOrFail();
 
-        if ($exists) {
-            return response()->json(['success' => false, 'message' => 'Student already enrolled'], 400);
-        }
+            if (Enrollment::query()
+                ->where('user_id', $student->id)
+                ->where('activity_id', $activityId)
+                ->lockForUpdate()
+                ->exists()) {
+                return response()->json(['success' => false, 'message' => 'Student is already enrolled in this activity'], 400);
+            }
 
-        $activeCount = Enrollment::where('activity_id', $activityId)->where('status', 'active')->count();
-        $maxEnrollees = $activity->max_enrollees ? (int) $activity->max_enrollees : null;
-        $reserveSlots = $activity->reserve_slots ? (int) $activity->reserve_slots : 0;
-        $waitlistCount = Enrollment::where('activity_id', $activityId)->where('status', 'waitlist')->count();
-        $status = 'active';
-        if ($maxEnrollees !== null) {
-            if ($activeCount >= $maxEnrollees) {
+            if (!ActivityQualificationService::userQualifies($student, $activity)) {
+                return response()->json(['success' => false, 'message' => 'Student does not meet the qualification criteria for this activity'], 400);
+            }
+
+            $rosterCount = Enrollment::query()
+                ->where('activity_id', $activityId)
+                ->whereIn('status', Enrollment::rosterSeatStatuses())
+                ->lockForUpdate()
+                ->count();
+
+            $maxEnrollees = $activity->max_enrollees ? (int) $activity->max_enrollees : null;
+            $reserveSlots = $activity->reserve_slots ? (int) $activity->reserve_slots : 0;
+            $waitlistCount = Enrollment::query()
+                ->where('activity_id', $activityId)
+                ->where('status', Enrollment::STATUS_WAITLIST)
+                ->lockForUpdate()
+                ->count();
+
+            $status = Enrollment::STATUS_PENDING_CONFIRMATION;
+            if ($maxEnrollees !== null && $rosterCount >= $maxEnrollees) {
                 if ($reserveSlots > 0 && $waitlistCount < $reserveSlots) {
-                    $status = 'waitlist';
+                    $status = Enrollment::STATUS_WAITLIST;
                 } else {
-                    return response()->json(['success' => false, 'message' => 'Activity has reached maximum enrollees and waitlist is full'], 400);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No roster seats available. The last slot may have just been taken—refresh and try again if needed.',
+                    ], 409);
                 }
             }
-        }
 
-        $enrollment = Enrollment::create([
-            'user_id' => $student->id,
-            'activity_id' => $activityId,
-            'enrolled_by' => $authUser->id,
-            'status' => $status,
-        ]);
+            $enrollment = Enrollment::create([
+                'user_id' => $student->id,
+                'activity_id' => $activityId,
+                'enrolled_by' => $authUser->id,
+                'enrolled_at' => now(),
+                'status' => $status,
+            ]);
 
-        $activity = $enrollment->activity;
-        $enrolledBy = $authUser->name;
+            $activity = $enrollment->activity;
+            $enrolledBy = $authUser->name;
 
-        UserNotification::create([
-            'user_id' => $student->id,
-            'type' => 'enrollment',
-            'title' => 'You have been enrolled',
-            'message' => "You have been enrolled in {$activity->name} by {$enrolledBy}.",
-            'data' => ['enrollment_id' => $enrollment->id, 'activity_id' => $activity->id],
-        ]);
+            if ($status === Enrollment::STATUS_WAITLIST) {
+                $title = 'Added to waitlist';
+                $message = "You have been added to the waitlist for {$activity->name} by {$enrolledBy}.";
+            } else {
+                $title = 'Enrollment pending your confirmation';
+                $message = "You have been selected and enrolled in {$activity->name} by {$enrolledBy}. Please confirm your enrollment in your profile to finalize your spot.";
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Student enrolled successfully',
-            'data' => $enrollment->load('activity'),
-        ], 201);
-    }
+            UserNotification::create([
+                'user_id' => $student->id,
+                'type' => 'enrollment',
+                'title' => $title,
+                'message' => $message,
+                'data' => [
+                    'student_id' => $student->id,
+                    'enrollment_id' => $enrollment->id,
+                    'activity_id' => $activity->id,
+                    'enrolled_by_user_id' => $authUser->id,
+                    'enrolled_by_name' => $enrolledBy,
+                    'status' => $status,
+                    'enrolled_at' => optional($enrollment->enrolled_at)->toIso8601String(),
+                ],
+            ]);
 
-    /**
-     * @param  Builder<User>  $query
-     */
-    private function applyQualificationFilter(Builder $query, Activity $activity): void
-    {
-        $criteria = $activity->criteria ?? [];
-
-        // Academic requirements (student must have a profile for these)
-        $query->whereHas('studentProfile', function (Builder $sub) use ($criteria) {
-            if (isset($criteria['min_gpa']) && $criteria['min_gpa'] !== '' && $criteria['min_gpa'] !== null) {
-                $sub->where('current_gpa', '>=', (float) $criteria['min_gpa']);
-            }
-            if (isset($criteria['max_failed_units']) && $criteria['max_failed_units'] !== '' && $criteria['max_failed_units'] !== null) {
-                $sub->where(function (Builder $q) use ($criteria) {
-                    $q->whereNull('failed_units')->orWhere('failed_units', '<=', (int) $criteria['max_failed_units']);
-                });
-            }
-            if (!empty($criteria['academic_standings']) && is_array($criteria['academic_standings'])) {
-                $sub->whereIn('academic_standing', $criteria['academic_standings']);
-            }
-            if (isset($criteria['year_level_min']) && $criteria['year_level_min'] !== '' && $criteria['year_level_min'] !== null) {
-                $sub->where('year_level', '>=', (int) $criteria['year_level_min']);
-            }
-            if (isset($criteria['enrolled_units_min']) && $criteria['enrolled_units_min'] !== '' && $criteria['enrolled_units_min'] !== null) {
-                $sub->where('enrolled_units', '>=', (int) $criteria['enrolled_units_min']);
-            }
-            // Physical: min_height_cm (support both min_height and min_height_cm for backward compat)
-            $minH = $criteria['min_height_cm'] ?? $criteria['min_height'] ?? null;
-            if ($minH !== null && $minH !== '') {
-                $sub->where('height_cm', '>=', (float) $minH);
-            }
+            return response()->json([
+                'success' => true,
+                'message' => $status === Enrollment::STATUS_WAITLIST
+                    ? 'Student added to waitlist.'
+                    : 'Enrollment recorded. The student has been notified to confirm.',
+                'data' => $enrollment->load(['activity', 'enrolledByUser:id,name']),
+            ], 201);
         });
-
-        // Conflicting activity enrollment: must not be enrolled in conflicting activities
-        $conflictingIds = $criteria['conflicting_activity_ids'] ?? [];
-        if (!empty($conflictingIds) && is_array($conflictingIds)) {
-            $query->whereDoesntHave('enrollments', function (Builder $q) use ($conflictingIds) {
-                $q->whereIn('activity_id', $conflictingIds)->where('status', 'active');
-            });
-        }
-
-        // Conduct: no Major/Grave violations (or within allowed)
-        if (!empty($criteria['no_major_grave'])) {
-            $query->whereDoesntHave('conductEntries', function (Builder $q) {
-                $q->where('type', StudentConductEntry::TYPE_VIOLATION)
-                    ->whereIn('severity', [StudentConductEntry::SEVERITY_MAJOR, StudentConductEntry::SEVERITY_GRAVE]);
-            });
-        }
-        if (isset($criteria['max_minor_violations']) && $criteria['max_minor_violations'] !== '' && $criteria['max_minor_violations'] !== null) {
-            $maxMinor = (int) $criteria['max_minor_violations'];
-            $query->whereHas('conductEntries', function (Builder $q) use ($maxMinor) {
-                $q->where('type', StudentConductEntry::TYPE_VIOLATION)->where('severity', StudentConductEntry::SEVERITY_MINOR);
-            }, '<=', $maxMinor);
-        }
-
-        // Skills: required_skills (array of {skill, min_proficiency})
-        $requiredSkills = $criteria['required_skills'] ?? [];
-        if (!empty($requiredSkills) && is_array($requiredSkills)) {
-            foreach ($requiredSkills as $req) {
-                $skillName = is_array($req) ? ($req['skill'] ?? $req['name'] ?? '') : (string) $req;
-                $minProf = is_array($req) ? ($req['min_proficiency'] ?? 'Beginner') : 'Beginner';
-                if ($skillName === '') {
-                    continue;
-                }
-                $query->whereHas('skillEntries', function (Builder $q) use ($skillName, $minProf) {
-                    $q->where('skill', $skillName);
-                    $order = ['Beginner' => 1, 'Intermediate' => 2, 'Advanced' => 3, 'Expert' => 4];
-                    $minLevel = $order[$minProf] ?? 1;
-                    $allowed = array_filter(array_keys($order), fn ($p) => ($order[$p] ?? 0) >= $minLevel);
-                    if (!empty($allowed)) {
-                        $q->whereIn('proficiency_level', $allowed);
-                    }
-                });
-            }
-        }
     }
+
 }

@@ -16,6 +16,7 @@ class ActivitiesController extends Controller
             ->orderBy('type')
             ->orderBy('name')
             ->get();
+        $this->attachEnrollmentCounts($activities);
 
         return response()->json([
             'success' => true,
@@ -46,14 +47,7 @@ class ActivitiesController extends Controller
         }
 
         $activities = Activity::orderBy('type')->orderBy('name')->get();
-        $enrollmentCounts = Enrollment::selectRaw('activity_id, status, count(*) as c')
-            ->groupBy('activity_id', 'status')
-            ->get()
-            ->groupBy('activity_id');
-
-        foreach ($activities as $a) {
-            $a->enrollment_counts = $enrollmentCounts->get($a->id, collect())->pluck('c', 'status')->toArray();
-        }
+        $this->attachEnrollmentCounts($activities);
 
         return response()->json([
             'success' => true,
@@ -81,7 +75,7 @@ class ActivitiesController extends Controller
             'criteria.min_gpa' => 'nullable|numeric|min:0|max:5',
             'criteria.max_failed_units' => 'nullable|integer|min:0',
             'criteria.academic_standings' => 'nullable|array',
-            'criteria.academic_standings.*' => 'string|in:Regular,Irregular,Probationary',
+            'criteria.academic_standings.*' => 'string|in:Regular,Irregular,Probationary,On hold',
             'criteria.year_level_min' => 'nullable|integer|min:1',
             'criteria.enrolled_units_min' => 'nullable|integer|min:0',
             'criteria.min_height_cm' => 'nullable|numeric|min:0',
@@ -91,6 +85,12 @@ class ActivitiesController extends Controller
             'criteria.conflicting_activity_ids.*' => 'integer|exists:activities,id',
             'criteria.no_major_grave' => 'nullable|boolean',
             'criteria.max_minor_violations' => 'nullable|integer|min:0',
+            'criteria.require_preferred_position' => 'nullable|boolean',
+            'criteria.allowed_positions' => 'nullable|array',
+            'criteria.allowed_positions.*' => 'string|max:100',
+            'criteria.skip_schedule_conflict' => 'nullable|boolean',
+            'criteria.allow_probationary_and_hold' => 'nullable|boolean',
+            'criteria.permit_major_grave_violations' => 'nullable|boolean',
         ]);
 
         $activity = Activity::create([
@@ -141,6 +141,12 @@ class ActivitiesController extends Controller
             'criteria.conflicting_activity_ids' => 'nullable|array',
             'criteria.no_major_grave' => 'nullable|boolean',
             'criteria.max_minor_violations' => 'nullable|integer|min:0',
+            'criteria.require_preferred_position' => 'nullable|boolean',
+            'criteria.allowed_positions' => 'nullable|array',
+            'criteria.allowed_positions.*' => 'string|max:100',
+            'criteria.skip_schedule_conflict' => 'nullable|boolean',
+            'criteria.allow_probationary_and_hold' => 'nullable|boolean',
+            'criteria.permit_major_grave_violations' => 'nullable|boolean',
         ]);
 
         $activity->fill($request->only(['name', 'type', 'description', 'time_slot', 'max_enrollees', 'reserve_slots']));
@@ -169,5 +175,33 @@ class ActivitiesController extends Controller
         $activity->delete();
 
         return response()->json(['success' => true, 'message' => 'Activity deleted']);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Activity>  $activities
+     */
+    private function attachEnrollmentCounts($activities): void
+    {
+        if ($activities->isEmpty()) {
+            return;
+        }
+
+        $ids = $activities->pluck('id');
+        $enrollmentCounts = Enrollment::query()
+            ->selectRaw('activity_id, status, count(*) as c')
+            ->whereIn('activity_id', $ids)
+            ->groupBy('activity_id', 'status')
+            ->get()
+            ->groupBy('activity_id');
+
+        $rosterStatuses = Enrollment::rosterSeatStatuses();
+        foreach ($activities as $a) {
+            $counts = $enrollmentCounts->get($a->id, collect())->pluck('c', 'status')->toArray();
+            $roster = 0;
+            foreach ($rosterStatuses as $st) {
+                $roster += (int) ($counts[$st] ?? 0);
+            }
+            $a->enrollment_counts = array_merge($counts, ['roster' => $roster]);
+        }
     }
 }

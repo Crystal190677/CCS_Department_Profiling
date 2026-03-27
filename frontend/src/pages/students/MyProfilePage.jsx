@@ -49,6 +49,10 @@ export default function MyProfilePage() {
   const [interestMessage, setInterestMessage] = useState('');
   const [confirmModal, setConfirmModal] = useState({ open: false, type: null, id: null, onConfirm: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [myEnrollments, setMyEnrollments] = useState([]);
+  const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
+  const [confirmingEnrollmentId, setConfirmingEnrollmentId] = useState(null);
+  const [enrollmentNotice, setEnrollmentNotice] = useState('');
 
   const fetchProfile = useCallback(async () => {
     const res = await fetch('/api/student-profile', { headers: getAuthHeaders() });
@@ -119,6 +123,20 @@ export default function MyProfilePage() {
     else setActivitiesAvailable([]);
   }, []);
 
+  const fetchMyEnrollments = useCallback(async () => {
+    setEnrollmentsLoading(true);
+    try {
+      const res = await fetch('/api/enrollments/mine', { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) setMyEnrollments(data.data);
+      else setMyEnrollments([]);
+    } catch {
+      setMyEnrollments([]);
+    } finally {
+      setEnrollmentsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem('ccs_token');
     const userData = localStorage.getItem('ccs_user');
@@ -133,9 +151,39 @@ export default function MyProfilePage() {
         fetchConductEntries();
         fetchInterestDeclarations();
         fetchActivitiesAvailable();
+        fetchMyEnrollments();
       }
     }
-  }, [navigate, fetchProfile, fetchNonAcademicEntries, fetchSkillEntries, fetchConductEntries, fetchInterestDeclarations, fetchActivitiesAvailable]);
+  }, [navigate, fetchProfile, fetchNonAcademicEntries, fetchSkillEntries, fetchConductEntries, fetchInterestDeclarations, fetchActivitiesAvailable, fetchMyEnrollments]);
+
+  const enrollmentStatusLabel = (status) => {
+    if (status === 'pending_confirmation') return 'Pending your confirmation';
+    if (status === 'confirmed' || status === 'active') return 'Confirmed';
+    if (status === 'waitlist') return 'Waitlist';
+    return status || '—';
+  };
+
+  const handleConfirmEnrollment = async (enrollmentId) => {
+    setEnrollmentNotice('');
+    setConfirmingEnrollmentId(enrollmentId);
+    try {
+      const res = await fetch(`/api/enrollments/${enrollmentId}/confirm`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEnrollmentNotice(data.message || 'Enrollment confirmed.');
+        fetchMyEnrollments();
+      } else {
+        setEnrollmentNotice(data.message || 'Could not confirm enrollment.');
+      }
+    } catch {
+      setEnrollmentNotice('Request failed. Try again.');
+    } finally {
+      setConfirmingEnrollmentId(null);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -611,6 +659,49 @@ export default function MyProfilePage() {
             </button>
           </form>
         </>
+      )}
+
+      {user?.role === 'STUDENT' && (
+        <div className="profile-info profile-academic">
+          <h2 className="profile-academic-title">Activity enrollments</h2>
+          <p className="profile-form-hint">
+            When faculty or admin selects you, the enrollment is recorded here. Confirm roster spots in your profile to finalize your place.
+          </p>
+          {enrollmentNotice && <p className="profile-message">{enrollmentNotice}</p>}
+          {enrollmentsLoading ? (
+            <p className="profile-form-hint">Loading…</p>
+          ) : myEnrollments.length === 0 ? (
+            <p className="profile-form-hint">No enrollments yet.</p>
+          ) : (
+            <ul className="profile-na-list">
+              {myEnrollments.map((enr) => (
+                <li key={enr.id} className="profile-conduct-item">
+                  <strong>{enr.activity?.name || `Activity #${enr.activity_id}`}</strong>
+                  <span className="profile-na-desc">
+                    {' '}· {enrollmentStatusLabel(enr.status)}
+                    {enr.enrolled_by_user?.name && (
+                      <> · Selected by {enr.enrolled_by_user.name}</>
+                    )}
+                    {enr.enrolled_at && (
+                      <> · {new Date(enr.enrolled_at).toLocaleString()}</>
+                    )}
+                  </span>
+                  {enr.status === 'pending_confirmation' && (
+                    <button
+                      type="button"
+                      className="profile-save-btn"
+                      style={{ marginTop: '0.5rem', display: 'block' }}
+                      disabled={confirmingEnrollmentId === enr.id}
+                      onClick={() => handleConfirmEnrollment(enr.id)}
+                    >
+                      {confirmingEnrollmentId === enr.id ? 'Confirming…' : 'Confirm enrollment'}
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       {user?.role === 'STUDENT' && (
