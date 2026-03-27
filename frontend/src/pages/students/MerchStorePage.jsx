@@ -73,8 +73,15 @@ export default function MerchStorePage() {
 
   return (
     <div className="merch-store-page">
-      <h1>Merch Store</h1>
-      <p className="merch-store-desc">Browse CCS department merchandise. Place an order and submit proof of payment (GCash or cash) for officers to confirm.</p>
+      <header className="ccs-gradient-hero ccs-gradient-hero--compact merch-store-hero">
+        <div className="ccs-gradient-hero-pattern" aria-hidden />
+        <div className="ccs-gradient-hero-inner">
+          <h1 className="ccs-gradient-hero-title">Merch Store</h1>
+          <p className="ccs-gradient-hero-subtitle">
+            Browse CCS department merchandise. Place an order and submit proof of payment (GCash or cash) for officers to confirm.
+          </p>
+        </div>
+      </header>
 
       {message.text && (
         <div className={`merch-store-msg ${message.type}`} role="alert">

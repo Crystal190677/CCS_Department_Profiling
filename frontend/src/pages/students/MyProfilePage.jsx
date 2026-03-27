@@ -424,8 +424,15 @@ export default function MyProfilePage() {
         onConfirm={() => typeof confirmModal.onConfirm === 'function' && confirmModal.onConfirm()}
         onCancel={() => setConfirmModal({ open: false, type: null, id: null, onConfirm: null })}
       />
-      <h1>My Profile</h1>
-      <p>View your academic data (read-only) and manage your interests and profile details below.</p>
+      <header className="ccs-gradient-hero ccs-gradient-hero--compact my-profile-hero">
+        <div className="ccs-gradient-hero-pattern" aria-hidden />
+        <div className="ccs-gradient-hero-inner">
+          <h1 className="ccs-gradient-hero-title">My Profile</h1>
+          <p className="ccs-gradient-hero-subtitle">
+            View your academic data (read-only) and manage your interests and profile details below.
+          </p>
+        </div>
+      </header>
 
       <div className="profile-info">
         <p><strong>Name:</strong> {user.name}</p>

@@ -2,17 +2,8 @@
   max-width: 900px;
 }
 
-.merch-store-page h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--ccs-text);
-  margin-bottom: 0.25rem;
-}
-
-.merch-store-desc {
-  font-size: 0.9375rem;
-  color: var(--ccs-text-muted);
-  margin-bottom: 1.5rem;
+.merch-store-hero {
+  margin-bottom: 1.25rem;
 }
 
 .merch-store-msg {

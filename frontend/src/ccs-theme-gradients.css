@@ -1,0 +1,75 @@
+/**
+ * Shared CCS gradient surfaces (aligned with Profile Settings hero).
+ * Imported globally — use .ccs-gradient-hero* on page headers.
+ */
+
+/* —— Hero band (orange → deep amber, pattern overlay) —— */
+.ccs-gradient-hero {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, var(--ccs-orange) 0%, #c2410c 55%, #7c2d12 100%);
+  box-shadow: 0 12px 40px var(--ccs-orange-glow);
+}
+
+.ccs-gradient-hero-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  background-image:
+    radial-gradient(circle at 20% 30%, #fff 0, transparent 45%),
+    radial-gradient(circle at 80% 70%, #fff 0, transparent 40%),
+    repeating-linear-gradient(
+      -12deg,
+      transparent,
+      transparent 8px,
+      rgba(255, 255, 255, 0.04) 8px,
+      rgba(255, 255, 255, 0.04) 16px
+    );
+  pointer-events: none;
+}
+
+.ccs-gradient-hero-inner {
+  position: relative;
+  padding: 1.75rem 1.5rem 2rem;
+  color: #fff;
+}
+
+.ccs-gradient-hero-title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.35rem 0;
+  color: #fff;
+}
+
+.ccs-gradient-hero-subtitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  opacity: 0.92;
+  color: #fff;
+  line-height: 1.45;
+}
+
+/* Compact hero (e.g. merch pages) */
+.ccs-gradient-hero--compact .ccs-gradient-hero-inner {
+  padding: 1.35rem 1.35rem 1.5rem;
+}
+
+.ccs-gradient-hero--compact .ccs-gradient-hero-title {
+  font-size: 1.35rem;
+}
+
+/* —— Subtle gradient cards (sections below hero) —— */
+.ccs-surface-gradient {
+  background: linear-gradient(160deg, var(--ccs-bg-card) 0%, rgba(249, 115, 22, 0.06) 100%);
+  border: 1px solid var(--ccs-border);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='dark'] .ccs-surface-gradient {
+  background: linear-gradient(160deg, var(--ccs-bg-card) 0%, rgba(249, 115, 22, 0.1) 100%);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}

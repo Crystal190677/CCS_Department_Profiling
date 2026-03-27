@@ -184,20 +184,13 @@
   word-break: break-word;
 }
 
-.spd-header {
+.spd-page-hero {
   margin-bottom: 1.5rem;
 }
 
-.spd-header h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--ccs-text);
-  margin-bottom: 0.25rem;
-}
-
-.spd-header p {
-  font-size: 0.9375rem;
-  color: var(--ccs-text-muted);
+.spd-hero-desc {
+  max-width: 58rem;
+  line-height: 1.5;
 }
 
 .spd-toolbar {
@@ -205,6 +198,156 @@
   gap: 1rem;
   flex-wrap: wrap;
   margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.spd-layout-toggle {
+  display: inline-flex;
+  border: 1px solid var(--ccs-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--ccs-bg-card);
+}
+
+.spd-layout-btn {
+  padding: 0.45rem 0.85rem;
+  border: none;
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ccs-text-muted);
+  cursor: pointer;
+}
+
+.spd-layout-btn.active {
+  background: var(--ccs-orange);
+  color: #fff;
+}
+
+.spd-browse-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 10px;
+}
+
+.spd-browse-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ccs-text-muted);
+  margin-right: 0.25rem;
+}
+
+.spd-browse-input {
+  width: 11rem;
+  min-width: 8rem;
+}
+
+.spd-quick-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.spd-quick-filter-btn {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--ccs-border);
+  border-radius: 999px;
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+  cursor: pointer;
+}
+
+.spd-quick-filter-btn:hover {
+  border-color: var(--ccs-orange);
+  color: var(--ccs-orange);
+}
+
+.spd-quick-filter-clear {
+  border-style: dashed;
+}
+
+.spd-browse-cards-wrap {
+  margin-bottom: 1.5rem;
+}
+
+.spd-browse-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.spd-browse-card {
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.spd-browse-card-head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.spd-browse-card-info {
+  min-width: 0;
+}
+
+.spd-browse-card-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+}
+
+.spd-browse-card-meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+  word-break: break-word;
+}
+
+.spd-browse-card-gpa {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+}
+
+.spd-browse-card-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.spd-browse-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.spd-browse-card-enroll {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--ccs-border);
+}
+
+.spd-browse-card-enroll .spd-enroll-group {
+  margin-top: 0.35rem;
 }
 
 .spd-search {

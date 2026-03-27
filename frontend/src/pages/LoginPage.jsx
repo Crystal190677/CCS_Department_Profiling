@@ -93,17 +93,19 @@ export default function LoginPage() {
       localStorage.setItem('ccs_token', data.data.token);
       localStorage.setItem('ccs_user', JSON.stringify(data.data.user));
       const role = data.data.user.role;
-      navigate(role === 'ADMIN' || role === 'FACULTY' ? '/admin-dashboard' : '/dashboard');
+      if (role === 'ADMIN' || role === 'FACULTY') navigate('/admin-dashboard');
+      else navigate('/dashboard');
     } catch {
       setError('Unable to connect. Please ensure the backend is running.');
       setLoading(false);
     }
   };
 
-  const idLabel = form.role === 'STUDENT' ? 'Student number' : 'Email';
-  const idPlaceholder = form.role === 'STUDENT' ? 'e.g. 1' : 'you@ccs.edu';
-  const idAutoComplete = form.role === 'STUDENT' ? 'username' : 'email';
-  const idInputType = form.role === 'STUDENT' ? 'text' : 'email';
+  const usesStudentNumber = form.role === 'STUDENT' || form.role === 'OFFICER';
+  const idLabel = usesStudentNumber ? 'Student number' : 'Email';
+  const idPlaceholder = usesStudentNumber ? 'e.g. 1' : 'you@ccs.edu';
+  const idAutoComplete = usesStudentNumber ? 'username' : 'email';
+  const idInputType = usesStudentNumber ? 'text' : 'email';
 
   return (
     <div className="od-login-page">
@@ -221,11 +223,11 @@ export default function LoginPage() {
           </form>
 
           <p className="od-login-demo">
-            Demo: admin@ccs.edu / faculty@ccs.edu / officer@ccs.edu — Student: 1 / password123
+            Demo: admin@ccs.edu / faculty@ccs.edu — Student #1 / Officer #OFC001 — password123
           </p>
-          {form.role === 'STUDENT' && (
+          {(form.role === 'STUDENT' || form.role === 'OFFICER') && (
             <p className="od-signup">
-              Don&apos;t have an account? <Link to="/signup">Sign up</Link>
+              First time? <Link to="/claim-account">Claim your account</Link> (student number on file)
             </p>
           )}
         </div>

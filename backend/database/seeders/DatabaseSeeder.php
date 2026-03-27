@@ -3,7 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\Activity;
+use App\Models\Announcement;
 use App\Models\StudentProfile;
+use App\Models\StudentSkillEntry;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -17,7 +19,7 @@ class DatabaseSeeder extends Seeder
         $users = [
             ['name' => 'System Admin', 'email' => 'admin@ccs.edu', 'student_number' => null, 'role' => 'ADMIN'],
             ['name' => 'John Faculty', 'email' => 'faculty@ccs.edu', 'student_number' => null, 'role' => 'FACULTY', 'is_sports_faculty' => true],
-            ['name' => 'Jane Officer', 'email' => 'officer@ccs.edu', 'student_number' => null, 'role' => 'OFFICER'],
+            ['name' => 'Jane Officer', 'email' => 'officer@ccs.edu', 'student_number' => 'OFC001', 'role' => 'OFFICER'],
             ['name' => 'Alex Student', 'email' => 'student@ccs.edu', 'student_number' => '1', 'role' => 'STUDENT'],
         ];
 
@@ -28,12 +30,13 @@ class DatabaseSeeder extends Seeder
                     'name' => $data['name'],
                     'student_number' => $data['student_number'],
                     'password' => $password,
+                    'password_set_at' => now(),
                     'role' => $data['role'],
                     'is_sports_faculty' => $data['is_sports_faculty'] ?? false,
                 ]
             );
 
-            if ($data['role'] === 'STUDENT') {
+            if (in_array($data['role'], ['STUDENT', 'OFFICER'], true)) {
                 StudentProfile::updateOrCreate(
                     ['user_id' => $user->id],
                     [
@@ -45,6 +48,18 @@ class DatabaseSeeder extends Seeder
                         'activity_interests' => ['hackathon', 'chess'],
                     ]
                 );
+
+                foreach (
+                    [
+                        ['skill' => 'Basketball', 'proficiency_level' => 'Intermediate'],
+                        ['skill' => 'Programming', 'proficiency_level' => 'Advanced'],
+                    ] as $sk
+                ) {
+                    StudentSkillEntry::updateOrCreate(
+                        ['user_id' => $user->id, 'skill' => $sk['skill']],
+                        ['proficiency_level' => $sk['proficiency_level']]
+                    );
+                }
             }
         }
 
@@ -59,6 +74,19 @@ class DatabaseSeeder extends Seeder
             Activity::updateOrCreate(
                 ['name' => $data['name']],
                 array_merge($data, ['is_active' => true])
+            );
+        }
+
+        $facultyUser = User::where('email', 'faculty@ccs.edu')->first();
+        if ($facultyUser) {
+            Announcement::updateOrCreate(
+                ['title' => 'Upcoming Hackathon 2026'],
+                [
+                    'user_id' => $facultyUser->id,
+                    'content' => 'Join us for the annual CCS Hackathon on March 20-21, 2026. Prizes and registration details will be posted soon.',
+                    'tag' => 'event',
+                    'image_path' => null,
+                ]
             );
         }
 

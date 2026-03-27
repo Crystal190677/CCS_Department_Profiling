@@ -5,7 +5,10 @@ import NotificationsBell from '../NotificationsBell';
 import '../students/StudentLayout.css';
 
 const MENU_ITEMS = [
-  { path: '/admin-dashboard', label: 'Student Profiling', icon: 'grid' },
+  { path: '/admin-dashboard', label: 'Dashboard', icon: 'dashboard', exact: true },
+  { path: '/admin-dashboard/profiling', label: 'Student Profiling', icon: 'grid' },
+  { path: '/admin-dashboard/announcements', label: 'Announcements', icon: 'megaphone' },
+  { path: '/admin-dashboard/profile-settings', label: 'Profile settings', icon: 'settings' },
 ];
 
 function Icon({ name, className }) {
@@ -17,6 +20,22 @@ function Icon({ name, className }) {
         <rect x="14" y="3" width="7" height="7" rx="1" />
         <rect x="3" y="14" width="7" height="7" rx="1" />
         <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    );
+  }
+  if (name === 'megaphone') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 11l18-5v12L3 14v-3z" />
+        <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+      </svg>
+    );
+  }
+  if (name === 'settings') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
       </svg>
     );
   }
@@ -114,7 +133,10 @@ export default function AdminFacultyLayout() {
       <aside className="dashboard-sidebar">
         <nav className="sidebar-nav">
           {MENU_ITEMS.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive =
+              item.path === '/admin-dashboard'
+                ? location.pathname === '/admin-dashboard'
+                : location.pathname === item.path;
             return (
               <button
                 key={item.path}

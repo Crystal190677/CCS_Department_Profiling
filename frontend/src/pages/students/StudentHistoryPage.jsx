@@ -65,8 +65,13 @@ export default function StudentHistoryPage() {
 
   return (
     <div className="placeholder-page">
-      <h1>Student non-academic history</h1>
-      <p>View other students&apos; non-academic entries (read-only) for org-related context.</p>
+      <header className="ccs-gradient-hero ccs-gradient-hero--compact student-history-hero">
+        <div className="ccs-gradient-hero-pattern" aria-hidden />
+        <div className="ccs-gradient-hero-inner">
+          <h1 className="ccs-gradient-hero-title">Student non-academic history</h1>
+          <p className="ccs-gradient-hero-subtitle">View other students&apos; non-academic entries (read-only) for org-related context.</p>
+        </div>
+      </header>
       <div className="profile-form">
         <div className="profile-form-row">
           <label>Select student</label>

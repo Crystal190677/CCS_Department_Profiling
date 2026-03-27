@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -24,8 +25,11 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'avatar_path',
+        'contact_number',
         'student_number',
         'password',
+        'password_set_at',
         'role',
         'is_sports_faculty',
     ];
@@ -38,7 +42,10 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'avatar_path',
     ];
+
+    protected $appends = ['avatar_url'];
 
     /**
      * Get the attributes that should be cast.
@@ -50,8 +57,28 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'password_set_at' => 'datetime',
             'is_sports_faculty' => 'boolean',
         ];
+    }
+
+    /** Student / officer has completed “claim account” and may sign in with password. */
+    public function hasPasswordClaimed(): bool
+    {
+        return $this->password_set_at !== null;
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (!$this->avatar_path) {
+            return null;
+        }
+
+        if (!Storage::disk('public')->exists($this->avatar_path)) {
+            return null;
+        }
+
+        return asset('storage/'.ltrim($this->avatar_path, '/'));
     }
 
     public function studentProfile(): HasOne

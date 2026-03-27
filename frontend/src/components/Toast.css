@@ -1,0 +1,64 @@
+.ccs-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem 0.85rem 1.15rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+  max-width: min(420px, calc(100vw - 2rem));
+  animation: ccs-toast-in 0.28s ease-out;
+  border: 1px solid var(--ccs-border);
+}
+
+@keyframes ccs-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ccs-toast-success {
+  background: var(--ccs-bg-card);
+  color: var(--ccs-text);
+  border-left: 4px solid #22c55e;
+}
+
+.ccs-toast-error {
+  background: var(--ccs-bg-card);
+  color: var(--ccs-text);
+  border-left: 4px solid #ef4444;
+}
+
+.ccs-toast-msg {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.ccs-toast-close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ccs-text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ccs-toast-close:hover {
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+}

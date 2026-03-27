@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import ConfirmModal from '../../components/ConfirmModal';
 import './StudentProfilingDashboard.css';
@@ -159,12 +160,39 @@ export default function StudentProfilingDashboard() {
   const [auditModalOpen, setAuditModalOpen] = useState(false);
   const [auditRows, setAuditRows] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
+  const [browseSkill, setBrowseSkill] = useState('');
+  const [browseCourse, setBrowseCourse] = useState('');
+  const [studentListLayout, setStudentListLayout] = useState('table');
+  const [addStudentOpen, setAddStudentOpen] = useState(false);
+  const [addStudentForm, setAddStudentForm] = useState({
+    name: '',
+    email: '',
+    student_number: '',
+    password: '',
+    course: '',
+    year_level: '',
+    section: '',
+  });
+  const [savingNewStudent, setSavingNewStudent] = useState(false);
+  const [createFacultyOpen, setCreateFacultyOpen] = useState(false);
+  const [createFacultyForm, setCreateFacultyForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    is_sports_faculty: false,
+  });
+  const [savingFaculty, setSavingFaculty] = useState(false);
+  const [roleUpdatingId, setRoleUpdatingId] = useState(null);
+  const [deleteStudentId, setDeleteStudentId] = useState(null);
+  const [deletingStudent, setDeletingStudent] = useState(false);
+  const browseFilterBootRef = useRef(true);
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
 
   const typeLabels = { past_activity: 'Past activity', award: 'Award', leadership: 'Leadership' };
 
   const fetchStudents = useCallback(async () => {
     const params = new URLSearchParams();
+    params.set('include_officers', '1');
     if (search) params.set('search', search);
     if (activityFilter) {
       params.set('qualify_for', activityFilter);
@@ -174,12 +202,15 @@ export default function StudentProfilingDashboard() {
       if (listInterestOnly) params.set('interest_only', '1');
       params.set('sort', listSort);
       params.set('sort_dir', listSortDir);
+    } else {
+      if (browseSkill.trim()) params.set('skill', browseSkill.trim());
+      if (browseCourse.trim()) params.set('course', browseCourse.trim());
     }
     const res = await fetch(`/api/students?${params}`, { headers: getAuthHeaders() });
     const data = await res.json();
     if (data.success) setStudents(data.data.data || []);
     else setError(data.message || 'Failed to load students');
-  }, [search, activityFilter, listSection, listYear, listSkill, listInterestOnly, listSort, listSortDir]);
+  }, [search, activityFilter, listSection, listYear, listSkill, listInterestOnly, listSort, listSortDir, browseSkill, browseCourse]);
 
   const fetchActivities = useCallback(async () => {
     const res = await fetch('/api/activities', { headers: getAuthHeaders() });
@@ -202,6 +233,114 @@ export default function StudentProfilingDashboard() {
     const data = await res.json();
     if (data.success) setStudentsForOfficers(data.data?.data || []);
   }, []);
+
+  const submitNewStudent = async (e) => {
+    e.preventDefault();
+    setSavingNewStudent(true);
+    setError('');
+    try {
+      const body = {
+        name: addStudentForm.name.trim(),
+        email: addStudentForm.email.trim(),
+        student_number: addStudentForm.student_number.trim(),
+        course: addStudentForm.course.trim() || null,
+        year_level: addStudentForm.year_level.trim() || null,
+        section: addStudentForm.section.trim() || null,
+      };
+      if (addStudentForm.password.trim()) body.password = addStudentForm.password.trim();
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAddStudentOpen(false);
+        setAddStudentForm({
+          name: '',
+          email: '',
+          student_number: '',
+          password: '',
+          course: '',
+          year_level: '',
+          section: '',
+        });
+        fetchStudents();
+        fetchStudentsForOfficers();
+      } else setError(data.message || 'Could not create student');
+    } catch {
+      setError('Request failed');
+    } finally {
+      setSavingNewStudent(false);
+    }
+  };
+
+  const submitCreateFaculty = async (e) => {
+    e.preventDefault();
+    setSavingFaculty(true);
+    setError('');
+    try {
+      const res = await fetch('/api/faculty-accounts', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          name: createFacultyForm.name.trim(),
+          email: createFacultyForm.email.trim(),
+          password: createFacultyForm.password,
+          is_sports_faculty: createFacultyForm.is_sports_faculty,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCreateFacultyOpen(false);
+        setCreateFacultyForm({ name: '', email: '', password: '', is_sports_faculty: false });
+      } else setError(data.message || 'Could not create faculty');
+    } catch {
+      setError('Request failed');
+    } finally {
+      setSavingFaculty(false);
+    }
+  };
+
+  const patchStudentRole = async (studentId, role) => {
+    setRoleUpdatingId(studentId);
+    setError('');
+    try {
+      const res = await fetch(`/api/students/${studentId}/role`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ role }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchStudents();
+        fetchStudentsForOfficers();
+      } else setError(data.message || 'Could not update role');
+    } catch {
+      setError('Request failed');
+    } finally {
+      setRoleUpdatingId(null);
+    }
+  };
+
+  const confirmDeleteStudent = async () => {
+    if (!deleteStudentId) return;
+    setDeletingStudent(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/students/${deleteStudentId}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const data = await res.json();
+      if (data.success) {
+        setDeleteStudentId(null);
+        fetchStudents();
+        fetchStudentsForOfficers();
+      } else setError(data.message || 'Delete failed');
+    } catch {
+      setError('Request failed');
+    } finally {
+      setDeletingStudent(false);
+    }
+  };
 
   useEffect(() => {
     if (officerActivityId) fetchOfficerPositions();
@@ -264,6 +403,19 @@ export default function StudentProfilingDashboard() {
     if (!activityFilter) return;
     fetchStudents();
   }, [activityFilter, listSection, listYear, listSkill, listInterestOnly, listSort, listSortDir, fetchStudents]);
+
+  useEffect(() => {
+    if (activityFilter) {
+      browseFilterBootRef.current = true;
+      return;
+    }
+    if (browseFilterBootRef.current) {
+      browseFilterBootRef.current = false;
+      return;
+    }
+    const t = setTimeout(() => fetchStudents(), 320);
+    return () => clearTimeout(t);
+  }, [browseSkill, browseCourse, activityFilter, fetchStudents]);
 
   const openFullProfile = async (student) => {
     setFullProfile({ student, payload: null, loading: true });
@@ -838,10 +990,17 @@ export default function StudentProfilingDashboard() {
 
   return (
     <div className="student-profiling-dashboard">
-      <div className="spd-header">
-        <h1>Student Profiling Dashboard</h1>
-        <p>Search and filter students by profile. Enroll qualified students in activities.</p>
-      </div>
+      <header className="ccs-gradient-hero ccs-gradient-hero--compact spd-page-hero">
+        <div className="ccs-gradient-hero-pattern" aria-hidden />
+        <div className="ccs-gradient-hero-inner">
+          <h1 className="ccs-gradient-hero-title">Student Profiling Dashboard</h1>
+          <p className="ccs-gradient-hero-subtitle spd-hero-desc">
+            Comprehensive student records: personal &amp; academic profile, non-academic activities, conduct (violations),
+            endorsed skills, and affiliations (activity interests, enrollments, sports interests). Add students, browse the full roster,
+            open any full profile, and edit or remove records. Use skill or course filters (e.g. Programming, Basketball) with table or card layout.
+          </p>
+        </div>
+      </header>
 
       <div className="spd-toolbar">
         <div className="spd-search">
@@ -862,13 +1021,16 @@ export default function StudentProfilingDashboard() {
           <select
             value={activityFilter}
             onChange={(e) => {
-              setActivityFilter(e.target.value);
-              setListSection('');
-              setListYear('');
-              setListSkill('');
-              setListInterestOnly(false);
-              setListSort('score');
-              setListSortDir('desc');
+              flushSync(() => {
+                setActivityFilter(e.target.value);
+                setListSection('');
+                setListYear('');
+                setListSkill('');
+                setListInterestOnly(false);
+                setListSort('score');
+                setListSortDir('desc');
+              });
+              fetchStudents();
             }}
             className="spd-filter-select"
           >
@@ -884,7 +1046,76 @@ export default function StudentProfilingDashboard() {
         <button type="button" className="spd-search-btn" onClick={fetchStudents}>
           Search
         </button>
+        {!activityFilter && (
+          <div className="spd-layout-toggle" role="group" aria-label="Result layout">
+            <button
+              type="button"
+              className={studentListLayout === 'table' ? 'spd-layout-btn active' : 'spd-layout-btn'}
+              onClick={() => setStudentListLayout('table')}
+            >
+              Table
+            </button>
+            <button
+              type="button"
+              className={studentListLayout === 'cards' ? 'spd-layout-btn active' : 'spd-layout-btn'}
+              onClick={() => setStudentListLayout('cards')}
+            >
+              Cards
+            </button>
+          </div>
+        )}
+        {user.role === 'ADMIN' && (
+          <>
+            <button type="button" className="spd-edit-profile-btn" onClick={() => setAddStudentOpen(true)}>
+              Add student
+            </button>
+            <button type="button" className="spd-edit-profile-btn" onClick={() => setCreateFacultyOpen(true)}>
+              Create faculty
+            </button>
+          </>
+        )}
       </div>
+
+      {!activityFilter && (
+        <div className="spd-browse-toolbar">
+          <span className="spd-browse-label">Filter all students</span>
+          <input
+            type="text"
+            className="spd-phase4-input spd-browse-input"
+            placeholder="Skill contains… (e.g. Programming)"
+            value={browseSkill}
+            onChange={(e) => setBrowseSkill(e.target.value)}
+            aria-label="Filter by skill"
+          />
+          <input
+            type="text"
+            className="spd-phase4-input spd-browse-input"
+            placeholder="Course contains…"
+            value={browseCourse}
+            onChange={(e) => setBrowseCourse(e.target.value)}
+            aria-label="Filter by course"
+          />
+          <div className="spd-quick-filters">
+            <span className="spd-muted">Quick:</span>
+            <button type="button" className="spd-quick-filter-btn" onClick={() => setBrowseSkill('Programming')}>
+              Programming
+            </button>
+            <button type="button" className="spd-quick-filter-btn" onClick={() => setBrowseSkill('Basketball')}>
+              Basketball
+            </button>
+            <button
+              type="button"
+              className="spd-quick-filter-btn spd-quick-filter-clear"
+              onClick={() => {
+                setBrowseSkill('');
+                setBrowseCourse('');
+              }}
+            >
+              Clear filters
+            </button>
+          </div>
+        </div>
+      )}
 
       {activityFilter && (
         <div className="spd-phase4-toolbar">
@@ -1157,6 +1388,86 @@ export default function StudentProfilingDashboard() {
             </ul>
           )}
         </div>
+      ) : studentListLayout === 'cards' ? (
+        <div className="spd-browse-cards-wrap">
+          {students.length === 0 ? (
+            <p className="spd-qualified-empty">No students match your search or filters.</p>
+          ) : (
+            <ul className="spd-browse-cards">
+              {students.map((student) => {
+                const p = student.student_profile || {};
+                const skills = student.skill_entries || [];
+                return (
+                  <li key={student.id} className="spd-browse-card">
+                    <div className="spd-browse-card-head">
+                      <QualifiedStudentAvatar name={student.name} photoUrl={p.photo_url} />
+                      <div className="spd-browse-card-info">
+                        <h3 className="spd-browse-card-name">{student.name}</h3>
+                        <p className="spd-browse-card-meta">{student.email}</p>
+                        <p className="spd-browse-card-meta">
+                          #{student.student_number || '—'}
+                          {p.course ? ` · ${p.course}` : ''}
+                        </p>
+                        {p.current_gpa != null && (
+                          <p className="spd-browse-card-gpa">GPA {Number(p.current_gpa).toFixed(2)}</p>
+                        )}
+                      </div>
+                    </div>
+                    {skills.length > 0 ? (
+                      <div className="spd-browse-card-skills">
+                        {skills.map((s) => (
+                          <span key={s.id} className="spd-tag">
+                            {s.skill}
+                            {s.proficiency_level ? ` · ${s.proficiency_level}` : ''}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="spd-muted spd-browse-card-skills">No skill entries yet.</p>
+                    )}
+                    <div className="spd-browse-card-actions">
+                      <button type="button" className="spd-edit-profile-btn" onClick={() => openFullProfile(student)}>Full profile</button>
+                      {(user.role === 'ADMIN' || user.role === 'FACULTY') && (
+                        <>
+                          <button type="button" className="spd-edit-profile-btn" onClick={() => openEntriesModal(student)}>Entries</button>
+                          <button type="button" className="spd-edit-profile-btn" onClick={() => openSkillsModal(student)}>Skills</button>
+                          <button type="button" className="spd-edit-profile-btn" onClick={() => openConductModal(student)}>Conduct</button>
+                        </>
+                      )}
+                      {user.role === 'ADMIN' && (
+                        <>
+                          <button type="button" className="spd-edit-profile-btn" onClick={() => openEditProfile(student)}>Edit profile</button>
+                          <button type="button" className="spd-officer-remove" onClick={() => setDeleteStudentId(student.id)}>Delete</button>
+                        </>
+                      )}
+                    </div>
+                    {activities.length > 0 && (
+                      <div className="spd-browse-card-enroll">
+                        <span className="spd-muted">Enroll:</span>
+                        <div className="spd-enroll-group">
+                          {activities.map((activity) => {
+                            const enrolled = isEnrolled(student, activity.id);
+                            return (
+                              <button
+                                key={activity.id}
+                                type="button"
+                                className={`spd-enroll-btn ${enrolled ? 'enrolled' : ''} ${enrollmentStatusForActivity(student, activity.id) === 'pending_confirmation' ? 'spd-enroll-pending' : ''}`}
+                                disabled={enrolled || enrolling === student.id}
+                                onClick={() => openEnrollConfirm(student, activity)}
+                              >
+                                {enrolled ? enrollmentButtonLabel(student, activity.id, activity.name) : activity.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       ) : (
         <div className="spd-table-wrap">
           <table className="spd-table">
@@ -1236,6 +1547,9 @@ export default function StudentProfilingDashboard() {
                     </td>
                     <td>
                       <div className="spd-actions-cell">
+                        <button type="button" className="spd-edit-profile-btn" onClick={() => openFullProfile(student)}>
+                          Full profile
+                        </button>
                         {(user.role === 'ADMIN' || user.role === 'FACULTY') && (
                           <>
                             <button type="button" className="spd-edit-profile-btn" onClick={() => openEntriesModal(student)}>
@@ -1250,13 +1564,22 @@ export default function StudentProfilingDashboard() {
                           </>
                         )}
                         {user.role === 'ADMIN' && (
-                          <button
-                            type="button"
-                            className="spd-edit-profile-btn"
-                            onClick={() => openEditProfile(student)}
-                          >
-                            Edit profile
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              className="spd-edit-profile-btn"
+                              onClick={() => openEditProfile(student)}
+                            >
+                              Edit profile
+                            </button>
+                            <button
+                              type="button"
+                              className="spd-officer-remove"
+                              onClick={() => setDeleteStudentId(student.id)}
+                            >
+                              Delete
+                            </button>
+                          </>
                         )}
                         {activities.length > 0 ? (
                         <div className="spd-enroll-group">
@@ -1286,6 +1609,106 @@ export default function StudentProfilingDashboard() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {createFacultyOpen && (
+        <div className="spd-modal-overlay" onClick={() => !savingFaculty && setCreateFacultyOpen(false)}>
+          <div className="spd-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="spd-modal-header">
+              <h3>Create faculty account</h3>
+              <button type="button" className="spd-modal-close" onClick={() => !savingFaculty && setCreateFacultyOpen(false)} aria-label="Close">×</button>
+            </div>
+            <form className="spd-modal-form" onSubmit={submitCreateFaculty}>
+              <p className="spd-muted">Faculty cannot self-register. Share the password you set here securely with the new faculty member.</p>
+              <div className="spd-modal-row">
+                <label>Full name</label>
+                <input value={createFacultyForm.name} onChange={(e) => setCreateFacultyForm((f) => ({ ...f, name: e.target.value }))} required />
+              </div>
+              <div className="spd-modal-row">
+                <label>Email (login)</label>
+                <input type="email" value={createFacultyForm.email} onChange={(e) => setCreateFacultyForm((f) => ({ ...f, email: e.target.value }))} required />
+              </div>
+              <div className="spd-modal-row">
+                <label>Password</label>
+                <input type="password" value={createFacultyForm.password} onChange={(e) => setCreateFacultyForm((f) => ({ ...f, password: e.target.value }))} required minLength={8} />
+              </div>
+              <div className="spd-modal-row spd-modal-row-check">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={createFacultyForm.is_sports_faculty}
+                    onChange={(e) => setCreateFacultyForm((f) => ({ ...f, is_sports_faculty: e.target.checked }))}
+                  />
+                  {' '}
+                  Sports faculty (can view full physical profile fields)
+                </label>
+              </div>
+              <div className="spd-modal-actions">
+                <button type="button" className="spd-modal-cancel" onClick={() => !savingFaculty && setCreateFacultyOpen(false)}>Cancel</button>
+                <button type="submit" className="spd-search-btn" disabled={savingFaculty}>{savingFaculty ? 'Creating…' : 'Create faculty'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        open={deleteStudentId != null}
+        title="Delete student"
+        message="Remove this student account and all related profiling data? This cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deletingStudent}
+        onConfirm={confirmDeleteStudent}
+        onCancel={() => !deletingStudent && setDeleteStudentId(null)}
+      />
+
+      {addStudentOpen && (
+        <div className="spd-modal-overlay" onClick={() => !savingNewStudent && setAddStudentOpen(false)}>
+          <div className="spd-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="spd-modal-header">
+              <h3>Add student</h3>
+              <button type="button" className="spd-modal-close" onClick={() => !savingNewStudent && setAddStudentOpen(false)} aria-label="Close">×</button>
+            </div>
+            <form className="spd-modal-form" onSubmit={submitNewStudent}>
+              <p className="spd-muted">
+                Pre-enrolls a student record. Leave password blank so they must use “Claim your account” with their student number; or set an initial password if you will share it with them.
+              </p>
+              <div className="spd-modal-row">
+                <label>Full name</label>
+                <input value={addStudentForm.name} onChange={(e) => setAddStudentForm((f) => ({ ...f, name: e.target.value }))} required />
+              </div>
+              <div className="spd-modal-row">
+                <label>Email</label>
+                <input type="email" value={addStudentForm.email} onChange={(e) => setAddStudentForm((f) => ({ ...f, email: e.target.value }))} required />
+              </div>
+              <div className="spd-modal-row">
+                <label>Student number</label>
+                <input value={addStudentForm.student_number} onChange={(e) => setAddStudentForm((f) => ({ ...f, student_number: e.target.value }))} required />
+              </div>
+              <div className="spd-modal-row">
+                <label>Initial password (optional)</label>
+                <input type="password" value={addStudentForm.password} onChange={(e) => setAddStudentForm((f) => ({ ...f, password: e.target.value }))} minLength={6} placeholder="Leave blank for claim-only activation" />
+              </div>
+              <div className="spd-modal-row">
+                <label>Course (optional)</label>
+                <input value={addStudentForm.course} onChange={(e) => setAddStudentForm((f) => ({ ...f, course: e.target.value }))} />
+              </div>
+              <div className="spd-modal-row">
+                <label>Year level (optional)</label>
+                <input value={addStudentForm.year_level} onChange={(e) => setAddStudentForm((f) => ({ ...f, year_level: e.target.value }))} />
+              </div>
+              <div className="spd-modal-row">
+                <label>Section (optional)</label>
+                <input value={addStudentForm.section} onChange={(e) => setAddStudentForm((f) => ({ ...f, section: e.target.value }))} />
+              </div>
+              <div className="spd-modal-actions">
+                <button type="button" className="spd-modal-cancel" onClick={() => !savingNewStudent && setAddStudentOpen(false)}>Cancel</button>
+                <button type="submit" className="spd-search-btn" disabled={savingNewStudent}>{savingNewStudent ? 'Saving…' : 'Create student'}</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

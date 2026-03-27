@@ -2,17 +2,8 @@
   max-width: 900px;
 }
 
-.manage-merch-page h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--ccs-text);
-  margin-bottom: 0.25rem;
-}
-
-.manage-merch-desc {
-  font-size: 0.9375rem;
-  color: var(--ccs-text-muted);
-  margin-bottom: 1.5rem;
+.manage-merch-hero {
+  margin-bottom: 1.25rem;
 }
 
 .manage-merch-tabs {
@@ -32,9 +23,10 @@
 }
 
 .manage-merch-tabs button.active {
-  background: var(--ccs-orange);
+  background: linear-gradient(135deg, var(--ccs-orange) 0%, #c2410c 100%);
   color: white;
-  border-color: var(--ccs-orange);
+  border-color: transparent;
+  box-shadow: 0 2px 10px var(--ccs-orange-glow);
 }
 
 .manage-merch-loading,

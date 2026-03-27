@@ -2,24 +2,23 @@
   max-width: 700px;
 }
 
-.placeholder-page h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--ccs-text);
-  margin-bottom: 0.5rem;
-}
-
-.placeholder-page p {
-  font-size: 0.9375rem;
-  color: var(--ccs-text-muted);
+.student-history-hero,
+.my-profile-hero {
+  margin-bottom: 1.25rem;
 }
 
 .profile-info {
   margin-top: 1.5rem;
   padding: 1rem;
-  background: var(--ccs-bg-card);
   border-radius: 8px;
+  background: linear-gradient(160deg, var(--ccs-bg-card) 0%, rgba(249, 115, 22, 0.06) 100%);
   border: 1px solid var(--ccs-border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='dark'] .profile-info {
+  background: linear-gradient(160deg, var(--ccs-bg-card) 0%, rgba(249, 115, 22, 0.1) 100%);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
 .profile-info p {
@@ -165,9 +164,14 @@
 .profile-form {
   margin-top: 1.5rem;
   padding: 1.5rem;
-  background: var(--ccs-bg-card);
   border-radius: 8px;
   border: 1px solid var(--ccs-border);
+  background: linear-gradient(165deg, var(--ccs-bg-card) 0%, rgba(249, 115, 22, 0.05) 100%);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='dark'] .profile-form {
+  background: linear-gradient(165deg, var(--ccs-bg-card) 0%, rgba(249, 115, 22, 0.09) 100%);
 }
 
 .profile-form h2 {

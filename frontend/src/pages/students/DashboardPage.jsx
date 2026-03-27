@@ -7,34 +7,22 @@ function getAuthHeaders() {
   return { ...(token && { Authorization: `Bearer ${token}` }) };
 }
 
-const MOCK_ANNOUNCEMENTS = [
-  {
-    id: 1,
-    title: 'Upcoming Hackathon 2026',
-    content: 'Join us for the annual CCS Hackathon on March 20-21, 2026. Prizes worth $5,000! Register now.',
-    author: 'Dr. Robert Anderson',
-    tag: 'event',
-    date: '2026-03-01',
-  },
-  {
-    id: 2,
-    title: 'New CCS Merch Available!',
-    content: 'Check out our latest collection of CCS hoodies, t-shirts, and mugs. Limited stocks available!',
-    author: 'Maria Clara Reyes',
-    tag: 'general',
-    date: '2026-03-04',
-  },
-];
-
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
 
   const fetchNotifications = useCallback(async () => {
     const res = await fetch('/api/notifications', { headers: getAuthHeaders() });
     const data = await res.json();
     if (data.success) setNotifications(data.data || []);
+  }, []);
+
+  const fetchAnnouncements = useCallback(async () => {
+    const res = await fetch('/api/announcements', { headers: getAuthHeaders() });
+    const data = await res.json();
+    if (data.success) setAnnouncements(data.data || []);
   }, []);
 
   useEffect(() => {
@@ -48,19 +36,23 @@ export default function DashboardPage() {
 
     setUser(JSON.parse(userData));
     fetchNotifications();
-  }, [navigate, fetchNotifications]);
+    fetchAnnouncements();
+  }, [navigate, fetchNotifications, fetchAnnouncements]);
 
   if (!user) return null;
 
   return (
     <div className="student-dashboard">
-      <div className="dashboard-welcome">
-        <h1 className="dashboard-welcome-title">Welcome, {user.name}!</h1>
-        <p className="dashboard-welcome-subtitle">{user.role} Dashboard</p>
-      </div>
+      <header className="dashboard-welcome ccs-gradient-hero">
+        <div className="ccs-gradient-hero-pattern" aria-hidden />
+        <div className="ccs-gradient-hero-inner">
+          <h1 className="ccs-gradient-hero-title">Welcome, {user.name}!</h1>
+          <p className="ccs-gradient-hero-subtitle">{user.role} Dashboard</p>
+        </div>
+      </header>
 
       {notifications.length > 0 && (
-        <section className="dashboard-notifications">
+        <section className="dashboard-notifications ccs-surface-gradient">
           <h2 className="notifications-title">Your Notifications</h2>
           <div className="notifications-list">
             {notifications.slice(0, 5).map((n) => (
@@ -76,7 +68,7 @@ export default function DashboardPage() {
         </section>
       )}
 
-      <section className="dashboard-announcements">
+      <section className="dashboard-announcements ccs-surface-gradient">
         <div className="announcements-header">
           <div className="announcements-title-row">
             <svg className="announcements-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -91,19 +83,30 @@ export default function DashboardPage() {
         </div>
 
         <div className="announcements-list">
-          {MOCK_ANNOUNCEMENTS.map((ann) => (
-            <article key={ann.id} className="announcement-card">
-              <h3 className="announcement-title">{ann.title}</h3>
-              <p className="announcement-content">{ann.content}</p>
-              <div className="announcement-meta">
-                <div className="announcement-meta-left">
-                  <span className="announcement-author">By {ann.author}</span>
-                  <span className={`announcement-tag tag-${ann.tag}`}>{ann.tag}</span>
+          {announcements.length === 0 ? (
+            <p className="announcements-empty">No announcements yet. Check back soon.</p>
+          ) : (
+            announcements.slice(0, 5).map((ann) => (
+              <article key={ann.id} className="announcement-card">
+                <h3 className="announcement-title">{ann.title}</h3>
+                {ann.image_url && (
+                  <div className="announcement-image-wrap">
+                    <img src={ann.image_url} alt="" className="announcement-image" />
+                  </div>
+                )}
+                <p className="announcement-content">{ann.content}</p>
+                <div className="announcement-meta">
+                  <div className="announcement-meta-left">
+                    <span className="announcement-author">By {ann.author?.name ?? 'Staff'}</span>
+                    <span className={`announcement-tag tag-${ann.tag || 'general'}`}>{ann.tag || 'general'}</span>
+                  </div>
+                  <span className="announcement-date">
+                    {ann.created_at ? new Date(ann.created_at).toLocaleDateString() : ''}
+                  </span>
                 </div>
-                <span className="announcement-date">{ann.date}</span>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))
+          )}
         </div>
       </section>
     </div>

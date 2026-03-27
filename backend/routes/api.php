@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\ActivitiesController;
+use App\Http\Controllers\Api\AdminStatsController;
+use App\Http\Controllers\Api\AnnouncementsController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\FacultyAccountsController;
 use App\Http\Controllers\Api\ConductEntriesController;
 use App\Http\Controllers\Api\EnrollmentsController;
 use App\Http\Controllers\Api\InterestDeclarationsController;
@@ -9,6 +12,7 @@ use App\Http\Controllers\Api\MerchandiseController;
 use App\Http\Controllers\Api\MerchandiseOrdersController;
 use App\Http\Controllers\Api\NonAcademicEntriesController;
 use App\Http\Controllers\Api\NotificationsController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\QualificationRankOverridesController;
 use App\Http\Controllers\Api\OfficerPositionsController;
 use App\Http\Controllers\Api\SkillEntriesController;
@@ -23,6 +27,15 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('faculty-accounts', [FacultyAccountsController::class, 'store']);
+
+    Route::get('announcements', [AnnouncementsController::class, 'index']);
+
+    Route::get('profile', [ProfileController::class, 'show']);
+    Route::put('profile/update', [ProfileController::class, 'update']);
+    Route::post('profile/upload-avatar', [ProfileController::class, 'uploadAvatar']);
+    Route::put('profile/change-password', [ProfileController::class, 'changePassword']);
+
     Route::get('notifications', [NotificationsController::class, 'index']);
     Route::post('notifications/{id}/read', [NotificationsController::class, 'markRead']);
     Route::get('student-profile', [StudentProfileController::class, 'show']);
@@ -70,8 +83,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('activities/{id}', [ActivitiesController::class, 'destroy']);
 
     Route::middleware('admin.faculty')->group(function () {
+        Route::get('admin/stats', [AdminStatsController::class, 'stats']);
+
         Route::get('activities', [ActivitiesController::class, 'index']);
         Route::get('students', [StudentsController::class, 'index']);
+        Route::post('students', [StudentsController::class, 'store']);
+        Route::patch('students/{id}/role', [StudentsController::class, 'updateRole']);
+        Route::delete('students/{id}', [StudentsController::class, 'destroy']);
         Route::get('students/{id}/full-profile', [StudentsController::class, 'showFullProfile']);
         Route::post('students/enroll', [StudentsController::class, 'enroll']);
         Route::get('activities/{activityId}/rank-overrides', [QualificationRankOverridesController::class, 'index']);
@@ -80,6 +98,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('officer-positions', [OfficerPositionsController::class, 'index']);
         Route::post('officer-positions', [OfficerPositionsController::class, 'store']);
         Route::delete('officer-positions/{id}', [OfficerPositionsController::class, 'destroy']);
+
+        Route::post('announcements', [AnnouncementsController::class, 'store']);
+        Route::post('announcements/{id}', [AnnouncementsController::class, 'update']);
+        Route::delete('announcements/{id}', [AnnouncementsController::class, 'destroy']);
     });
 
     Route::put('students/{id}/profile', [StudentProfileController::class, 'updateForStudent'])->middleware('admin.faculty');

@@ -175,8 +175,15 @@ export default function ManageMerchPage() {
         onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmDelete({ open: false, itemId: null })}
       />
-      <h1>Manage Merchandise</h1>
-      <p className="manage-merch-desc">Post and manage department merchandise. Accept GCash or cash and set payment status to &quot;Paid Online&quot; or &quot;Paid (Cash)&quot;.</p>
+      <header className="ccs-gradient-hero ccs-gradient-hero--compact manage-merch-hero">
+        <div className="ccs-gradient-hero-pattern" aria-hidden />
+        <div className="ccs-gradient-hero-inner">
+          <h1 className="ccs-gradient-hero-title">Manage Merchandise</h1>
+          <p className="ccs-gradient-hero-subtitle">
+            Post and manage department merchandise. Accept GCash or cash and set payment status to &quot;Paid Online&quot; or &quot;Paid (Cash)&quot;.
+          </p>
+        </div>
+      </header>
 
       <div className="manage-merch-tabs">
         <button

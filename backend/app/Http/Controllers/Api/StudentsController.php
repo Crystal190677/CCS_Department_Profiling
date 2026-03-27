@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class StudentsController extends Controller
 {
@@ -91,6 +92,15 @@ class StudentsController extends Controller
             $sortDir = (string) $request->input('sort_dir', 'desc');
             ActivityQualificationScoringService::applyRankingSelectAndOrder($query, $filterActivity, $sort, $sortDir);
         } else {
+            if ($request->filled('skill')) {
+                $sk = trim((string) $request->input('skill'));
+                $query->whereHas('skillEntries', fn (Builder $q) => $q->where('skill', 'like', '%'.$sk.'%'));
+            }
+            if ($request->filled('course')) {
+                $co = trim((string) $request->input('course'));
+                $query->whereHas('studentProfile', fn (Builder $q) => $q->where('course', 'like', '%'.$co.'%'));
+            }
+            $query->with('skillEntries');
             $query->orderBy('name');
         }
 
@@ -125,6 +135,107 @@ class StudentsController extends Controller
         return response()->json([
             'success' => true,
             'data' => $students,
+        ]);
+    }
+
+    /**
+     * Admin: create a student user and baseline profile (personal + academic shell).
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $authUser = $request->user();
+        if (!$authUser || $authUser->role !== 'ADMIN') {
+            return response()->json(['success' => false, 'message' => 'Admin only'], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email',
+            'student_number' => 'required|string|max:50|unique:users,student_number',
+            'password' => 'nullable|string|min:6',
+            'course' => 'nullable|string|max:255',
+            'year_level' => 'nullable|string|max:50',
+            'section' => 'nullable|string|max:50',
+        ]);
+
+        $hasInitialPassword = !empty($validated['password']);
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'student_number' => $validated['student_number'],
+            'password' => $hasInitialPassword ? $validated['password'] : Str::password(32),
+            'password_set_at' => $hasInitialPassword ? now() : null,
+            'role' => 'STUDENT',
+        ]);
+
+        StudentProfile::create([
+            'user_id' => $user->id,
+            'course' => $validated['course'] ?? null,
+            'year_level' => $validated['year_level'] ?? null,
+            'section' => $validated['section'] ?? null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Student created',
+            'data' => $user->fresh()->load(['studentProfile', 'skillEntries']),
+        ], 201);
+    }
+
+    /**
+     * Admin: delete a student and dependent records (cascading FKs).
+     */
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $authUser = $request->user();
+        if (!$authUser || $authUser->role !== 'ADMIN') {
+            return response()->json(['success' => false, 'message' => 'Admin only'], 403);
+        }
+
+        $student = User::query()->whereIn('role', ['STUDENT', 'OFFICER'])->find($id);
+        if (!$student) {
+            return response()->json(['success' => false, 'message' => 'Student not found'], 404);
+        }
+
+        if ($student->id === $authUser->id) {
+            return response()->json(['success' => false, 'message' => 'Cannot delete your own account'], 400);
+        }
+
+        $student->delete();
+
+        return response()->json(['success' => true, 'message' => 'Student removed']);
+    }
+
+    /**
+     * Toggle system role between STUDENT and OFFICER (same login: student number). Admin or Faculty.
+     */
+    public function updateRole(Request $request, int $id): JsonResponse
+    {
+        $authUser = $request->user();
+        if (!$authUser || !in_array($authUser->role, ['ADMIN', 'FACULTY'], true)) {
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+        }
+
+        $validated = $request->validate([
+            'role' => 'required|string|in:STUDENT,OFFICER',
+        ]);
+
+        $target = User::findOrFail($id);
+        if (!in_array($target->role, ['STUDENT', 'OFFICER'], true) || $target->student_number === null || $target->student_number === '') {
+            return response()->json(['success' => false, 'message' => 'Only student accounts with a student number can use this role'], 400);
+        }
+
+        if ($target->role === $validated['role']) {
+            return response()->json(['success' => true, 'data' => $target]);
+        }
+
+        $target->role = $validated['role'];
+        $target->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Role updated',
+            'data' => $target->fresh(),
         ]);
     }
 
@@ -199,8 +310,8 @@ class StudentsController extends Controller
         }
 
         $student = User::findOrFail($request->input('student_id'));
-        if ($student->role !== 'STUDENT') {
-            return response()->json(['success' => false, 'message' => 'User is not a student'], 400);
+        if (!in_array($student->role, ['STUDENT', 'OFFICER'], true)) {
+            return response()->json(['success' => false, 'message' => 'User is not a student or officer account'], 400);
         }
 
         $activityId = (int) $request->input('activity_id');

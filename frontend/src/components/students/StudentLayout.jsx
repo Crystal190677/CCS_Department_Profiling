@@ -9,6 +9,7 @@ const MENU_ITEMS_BASE = [
   { path: '/dashboard/announcements', label: 'Announcements', icon: 'megaphone' },
   { path: '/dashboard/merch-store', label: 'Merch Store', icon: 'tag' },
   { path: '/dashboard/my-profile', label: 'My Profile', icon: 'person' },
+  { path: '/dashboard/profile-settings', label: 'Profile settings', icon: 'settings' },
 ];
 
 const MENU_ITEM_OFFICER_MERCH = { path: '/dashboard/manage-merch', label: 'Manage Merchandise', icon: 'package', officerOnly: true };
@@ -64,6 +65,14 @@ function Icon({ name, className }) {
       <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="12" cy="12" r="10" />
         <polyline points="12 6 12 12 16 14" />
+      </svg>
+    );
+  }
+  if (name === 'settings') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
       </svg>
     );
   }
