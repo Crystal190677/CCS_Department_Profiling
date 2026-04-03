@@ -45,6 +45,7 @@ class DatabaseSeeder extends Seeder
                         'weight_kg' => 65,
                         'course' => 'BSCS',
                         'year_level' => '2nd yr',
+                        'academic_semester' => 1,
                         'section' => 'A',
                         'academic_standing' => 'Regular',
                         'sports_interests' => ['basketball', 'volleyball'],
@@ -112,6 +113,10 @@ class DatabaseSeeder extends Seeder
                 ]
             );
         }
+
+        $this->call(CcsCourseWorkspaceDemoSeeder::class);
+        $this->call(StudentClassScheduleSeeder::class);
+        $this->call(MerchandiseCatalogSeeder::class);
 
         $this->command->info('✓ Seed data created.');
     }

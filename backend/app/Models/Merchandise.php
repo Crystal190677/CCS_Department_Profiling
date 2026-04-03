@@ -14,6 +14,9 @@ class Merchandise extends Model
     protected $fillable = [
         'name',
         'description',
+        'category_label',
+        'available_colors',
+        'available_sizes',
         'price',
         'image_path',
         'is_available',
@@ -23,6 +26,8 @@ class Merchandise extends Model
     protected $casts = [
         'price' => 'decimal:2',
         'is_available' => 'boolean',
+        'available_colors' => 'array',
+        'available_sizes' => 'array',
     ];
 
     protected $appends = ['image_url'];

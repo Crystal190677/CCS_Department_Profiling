@@ -294,40 +294,118 @@
   color: var(--od-orange-deep);
 }
 
-/* Photo panel */
+/* Hero panel — CCS seal & institutional branding (logo orange ~#f26522) */
 .od-login-photo-side {
+  --od-hero-orange: #f26522;
+  --od-hero-deep: #c2410c;
+  --od-hero-mahogany: #7c2d12;
   position: relative;
   min-height: 280px;
-  background: linear-gradient(145deg, #fb923c 0%, var(--od-orange) 35%, #c2410c 72%, #7c2d12 100%);
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 120% 80% at 15% 20%, rgba(255, 255, 255, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 70% at 90% 75%, rgba(0, 0, 0, 0.12) 0%, transparent 50%),
+    linear-gradient(155deg, #ff8f4a 0%, var(--od-hero-orange) 28%, var(--od-orange) 52%, var(--od-hero-deep) 78%, var(--od-hero-mahogany) 100%);
 }
 
-.od-login-photo-side::after {
-  content: '';
+.od-login-hero-glow {
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.18) 0%, transparent 42%),
+    conic-gradient(from 210deg at 50% 50%, transparent 0deg, rgba(255, 255, 255, 0.06) 60deg, transparent 120deg, rgba(0, 0, 0, 0.05) 200deg, transparent 280deg);
+  pointer-events: none;
+  animation: od-hero-glow-spin 28s linear infinite;
+}
+
+@keyframes od-hero-glow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .od-login-hero-glow {
+    animation: none;
+  }
+}
+
+.od-login-hero-grid {
   position: absolute;
   inset: 0;
-  opacity: 0.14;
+  opacity: 0.35;
   pointer-events: none;
   background-image:
-    radial-gradient(circle at 30% 40%, #fff 0, transparent 50%),
-    repeating-linear-gradient(-12deg, transparent, transparent 12px, rgba(255, 255, 255, 0.04) 12px, rgba(255, 255, 255, 0.04) 24px);
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, #000 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, #000 20%, transparent 70%);
 }
 
-.od-photo-placeholder {
-  position: absolute;
-  inset: 0;
+.od-login-hero-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  min-height: inherit;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  gap: 1.25rem;
+  padding: 2rem 1.75rem 3.25rem;
+  text-align: center;
 }
 
-.od-photo-label {
+/* Circular presentation of the official seal */
+.od-login-hero-logo-ring {
+  flex-shrink: 0;
+  width: min(52vw, 200px);
+  max-width: 200px;
+  aspect-ratio: 1;
+  padding: 0.65rem;
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 252, 248, 0.94) 100%);
+  box-shadow:
+    0 4px 24px rgba(124, 45, 18, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.65) inset,
+    0 0 40px rgba(255, 140, 66, 0.35);
+}
+
+.od-login-hero-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 50%;
+}
+
+.od-login-hero-text {
+  max-width: 16rem;
+}
+
+.od-login-hero-line {
   margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.55);
-  text-align: center;
+  font-family: 'Playfair Display', Georgia, serif;
+  color: #fff;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.22);
+}
+
+.od-login-hero-line--accent {
+  font-size: clamp(0.95rem, 2.8vw, 1.05rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.35;
+}
+
+.od-login-hero-line--school {
+  margin-top: 0.35rem;
+  font-size: clamp(0.8rem, 2.2vw, 0.9rem);
+  font-weight: 600;
+  font-style: italic;
   letter-spacing: 0.02em;
+  opacity: 0.96;
 }
 
 .od-photo-frost {
@@ -335,16 +413,40 @@
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
   padding: 0.85rem 1.25rem;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-align: center;
-  color: rgba(45, 40, 36, 0.85);
-  background: rgba(255, 255, 255, 0.38);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(255, 255, 255, 0.45);
+  color: rgba(35, 30, 26, 0.88);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 250, 245, 0.44) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.od-photo-frost-brand {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.od-photo-frost-sep {
+  opacity: 0.45;
+}
+
+.od-photo-frost-sub {
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  color: var(--od-orange-deep);
 }
 
 @media (max-width: 800px) {
@@ -355,7 +457,11 @@
 
   .od-login-photo-side {
     min-height: 200px;
-    order: -1;
+  }
+
+  .od-login-hero-logo-ring {
+    max-width: 180px;
+    padding: 0.55rem;
   }
 
   .od-login-form-side {

@@ -25,6 +25,7 @@ class StudentProfile extends Model
         'preferred_position',
         'course',
         'year_level',
+        'academic_semester',
         'current_gpa',
         'gpa_per_semester',
         'academic_standing',
@@ -36,6 +37,7 @@ class StudentProfile extends Model
         'activity_interests',
         'skills',
         'notes',
+        'membership_card_availed_at',
     ];
 
     protected $casts = [
@@ -45,6 +47,8 @@ class StudentProfile extends Model
         'gpa_per_semester' => 'array',
         'sports_interests' => 'array',
         'activity_interests' => 'array',
+        'membership_card_availed_at' => 'datetime',
+        'academic_semester' => 'integer',
     ];
 
     public function user(): BelongsTo

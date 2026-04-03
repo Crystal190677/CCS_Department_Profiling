@@ -49,6 +49,21 @@ class MerchandiseOrdersController extends Controller
             'merchandise_id' => 'required|exists:merchandise,id',
             'quantity' => 'required|integer|min:1',
             'proof_image' => 'nullable|image|max:5120',
+            'payer_full_name' => 'nullable|string|max:255',
+            'section' => 'nullable|string|max:120',
+            'course' => 'nullable|string|max:120',
+            'gcash_reference' => [
+                'nullable',
+                'string',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    if (! preg_match('/^[0-9]{13}$/', (string) $value)) {
+                        $fail('The gcash reference must be exactly 13 digits.');
+                    }
+                },
+            ],
         ]);
 
         $merchandise = Merchandise::findOrFail($request->input('merchandise_id'));
@@ -69,14 +84,24 @@ class MerchandiseOrdersController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
         }
 
+        $gcashRef = $request->input('gcash_reference');
+        $hasCheckoutMeta = $request->filled('payer_full_name')
+            || $request->filled('section')
+            || $request->filled('course')
+            || $request->filled('gcash_reference');
+
         $order = MerchandiseOrder::create([
             'user_id' => $authUser->id,
             'merchandise_id' => $merchandise->id,
             'quantity' => $quantity,
             'amount' => $amount,
+            'payer_full_name' => $request->input('payer_full_name'),
+            'section' => $request->input('section'),
+            'course' => $request->input('course'),
+            'gcash_reference' => $gcashRef ?: null,
             'payment_status' => MerchandiseOrder::PAYMENT_STATUS_PENDING,
             'proof_image_path' => $proofPath,
-            'submitted_at' => $proofPath ? now() : null,
+            'submitted_at' => ($proofPath || $hasCheckoutMeta) ? now() : null,
         ]);
 
         return response()->json([

@@ -1,0 +1,265 @@
+.student-cal-page {
+  width: 100%;
+  max-width: 1100px;
+}
+
+.student-cal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.student-cal-toolbar-spacer,
+.student-cal-toolbar-end {
+  flex: 1;
+  min-width: 0;
+}
+
+.student-cal-toolbar-end {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .student-cal-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .student-cal-toolbar-spacer {
+    display: none;
+  }
+
+  .student-cal-toolbar-end {
+    justify-content: stretch;
+  }
+
+  .student-cal-today {
+    width: 100%;
+  }
+}
+
+.student-cal-nav {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.student-cal-month-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ccs-text);
+  min-width: 11rem;
+  text-align: center;
+}
+
+.student-cal-arrow {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg-card);
+  color: var(--ccs-text);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.student-cal-arrow:hover {
+  border-color: rgba(249, 115, 22, 0.45);
+}
+
+.student-cal-today {
+  padding: 0.45rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg-card);
+  color: var(--ccs-text);
+  cursor: pointer;
+}
+
+.student-cal-today:hover {
+  border-color: var(--ccs-orange);
+}
+
+.student-cal-error {
+  color: #b91c1c;
+  font-size: 0.875rem;
+  margin: 0 0 0.75rem 0;
+}
+
+[data-theme='dark'] .student-cal-error {
+  color: #fca5a5;
+}
+
+.student-cal-muted {
+  color: var(--ccs-text-muted);
+  margin: 0;
+}
+
+.student-cal-grid-wrap {
+  border-radius: 12px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg-card);
+  overflow: hidden;
+  min-height: 420px;
+  padding: 0.5rem;
+}
+
+.student-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0;
+  font-size: 0.75rem;
+}
+
+.student-cal-dow {
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ccs-text-muted);
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--ccs-border);
+}
+
+.student-cal-cell {
+  min-height: 6.5rem;
+  border-right: 1px solid var(--ccs-border);
+  border-bottom: 1px solid var(--ccs-border);
+  padding: 0.25rem 0.3rem 0.35rem;
+  vertical-align: top;
+  background: var(--ccs-bg-card);
+}
+
+.student-cal-cell--row-end {
+  border-right: none;
+}
+
+.student-cal-cell--pad {
+  background: rgba(0, 0, 0, 0.02);
+  color: var(--ccs-text-muted);
+}
+
+[data-theme='dark'] .student-cal-cell--pad {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.student-cal-cell--today {
+  outline: 2px solid rgba(55, 65, 81, 0.85);
+  outline-offset: -2px;
+  border-radius: 2px;
+}
+
+[data-theme='dark'] .student-cal-cell--today {
+  outline-color: rgba(209, 213, 219, 0.6);
+}
+
+.student-cal-daynum {
+  display: block;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  margin-bottom: 0.2rem;
+  color: var(--ccs-text);
+}
+
+.student-cal-cell--pad .student-cal-daynum {
+  color: var(--ccs-text-muted);
+}
+
+.student-cal-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.student-cal-event {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+  font-size: 0.65rem;
+  line-height: 1.25;
+}
+
+.student-cal-event-bar {
+  width: 3px;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 1.5rem;
+  border-radius: 2px;
+  margin-top: 0.1rem;
+}
+
+.student-cal-event--meet .student-cal-event-bar {
+  background: #2563eb;
+}
+
+.student-cal-event--assignment .student-cal-event-bar {
+  background: #ea580c;
+}
+
+.student-cal-event--activity .student-cal-event-bar {
+  background: #16a34a;
+}
+
+.student-cal-event--quiz .student-cal-event-bar {
+  background: #9333ea;
+}
+
+.student-cal-event--task .student-cal-event-bar {
+  background: #64748b;
+}
+
+.student-cal-event-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.student-cal-event-time {
+  font-weight: 700;
+  color: var(--ccs-text);
+  white-space: nowrap;
+}
+
+.student-cal-event-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ccs-text-muted);
+}
+
+.student-cal-event-link {
+  font-weight: 600;
+  font-size: 0.62rem;
+  color: var(--ccs-orange);
+  text-decoration: none;
+}
+
+.student-cal-event-link:hover {
+  text-decoration: underline;
+}
+
+.student-cal-more {
+  font-weight: 600;
+  font-size: 0.65rem;
+  color: var(--ccs-text-muted);
+  padding-left: 0.35rem;
+}

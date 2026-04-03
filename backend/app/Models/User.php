@@ -125,4 +125,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(StudentConductEntry::class);
     }
+
+    public function classSchedules(): HasMany
+    {
+        return $this->hasMany(StudentClassSchedule::class);
+    }
 }

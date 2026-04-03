@@ -300,6 +300,8 @@ export default function ManageMerchPage() {
                   <th>Item</th>
                   <th>Qty</th>
                   <th>Amount</th>
+                  <th>Payer / Section</th>
+                  <th>GCash ref</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -310,6 +312,12 @@ export default function ManageMerchPage() {
                     <td>{o.merchandise?.name}</td>
                     <td>{o.quantity}</td>
                     <td>₱{Number(o.amount).toFixed(2)}</td>
+                    <td>
+                      <span className="manage-merch-meta">
+                        {[o.payer_full_name, o.section, o.course].filter(Boolean).join(' · ') || '—'}
+                      </span>
+                    </td>
+                    <td>{o.gcash_reference || '—'}</td>
                     <td>
                       <select
                         value={o.payment_status}

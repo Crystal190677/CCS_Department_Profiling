@@ -2,11 +2,22 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const DarkModeContext = createContext();
 
+function readStoredDarkMode() {
+  if (typeof window === 'undefined') return false;
+  try {
+    const saved = localStorage.getItem('ccs_dark_mode');
+    if (!saved) return false;
+    const parsed = JSON.parse(saved);
+    return Boolean(parsed);
+  } catch {
+    localStorage.removeItem('ccs_dark_mode');
+    return false;
+  }
+}
+
 export function DarkModeProvider({ children }) {
   const [isDark, setIsDark] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const saved = localStorage.getItem('ccs_dark_mode');
-    const dark = saved ? JSON.parse(saved) : false;
+    const dark = readStoredDarkMode();
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
     return dark;
   });

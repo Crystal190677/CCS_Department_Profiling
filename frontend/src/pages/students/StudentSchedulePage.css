@@ -1,0 +1,208 @@
+.student-schedule-page {
+  width: 100%;
+  max-width: 100%;
+}
+
+.student-schedule-error {
+  color: #b91c1c;
+  font-size: 0.875rem;
+  margin: 0 0 1rem 0;
+}
+
+[data-theme='dark'] .student-schedule-error {
+  color: #fca5a5;
+}
+
+.student-schedule-muted {
+  color: var(--ccs-text-muted);
+  font-size: 0.9375rem;
+}
+
+.student-schedule-empty {
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--ccs-border);
+}
+
+.student-schedule-empty p {
+  margin: 0 0 0.5rem 0;
+}
+
+.student-schedule-empty p:last-child {
+  margin-bottom: 0;
+}
+
+.student-schedule-calendar-wrap {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.student-schedule-calendar {
+  display: grid;
+  grid-template-columns: 4.25rem repeat(6, minmax(7rem, 1fr));
+  grid-auto-rows: auto;
+  gap: 0;
+  min-width: 52rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid #1a1a1a;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='dark'] .student-schedule-calendar {
+  border-color: var(--ccs-border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+.student-schedule-corner {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 2.5rem;
+  border-right: 1px solid #1a1a1a;
+  border-bottom: 1px solid #1a1a1a;
+  background: #fafafa;
+}
+
+[data-theme='dark'] .student-schedule-corner {
+  background: var(--ccs-sidebar-bg);
+  border-color: var(--ccs-border);
+}
+
+.student-schedule-day-head {
+  grid-row: 1;
+  padding: 0.65rem 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-right: 1px solid #1a1a1a;
+  border-bottom: 1px solid #1a1a1a;
+  background: #fafafa;
+  color: var(--ccs-text);
+}
+
+[data-theme='dark'] .student-schedule-day-head {
+  background: var(--ccs-sidebar-bg);
+  border-color: var(--ccs-border);
+}
+
+.student-schedule-day-head:last-of-type {
+  border-right: none;
+}
+
+.student-schedule-time-rail {
+  grid-column: 1;
+  border-right: 1px solid #1a1a1a;
+  background: #fff;
+}
+
+[data-theme='dark'] .student-schedule-time-rail {
+  background: var(--ccs-bg);
+  border-color: var(--ccs-border);
+}
+
+.student-schedule-time-label {
+  font-size: 0.6875rem;
+  color: var(--ccs-text-muted);
+  padding-right: 0.35rem;
+  text-align: right;
+  line-height: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='dark'] .student-schedule-time-label {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.student-schedule-day-column {
+  position: relative;
+  border-right: 1px solid #1a1a1a;
+  background: #fff;
+}
+
+[data-theme='dark'] .student-schedule-day-column {
+  background: var(--ccs-bg);
+  border-color: var(--ccs-border);
+}
+
+.student-schedule-day-column:last-child {
+  border-right: none;
+}
+
+.student-schedule-day-grid-bg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(28px - 1px),
+    rgba(0, 0, 0, 0.08) calc(28px - 1px),
+    rgba(0, 0, 0, 0.08) 28px
+  );
+}
+
+[data-theme='dark'] .student-schedule-day-grid-bg {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(28px - 1px),
+    rgba(255, 255, 255, 0.07) calc(28px - 1px),
+    rgba(255, 255, 255, 0.07) 28px
+  );
+}
+
+.student-schedule-block {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  border-radius: 8px;
+  padding: 0.35rem 0.45rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.12rem;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  z-index: 1;
+  color: #1a1a1a;
+}
+
+[data-theme='dark'] .student-schedule-block {
+  color: #0f172a;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.student-schedule-block-code {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.student-schedule-block-name {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.student-schedule-block-time {
+  font-size: 0.625rem;
+  font-weight: 600;
+  opacity: 0.85;
+  line-height: 1.2;
+}

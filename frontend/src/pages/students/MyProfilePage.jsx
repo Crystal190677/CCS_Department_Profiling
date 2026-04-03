@@ -405,6 +405,7 @@ export default function MyProfilePage() {
     profile.academic_standing ||
     profile.course ||
     profile.year_level ||
+    profile.academic_semester != null ||
     profile.section != null ||
     profile.failed_units != null ||
     profile.incomplete_grades != null ||
@@ -445,6 +446,10 @@ export default function MyProfilePage() {
           <h2 className="profile-academic-title">Academic Data (read-only)</h2>
           <p><strong>Course / Program:</strong> {profile.course || '—'}</p>
           <p><strong>Year Level:</strong> {profile.year_level || '—'}</p>
+          <p>
+            <strong>Academic semester:</strong>{' '}
+            {profile.academic_semester === 2 ? '2nd semester' : profile.academic_semester === 1 ? '1st semester' : '—'}
+          </p>
           <p><strong>Section:</strong> {profile.section ?? '—'}</p>
           <p><strong>Current GPA:</strong> {profile.current_gpa != null ? Number(profile.current_gpa).toFixed(2) : '—'}</p>
           <p><strong>Academic Standing:</strong> {profile.academic_standing || '—'}</p>

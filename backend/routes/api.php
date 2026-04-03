@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdminAuditLogController;
 use App\Http\Controllers\Api\AdminStatsController;
 use App\Http\Controllers\Api\AnnouncementsController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CcsCourseWorkspaceController;
 use App\Http\Controllers\Api\FacultyAccountsController;
 use App\Http\Controllers\Api\ConductEntriesController;
 use App\Http\Controllers\Api\EnrollmentsController;
@@ -18,6 +19,8 @@ use App\Http\Controllers\Api\QualificationRankOverridesController;
 use App\Http\Controllers\Api\OfficerPositionsController;
 use App\Http\Controllers\Api\SkillEntriesController;
 use App\Http\Controllers\Api\StudentProfileController;
+use App\Http\Controllers\Api\StudentCalendarController;
+use App\Http\Controllers\Api\StudentScheduleController;
 use App\Http\Controllers\Api\StudentsController;
 use App\Http\Controllers\Api\UsersController;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +44,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('notifications/{id}/read', [NotificationsController::class, 'markRead']);
     Route::get('student-profile', [StudentProfileController::class, 'show']);
     Route::post('student-profile', [StudentProfileController::class, 'store']);
+
+    Route::get('ccs-courses/{courseCode}/workspace', [CcsCourseWorkspaceController::class, 'show']);
+    Route::get('student-schedule', [StudentScheduleController::class, 'index']);
+    Route::get('student-calendar', [StudentCalendarController::class, 'index']);
 
     Route::get('non-academic-entries', [NonAcademicEntriesController::class, 'index']);
     Route::post('non-academic-entries', [NonAcademicEntriesController::class, 'store']);
@@ -114,6 +121,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('officer.or.admin.faculty')->group(function () {
         Route::get('students/list-for-officers', [StudentsController::class, 'listForOfficers']);
+        Route::patch('students/{id}/membership-card-availed', [StudentsController::class, 'patchMembershipCardAvailed']);
         Route::post('merchandise', [MerchandiseController::class, 'store']);
         Route::put('merchandise/{id}', [MerchandiseController::class, 'update']);
         Route::delete('merchandise/{id}', [MerchandiseController::class, 'destroy']);

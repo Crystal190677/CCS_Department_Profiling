@@ -7,6 +7,7 @@ import {
   SECTION_LETTERS,
   SECTION_CAPACITY,
   YEAR_LEVEL_OPTIONS,
+  ACADEMIC_SEMESTER_OPTIONS,
   mapLegacyCourseToSelect,
   mapLegacySectionToSelect,
   buildClassListTree,
@@ -874,6 +875,7 @@ export default function StudentProfilingDashboard() {
       weight_kg: p.weight_kg ?? '',
       course: mapLegacyCourseToSelect(p.course) || '',
       year_level: p.year_level ?? '',
+      academic_semester: p.academic_semester != null ? Number(p.academic_semester) : 1,
       current_gpa: p.current_gpa ?? '',
       academic_standing: p.academic_standing ?? '',
       section: mapLegacySectionToSelect(p.section) || '',
@@ -908,6 +910,10 @@ export default function StudentProfilingDashboard() {
         weight_kg: profileForm.weight_kg !== '' ? parseFloat(profileForm.weight_kg) : null,
         course: profileForm.course || null,
         year_level: profileForm.year_level || null,
+        academic_semester:
+          profileForm.academic_semester === '' || profileForm.academic_semester == null
+            ? null
+            : parseInt(String(profileForm.academic_semester), 10),
         current_gpa: profileForm.current_gpa !== '' ? parseFloat(profileForm.current_gpa) : null,
         academic_standing: profileForm.academic_standing || null,
         section: profileForm.section || null,
@@ -1997,6 +2003,19 @@ export default function StudentProfilingDashboard() {
                     {profileForm.year_level && !YEAR_LEVEL_OPTIONS.includes(profileForm.year_level) ? (
                       <option value={profileForm.year_level}>{profileForm.year_level} (current)</option>
                     ) : null}
+                  </select>
+                </div>
+                <div className="spd-modal-row">
+                  <label>Academic semester (BSCS CCS Courses)</label>
+                  <select
+                    value={profileForm.academic_semester}
+                    onChange={(e) => handleProfileFormChange('academic_semester', parseInt(e.target.value, 10))}
+                  >
+                    {ACADEMIC_SEMESTER_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="spd-modal-row">

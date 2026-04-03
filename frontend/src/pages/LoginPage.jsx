@@ -110,6 +110,34 @@ export default function LoginPage() {
   return (
     <div className="od-login-page">
       <div className="od-login-card">
+        <div className="od-login-photo-side">
+          <div className="od-login-hero-glow" aria-hidden />
+          <div className="od-login-hero-grid" aria-hidden />
+          <div className="od-login-hero-content">
+            <div className="od-login-hero-logo-ring">
+              <img
+                src="/ccs-logo.png"
+                alt="College of Computing Studies — Pamantasan ng Cabuyao official seal"
+                className="od-login-hero-logo"
+                width={200}
+                height={200}
+                decoding="async"
+              />
+            </div>
+            <div className="od-login-hero-text">
+              <p className="od-login-hero-line od-login-hero-line--accent">College of Computing Studies</p>
+              <p className="od-login-hero-line od-login-hero-line--school">Pamantasan ng Cabuyao</p>
+            </div>
+          </div>
+          <div className="od-photo-frost">
+            <span className="od-photo-frost-brand">One Dangal</span>
+            <span className="od-photo-frost-sep" aria-hidden>
+              ·
+            </span>
+            <span className="od-photo-frost-sub">CCS Portal</span>
+          </div>
+        </div>
+
         <div className="od-login-form-side">
           <header className="od-login-brand">
             <h1 className="od-login-logo">One Dangal</h1>
@@ -230,15 +258,6 @@ export default function LoginPage() {
               First time? <Link to="/claim-account">Claim your account</Link> (student number on file)
             </p>
           )}
-        </div>
-
-        <div className="od-login-photo-side">
-          <div className="od-photo-placeholder">
-            <p className="od-photo-label">Your Photo Goes Here</p>
-          </div>
-          <div className="od-photo-frost">
-            One Dangal · CCS Portal
-          </div>
         </div>
       </div>
     </div>

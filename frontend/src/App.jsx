@@ -6,9 +6,14 @@ import StudentLayout from './components/students/StudentLayout';
 import StudentDashboardPage from './pages/students/DashboardPage';
 import StudentAnnouncementsPage from './pages/students/AnnouncementsPage';
 import StudentMerchStorePage from './pages/students/MerchStorePage';
+import MerchCheckoutPage from './pages/students/MerchCheckoutPage';
 import ManageMerchPage from './pages/students/ManageMerchPage';
 import StudentMyProfilePage from './pages/students/MyProfilePage';
 import StudentHistoryPage from './pages/students/StudentHistoryPage';
+import MembershipCardListPage from './pages/students/MembershipCardListPage';
+import CcsCourseDetailPage from './pages/students/CcsCourseDetailPage';
+import StudentSchedulePage from './pages/students/StudentSchedulePage';
+import StudentCalendarPage from './pages/students/StudentCalendarPage';
 import AdminFacultyLayout from './components/admin-faculty/AdminFacultyLayout';
 import StudentProfilingDashboard from './pages/admin-faculty/StudentProfilingDashboard';
 import AdminDashboardPage from './pages/admin-faculty/AdminDashboardPage';
@@ -25,12 +30,19 @@ function App() {
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/dashboard" element={<StudentLayout />}>
         <Route index element={<StudentDashboardPage />} />
+        <Route path="schedule" element={<StudentSchedulePage />} />
+        <Route path="calendar" element={<StudentCalendarPage />} />
+        <Route path="ccs-courses/:courseCode" element={<CcsCourseDetailPage />} />
         <Route path="announcements" element={<StudentAnnouncementsPage />} />
         <Route path="merch-store" element={<StudentMerchStorePage />} />
+        <Route path="merch-checkout" element={<MerchCheckoutPage />} />
         <Route path="manage-merch" element={<ManageMerchPage />} />
         <Route path="my-profile" element={<StudentMyProfilePage />} />
         <Route path="profile-settings" element={<ProfileSettingsPage />} />
         <Route path="student-history" element={<StudentHistoryPage />} />
+        <Route path="membership-cards/irregulars" element={<MembershipCardListPage />} />
+        <Route path="membership-cards/:yearSegment/:sectionKey" element={<MembershipCardListPage />} />
+        <Route path="membership-cards/:yearSegment" element={<MembershipCardListPage />} />
       </Route>
       <Route path="/admin-dashboard" element={<AdminFacultyLayout />}>
         <Route index element={<AdminDashboardPage />} />

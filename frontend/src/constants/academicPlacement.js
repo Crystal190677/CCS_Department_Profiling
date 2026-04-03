@@ -13,6 +13,12 @@ export const DEFAULT_YEAR_LEVEL_NEW_STUDENT = '1st yr';
 
 export const YEAR_LEVEL_OPTIONS = ['1st yr', '2nd yr', '3rd yr', '4th yr', '5th yr'];
 
+/** 1 = first semester, 2 = second semester (BSCS CCS Courses sidebar). */
+export const ACADEMIC_SEMESTER_OPTIONS = [
+  { value: 1, label: '1st semester' },
+  { value: 2, label: '2nd semester' },
+];
+
 export const REGULAR_IRREGULAR_OPTIONS = [
   { value: 'Regular', label: 'Regular' },
   { value: 'Irregular', label: 'Irregular' },
@@ -23,7 +29,14 @@ export function normalizeCourseKey(course) {
   if (!course || String(course).trim() === '') return 'Unassigned';
   const s = String(course).trim();
   const u = s.toUpperCase();
-  if (u === 'BSCS' || u.includes('COMPUTER SCIENCE')) return 'BSCS';
+  const lettersOnly = u.replace(/[^A-Z]/g, '');
+  const isBscs =
+    u === 'BSCS' ||
+    lettersOnly === 'BSCS' ||
+    lettersOnly.includes('BSCS') ||
+    u.includes('COMPUTER SCIENCE') ||
+    u.includes('COMP. SCIENCE');
+  if (isBscs) return 'BSCS';
   if (u === 'BSIT' || (u.includes('INFORMATION') && u.includes('TECH'))) return 'BSIT';
   return s;
 }
@@ -53,6 +66,26 @@ export function mapLegacySectionToSelect(section) {
   if (!section || String(section).trim() === '') return '';
   const letter = String(section).trim().toUpperCase().charAt(0);
   return SECTION_LETTERS.includes(letter) ? letter : '';
+}
+
+/**
+ * Display tag like reference "4IT-A": year digit + CS/IT + section letter from profile.
+ */
+export function formatClassSectionLabel(profile) {
+  if (!profile?.section) return '—';
+  const yl = String(profile.year_level || '').toLowerCase();
+  let y = '';
+  if (yl.includes('1st')) y = '1';
+  else if (yl.includes('2nd')) y = '2';
+  else if (yl.includes('3rd')) y = '3';
+  else if (yl.includes('4th')) y = '4';
+  else if (yl.includes('5th')) y = '5';
+  const letter =
+    mapLegacySectionToSelect(profile.section) || normalizeSectionKey(profile.section);
+  if (!letter || letter === 'Unassigned' || letter.length > 1) return `Section ${profile.section}`;
+  const prog = normalizeCourseKey(profile.course) === 'BSIT' ? 'IT' : 'CS';
+  if (y) return `${y}${prog}-${letter}`;
+  return `Section ${letter}`;
 }
 
 /** Stable roster order: name → student number → id (never random shuffle). */

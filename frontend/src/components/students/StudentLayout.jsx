@@ -1,8 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from '../../context/DarkModeContext';
 import NotificationsBell from '../NotificationsBell';
+import MerchCartPanel from './MerchCartPanel';
+import { DEFAULT_YEAR_LEVEL_NEW_STUDENT, normalizeCourseKey } from '../../constants/academicPlacement';
+import { getBscsCourseSidebarChildren, LEGACY_DEFAULT_CCS_SIDEBAR } from '../../data/ccsCsCurriculum';
 import './StudentLayout.css';
+
+/** Roles that have a linked student profile and may use the BSCS curriculum sidebar. */
+const PROFILE_ROLES_FOR_CURRICULUM = new Set(['STUDENT', 'OFFICER']);
 
 const MENU_ITEMS_BASE = [
   { path: '/dashboard', label: 'Dashboard', icon: 'grid' },
@@ -14,6 +20,21 @@ const MENU_ITEMS_BASE = [
 
 const MENU_ITEM_OFFICER_MERCH = { path: '/dashboard/manage-merch', label: 'Manage Merchandise', icon: 'package', officerOnly: true };
 const MENU_ITEM_OFFICER_HISTORY = { path: '/dashboard/student-history', label: 'Student history', icon: 'history', officerOnly: true };
+
+/** Officers use profile + logout from header menu instead of these sidebar links. */
+const OFFICER_SIDEBAR_EXCLUDED_PATHS = new Set([
+  '/dashboard/announcements',
+  '/dashboard/my-profile',
+  '/dashboard/profile-settings',
+]);
+
+const MEMBERSHIP_CARD_CHILDREN = [
+  { path: '/dashboard/membership-cards/1st-year', label: '1st Year' },
+  { path: '/dashboard/membership-cards/2nd-year', label: '2nd Year' },
+  { path: '/dashboard/membership-cards/3rd-year', label: '3rd Year' },
+  { path: '/dashboard/membership-cards/4th-year', label: '4th Year' },
+  { path: '/dashboard/membership-cards/irregulars', label: 'All Irregulars' },
+];
 
 function Icon({ name, className }) {
   const cls = `sidebar-icon sidebar-icon-${name} ${className || ''}`;
@@ -76,6 +97,45 @@ function Icon({ name, className }) {
       </svg>
     );
   }
+  if (name === 'id-card') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="5" width="16" height="14" rx="2" />
+        <circle cx="9" cy="10" r="2" />
+        <path d="M8 15h3M14 15h2M14 10h2" />
+      </svg>
+    );
+  }
+  if (name === 'book') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+      </svg>
+    );
+  }
+  if (name === 'calendar-week') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+        <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
+      </svg>
+    );
+  }
+  if (name === 'calendar-month') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+        <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" />
+      </svg>
+    );
+  }
   return null;
 }
 
@@ -114,12 +174,54 @@ function LogoutIcon() {
 }
 
 function getMenuItems(user) {
-  const items = [...MENU_ITEMS_BASE];
+  let items = [...MENU_ITEMS_BASE];
   if (user?.role === 'OFFICER') {
+    items = items.filter((item) => !OFFICER_SIDEBAR_EXCLUDED_PATHS.has(item.path));
     items.push(MENU_ITEM_OFFICER_MERCH);
     items.push(MENU_ITEM_OFFICER_HISTORY);
   }
   return items;
+}
+
+/** Academic year label e.g. A.Y. 2025–2026 (August start, Asia/Manila calendar date). */
+function academicYearLabelManila(d = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: 'numeric',
+  }).formatToParts(d);
+  const y = parseInt(parts.find((p) => p.type === 'year').value, 10);
+  const m = parseInt(parts.find((p) => p.type === 'month').value, 10);
+  if (m >= 8) {
+    return `A.Y. ${y}–${y + 1}`;
+  }
+  return `A.Y. ${y - 1}–${y}`;
+}
+
+function semesterLabelFromProfile(profile) {
+  if (!profile?.academic_semester && profile?.academic_semester !== 0) {
+    return 'First Semester';
+  }
+  return parseInt(String(profile.academic_semester), 10) === 2 ? 'Second Semester' : 'First Semester';
+}
+
+function MembershipChevron({ className }) {
+  return (
+    <svg
+      className={className}
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
 }
 
 export default function StudentLayout() {
@@ -128,11 +230,86 @@ export default function StudentLayout() {
   const { isDark, toggleDarkMode } = useDarkMode();
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
   const menuItems = getMenuItems(user);
+  const onMembershipPath = location.pathname.startsWith('/dashboard/membership-cards');
+  const onCcsCoursePath = location.pathname.startsWith('/dashboard/ccs-courses');
+  const [membershipOpen, setMembershipOpen] = useState(onMembershipPath);
+  const [ccsCoursesOpen, setCcsCoursesOpen] = useState(onCcsCoursePath);
+  const [studentProfile, setStudentProfile] = useState(null);
+  const [studentProfileReady, setStudentProfileReady] = useState(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('ccs_user') || '{}');
+      return !PROFILE_ROLES_FOR_CURRICULUM.has(u.role);
+    } catch {
+      return true;
+    }
+  });
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('ccs_token');
     if (!token) navigate('/login');
   }, [navigate]);
+
+  useEffect(() => {
+    if (onMembershipPath) setMembershipOpen(true);
+  }, [onMembershipPath]);
+
+  useEffect(() => {
+    if (onCcsCoursePath) setCcsCoursesOpen(true);
+  }, [onCcsCoursePath]);
+
+  useEffect(() => {
+    if (!PROFILE_ROLES_FOR_CURRICULUM.has(user?.role)) {
+      setStudentProfile(null);
+      setStudentProfileReady(true);
+      return;
+    }
+    setStudentProfileReady(false);
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = localStorage.getItem('ccs_token');
+        const res = await fetch('/api/student-profile', {
+          headers: {
+            Accept: 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        });
+        const data = await res.json();
+        if (!cancelled && data.success) setStudentProfile(data.data ?? null);
+      } catch {
+        if (!cancelled) setStudentProfile(null);
+      } finally {
+        if (!cancelled) setStudentProfileReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.role, user?.id]);
+
+  useEffect(() => {
+    setUserMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onDoc = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setUserMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [userMenuOpen]);
 
   const handleLogout = () => {
     localStorage.removeItem('ccs_token');
@@ -147,12 +324,37 @@ export default function StudentLayout() {
     return name.slice(0, 2).toUpperCase();
   };
 
+  const dashboardItem = menuItems[0];
+  const restMenuItems = menuItems.slice(1);
+
+  const ccsCourseSidebarChildren = useMemo(() => {
+    const isBscs =
+      PROFILE_ROLES_FOR_CURRICULUM.has(user?.role) &&
+      studentProfileReady &&
+      normalizeCourseKey(studentProfile?.course) === 'BSCS';
+    if (isBscs) {
+      const y = studentProfile?.year_level || DEFAULT_YEAR_LEVEL_NEW_STUDENT;
+      const semRaw = studentProfile?.academic_semester;
+      const sem = parseInt(String(semRaw ?? 1), 10) === 2 ? 2 : 1;
+      return getBscsCourseSidebarChildren(y, sem);
+    }
+    return LEGACY_DEFAULT_CCS_SIDEBAR;
+  }, [user?.role, studentProfile, studentProfileReady]);
+
+  const sidebarSemesterLabel = useMemo(() => {
+    if (!PROFILE_ROLES_FOR_CURRICULUM.has(user?.role) || !studentProfileReady) {
+      return 'First Semester';
+    }
+    return semesterLabelFromProfile(studentProfile);
+  }, [user?.role, studentProfile, studentProfileReady]);
+
+  const sidebarAcademicYearLabel = academicYearLabelManila();
+
   return (
     <div className="dashboard-layout">
       <header className="dashboard-header">
         <div className="dashboard-header-left">
-          <span className="dashboard-logo-x">×</span>
-          <span className="dashboard-logo-text">CCS System</span>
+          <span className="dashboard-logo-text dashboard-logo-text--lms">CCS Learning Management System</span>
         </div>
         <div className="dashboard-header-right">
           <button
@@ -163,24 +365,134 @@ export default function StudentLayout() {
           >
             {isDark ? <SunIcon /> : <MoonIcon />}
           </button>
+          <MerchCartPanel />
           <NotificationsBell />
-          <div className="dashboard-user">
-            <div className="dashboard-avatar">{getInitial(user.name)}</div>
-            <div className="dashboard-user-info">
-              <span className="dashboard-user-name">{user.name || 'User'}</span>
-              <span className="dashboard-user-role">{user.role || 'Student'}</span>
+          {user?.role === 'OFFICER' ? (
+            <div className="dashboard-user-menu-wrap" ref={userMenuRef}>
+              <button
+                type="button"
+                className="dashboard-user dashboard-user--trigger"
+                onClick={() => setUserMenuOpen((o) => !o)}
+                aria-expanded={userMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Account menu"
+              >
+                <div className="dashboard-avatar">{getInitial(user.name)}</div>
+                <div className="dashboard-user-info">
+                  <span className="dashboard-user-name">{user.name || 'User'}</span>
+                  <span className="dashboard-user-role">{user.role || 'Student'}</span>
+                </div>
+                <MembershipChevron
+                  className={`dashboard-user-menu-chevron ${userMenuOpen ? 'dashboard-user-menu-chevron--open' : ''}`}
+                />
+              </button>
+              {userMenuOpen && (
+                <div className="dashboard-user-dropdown" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="dashboard-user-dropdown-item"
+                    onClick={() => {
+                      navigate('/dashboard/my-profile');
+                      setUserMenuOpen(false);
+                    }}
+                  >
+                    My Profile
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="dashboard-user-dropdown-item dashboard-user-dropdown-item--danger"
+                    onClick={() => {
+                      handleLogout();
+                      setUserMenuOpen(false);
+                    }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
-            <button type="button" className="dashboard-logout-btn" onClick={handleLogout} aria-label="Logout">
-              <LogoutIcon />
-              <span className="dashboard-logout-text">Logout</span>
-            </button>
-          </div>
+          ) : (
+            <div className="dashboard-user">
+              <div className="dashboard-avatar">{getInitial(user.name)}</div>
+              <div className="dashboard-user-info">
+                <span className="dashboard-user-name">{user.name || 'User'}</span>
+                <span className="dashboard-user-role">{user.role || 'Student'}</span>
+              </div>
+              <button type="button" className="dashboard-logout-btn" onClick={handleLogout} aria-label="Logout">
+                <LogoutIcon />
+                <span className="dashboard-logout-text">Logout</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
       <aside className="dashboard-sidebar">
+        <div className="dashboard-sidebar-term" aria-label="Academic period">
+          <div className="dashboard-sidebar-term-line1">{sidebarSemesterLabel}</div>
+          <div className="dashboard-sidebar-term-line2">{sidebarAcademicYearLabel}</div>
+        </div>
         <nav className="sidebar-nav">
-          {menuItems.map((item) => {
+          {dashboardItem && (
+            <button
+              key={dashboardItem.path}
+              type="button"
+              className={`sidebar-item ${location.pathname === dashboardItem.path ? 'active' : ''}`}
+              onClick={() => navigate(dashboardItem.path)}
+            >
+              <Icon name={dashboardItem.icon} className={location.pathname === dashboardItem.path ? 'active' : ''} />
+              <span>{dashboardItem.label}</span>
+            </button>
+          )}
+          <div className="sidebar-membership">
+            <button
+              type="button"
+              className={`sidebar-item sidebar-item--membership-parent ${onCcsCoursePath ? 'sidebar-item--branch-active' : ''}`}
+              onClick={() => setCcsCoursesOpen((o) => !o)}
+              aria-expanded={ccsCoursesOpen}
+              aria-controls="sidebar-ccs-courses-subnav"
+            >
+              <Icon name="book" />
+              <span>My Classes</span>
+              <MembershipChevron className={`sidebar-membership-chevron ${ccsCoursesOpen ? 'sidebar-membership-chevron--open' : ''}`} />
+            </button>
+            {ccsCoursesOpen && (
+              <div id="sidebar-ccs-courses-subnav" className="sidebar-membership-sub">
+                {ccsCourseSidebarChildren.map((child) => {
+                  const subActive = location.pathname === child.path;
+                  return (
+                    <button
+                      key={child.path}
+                      type="button"
+                      className={`sidebar-item sidebar-item--sub ${subActive ? 'active' : ''}`}
+                      onClick={() => navigate(child.path)}
+                    >
+                      <span>{child.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            className={`sidebar-item ${location.pathname === '/dashboard/schedule' ? 'active' : ''}`}
+            onClick={() => navigate('/dashboard/schedule')}
+          >
+            <Icon name="calendar-week" className={location.pathname === '/dashboard/schedule' ? 'active' : ''} />
+            <span>My Schedule</span>
+          </button>
+          <button
+            type="button"
+            className={`sidebar-item ${location.pathname === '/dashboard/calendar' ? 'active' : ''}`}
+            onClick={() => navigate('/dashboard/calendar')}
+          >
+            <Icon name="calendar-month" className={location.pathname === '/dashboard/calendar' ? 'active' : ''} />
+            <span>My Calendar</span>
+          </button>
+          {restMenuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <button
@@ -194,6 +506,41 @@ export default function StudentLayout() {
               </button>
             );
           })}
+          {user?.role === 'OFFICER' && (
+            <div className="sidebar-membership">
+              <button
+                type="button"
+                className={`sidebar-item sidebar-item--membership-parent ${onMembershipPath ? 'sidebar-item--branch-active' : ''}`}
+                onClick={() => setMembershipOpen((o) => !o)}
+                aria-expanded={membershipOpen}
+                aria-controls="sidebar-membership-subnav"
+              >
+                <Icon name="id-card" />
+                <span>Membership Card</span>
+                <MembershipChevron className={`sidebar-membership-chevron ${membershipOpen ? 'sidebar-membership-chevron--open' : ''}`} />
+              </button>
+              {membershipOpen && (
+                <div id="sidebar-membership-subnav" className="sidebar-membership-sub">
+                  {MEMBERSHIP_CARD_CHILDREN.map((child) => {
+                    const subActive =
+                      child.path === '/dashboard/membership-cards/irregulars'
+                        ? location.pathname === child.path
+                        : location.pathname === child.path || location.pathname.startsWith(`${child.path}/`);
+                    return (
+                      <button
+                        key={child.path}
+                        type="button"
+                        className={`sidebar-item sidebar-item--sub ${subActive ? 'active' : ''}`}
+                        onClick={() => navigate(child.path)}
+                      >
+                        <span>{child.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
       </aside>
 

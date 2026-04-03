@@ -113,6 +113,7 @@ class StudentProfileController extends Controller
             'preferred_position' => 'nullable|string|max:100',
             'course' => 'nullable|string|max:100',
             'year_level' => 'nullable|string|max:20',
+            'academic_semester' => 'nullable|integer|in:1,2',
             'current_gpa' => 'nullable|numeric|min:0|max:5',
             'gpa_per_semester' => 'nullable|array',
             'gpa_per_semester.*.semester' => 'string|max:30',
@@ -128,14 +129,16 @@ class StudentProfileController extends Controller
             'activity_interests.*' => 'string|max:50',
             'skills' => 'nullable|string',
             'notes' => 'nullable|string',
+            'membership_card_availed_at' => 'nullable|date',
         ]);
 
         $allowed = [
             'photo_url',
             'height_cm', 'weight_kg', 'dominant_hand', 'preferred_position',
-            'course', 'year_level', 'current_gpa', 'gpa_per_semester',
+            'course', 'year_level', 'academic_semester', 'current_gpa', 'gpa_per_semester',
             'academic_standing', 'section', 'failed_units', 'incomplete_grades', 'enrolled_units',
             'sports_interests', 'activity_interests', 'skills', 'notes',
+            'membership_card_availed_at',
         ];
 
         $profile = StudentProfile::updateOrCreate(

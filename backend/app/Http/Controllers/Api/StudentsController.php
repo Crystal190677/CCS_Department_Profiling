@@ -287,7 +287,10 @@ class StudentsController extends Controller
         ]);
     }
 
-    /** Minimal list for Officers to select a student and view their non-academic entries. */
+    /**
+     * Minimal list for Officers (student picker). Optionally filter by profile year level
+     * or irregular standing for membership-card views — includes student_profile when filtered.
+     */
     public function listForOfficers(Request $request): JsonResponse
     {
         $authUser = $request->user();
@@ -295,13 +298,99 @@ class StudentsController extends Controller
             return response()->json(['success' => false, 'message' => 'Officers only'], 403);
         }
 
-        $students = User::whereIn('role', ['STUDENT', 'OFFICER'])
-            ->orderBy('name')
-            ->get(['id', 'name', 'student_number']);
+        $yearLevel = $request->filled('year_level') ? trim((string) $request->input('year_level')) : null;
+        $irregularsOnly = $request->boolean('irregulars_only');
+        $section = null;
+        if ($request->filled('section')) {
+            $section = strtoupper(trim((string) $request->input('section')));
+            if (!in_array($section, ['A', 'B', 'C', 'D', 'E'], true)) {
+                return response()->json(['success' => false, 'message' => 'Invalid section'], 422);
+            }
+        }
+
+        $withProfile = $yearLevel !== null || $irregularsOnly || $section !== null;
+
+        $query = User::query()
+            ->whereIn('role', ['STUDENT', 'OFFICER'])
+            ->orderBy('name');
+
+        if ($yearLevel !== null) {
+            $query->whereHas(
+                'studentProfile',
+                fn (Builder $q) => $q->where('year_level', $yearLevel)
+            );
+        }
+
+        if ($section !== null) {
+            $query->whereHas(
+                'studentProfile',
+                fn (Builder $q) => $q->where('section', $section)
+            );
+        }
+
+        if ($irregularsOnly) {
+            $query->whereHas(
+                'studentProfile',
+                fn (Builder $q) => $q->where('academic_standing', StudentProfile::ACADEMIC_STANDING_IRREGULAR)
+            );
+        }
+
+        if ($withProfile) {
+            $query->with('studentProfile');
+        }
+
+        $columns = ['id', 'name', 'student_number'];
+        if ($withProfile) {
+            $columns[] = 'email';
+        }
+
+        $students = $query->get($columns);
+
+        if ($withProfile) {
+            $students->each(function (User $student): void {
+                if ($student->relationLoaded('studentProfile') && $student->studentProfile) {
+                    $student->studentProfile->makeHidden(StudentProfile::PHYSICAL_FIELDS);
+                }
+            });
+        }
 
         return response()->json([
             'success' => true,
             'data' => $students,
+        ]);
+    }
+
+    /**
+     * Officer: set or clear when a student availed their membership card (stored on student_profiles).
+     */
+    public function patchMembershipCardAvailed(Request $request, int $id): JsonResponse
+    {
+        $authUser = $request->user();
+        if (!$authUser || $authUser->role !== 'OFFICER') {
+            return response()->json(['success' => false, 'message' => 'Officers only'], 403);
+        }
+
+        $request->validate([
+            'membership_card_availed_at' => 'nullable|date',
+        ]);
+
+        $target = User::query()->whereIn('role', ['STUDENT', 'OFFICER'])->find($id);
+        if (!$target) {
+            return response()->json(['success' => false, 'message' => 'Student not found'], 404);
+        }
+
+        $raw = $request->input('membership_card_availed_at');
+        $value = $raw === '' || $raw === null ? null : $raw;
+
+        $profile = StudentProfile::query()->firstOrCreate(['user_id' => $target->id]);
+        $profile->membership_card_availed_at = $value;
+        $profile->save();
+
+        $profile->makeHidden(StudentProfile::PHYSICAL_FIELDS);
+
+        return response()->json([
+            'success' => true,
+            'data' => $profile,
         ]);
     }
 

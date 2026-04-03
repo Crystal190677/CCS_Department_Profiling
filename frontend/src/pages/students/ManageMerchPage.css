@@ -208,3 +208,10 @@
   color: var(--ccs-text);
   font-size: 0.875rem;
 }
+
+.manage-merch-meta {
+  display: block;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  max-width: 16rem;
+}
