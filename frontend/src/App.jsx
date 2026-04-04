@@ -9,7 +9,6 @@ import StudentMerchStorePage from './pages/students/MerchStorePage';
 import MerchCheckoutPage from './pages/students/MerchCheckoutPage';
 import ManageMerchPage from './pages/students/ManageMerchPage';
 import StudentMyProfilePage from './pages/students/MyProfilePage';
-import StudentHistoryPage from './pages/students/StudentHistoryPage';
 import MembershipCardListPage from './pages/students/MembershipCardListPage';
 import CcsCourseDetailPage from './pages/students/CcsCourseDetailPage';
 import StudentSchedulePage from './pages/students/StudentSchedulePage';
@@ -39,7 +38,7 @@ function App() {
         <Route path="manage-merch" element={<ManageMerchPage />} />
         <Route path="my-profile" element={<StudentMyProfilePage />} />
         <Route path="profile-settings" element={<ProfileSettingsPage />} />
-        <Route path="student-history" element={<StudentHistoryPage />} />
+        <Route path="student-history" element={<Navigate to="/dashboard" replace />} />
         <Route path="membership-cards/irregulars" element={<MembershipCardListPage />} />
         <Route path="membership-cards/:yearSegment/:sectionKey" element={<MembershipCardListPage />} />
         <Route path="membership-cards/:yearSegment" element={<MembershipCardListPage />} />

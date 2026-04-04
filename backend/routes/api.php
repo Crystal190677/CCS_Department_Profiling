@@ -48,6 +48,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('ccs-courses/{courseCode}/workspace', [CcsCourseWorkspaceController::class, 'show']);
     Route::get('student-schedule', [StudentScheduleController::class, 'index']);
     Route::get('student-calendar', [StudentCalendarController::class, 'index']);
+    Route::post('student-calendar/events', [StudentCalendarController::class, 'storeEvent']);
+    Route::put('student-calendar/events/{id}', [StudentCalendarController::class, 'updateEvent']);
+    Route::delete('student-calendar/events/{id}', [StudentCalendarController::class, 'destroyEvent']);
 
     Route::get('non-academic-entries', [NonAcademicEntriesController::class, 'index']);
     Route::post('non-academic-entries', [NonAcademicEntriesController::class, 'store']);
@@ -106,10 +109,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('officer-positions', [OfficerPositionsController::class, 'index']);
         Route::post('officer-positions', [OfficerPositionsController::class, 'store']);
         Route::delete('officer-positions/{id}', [OfficerPositionsController::class, 'destroy']);
-
-        Route::post('announcements', [AnnouncementsController::class, 'store']);
-        Route::post('announcements/{id}', [AnnouncementsController::class, 'update']);
-        Route::delete('announcements/{id}', [AnnouncementsController::class, 'destroy']);
     });
 
     Route::put('students/{id}/profile', [StudentProfileController::class, 'updateForStudent'])->middleware('admin.faculty');
@@ -120,6 +119,10 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('officer.or.admin.faculty')->group(function () {
+        Route::post('announcements', [AnnouncementsController::class, 'store']);
+        Route::post('announcements/{id}', [AnnouncementsController::class, 'update']);
+        Route::delete('announcements/{id}', [AnnouncementsController::class, 'destroy']);
+
         Route::get('students/list-for-officers', [StudentsController::class, 'listForOfficers']);
         Route::patch('students/{id}/membership-card-availed', [StudentsController::class, 'patchMembershipCardAvailed']);
         Route::post('merchandise', [MerchandiseController::class, 'store']);

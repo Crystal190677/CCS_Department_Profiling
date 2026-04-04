@@ -3,8 +3,6 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from '../../context/DarkModeContext';
 import NotificationsBell from '../NotificationsBell';
 import MerchCartPanel from './MerchCartPanel';
-import { DEFAULT_YEAR_LEVEL_NEW_STUDENT, normalizeCourseKey } from '../../constants/academicPlacement';
-import { getBscsCourseSidebarChildren, LEGACY_DEFAULT_CCS_SIDEBAR } from '../../data/ccsCsCurriculum';
 import './StudentLayout.css';
 
 /** Roles that have a linked student profile and may use the BSCS curriculum sidebar. */
@@ -19,14 +17,9 @@ const MENU_ITEMS_BASE = [
 ];
 
 const MENU_ITEM_OFFICER_MERCH = { path: '/dashboard/manage-merch', label: 'Manage Merchandise', icon: 'package', officerOnly: true };
-const MENU_ITEM_OFFICER_HISTORY = { path: '/dashboard/student-history', label: 'Student history', icon: 'history', officerOnly: true };
 
 /** Officers use profile + logout from header menu instead of these sidebar links. */
-const OFFICER_SIDEBAR_EXCLUDED_PATHS = new Set([
-  '/dashboard/announcements',
-  '/dashboard/my-profile',
-  '/dashboard/profile-settings',
-]);
+const OFFICER_SIDEBAR_EXCLUDED_PATHS = new Set(['/dashboard/my-profile', '/dashboard/profile-settings']);
 
 const MEMBERSHIP_CARD_CHILDREN = [
   { path: '/dashboard/membership-cards/1st-year', label: '1st Year' },
@@ -81,14 +74,6 @@ function Icon({ name, className }) {
       </svg>
     );
   }
-  if (name === 'history') {
-    return (
-      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
-      </svg>
-    );
-  }
   if (name === 'settings') {
     return (
       <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -103,25 +88,6 @@ function Icon({ name, className }) {
         <rect x="4" y="5" width="16" height="14" rx="2" />
         <circle cx="9" cy="10" r="2" />
         <path d="M8 15h3M14 15h2M14 10h2" />
-      </svg>
-    );
-  }
-  if (name === 'book') {
-    return (
-      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-      </svg>
-    );
-  }
-  if (name === 'calendar-week') {
-    return (
-      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
-        <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
       </svg>
     );
   }
@@ -178,7 +144,6 @@ function getMenuItems(user) {
   if (user?.role === 'OFFICER') {
     items = items.filter((item) => !OFFICER_SIDEBAR_EXCLUDED_PATHS.has(item.path));
     items.push(MENU_ITEM_OFFICER_MERCH);
-    items.push(MENU_ITEM_OFFICER_HISTORY);
   }
   return items;
 }
@@ -231,9 +196,7 @@ export default function StudentLayout() {
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
   const menuItems = getMenuItems(user);
   const onMembershipPath = location.pathname.startsWith('/dashboard/membership-cards');
-  const onCcsCoursePath = location.pathname.startsWith('/dashboard/ccs-courses');
   const [membershipOpen, setMembershipOpen] = useState(onMembershipPath);
-  const [ccsCoursesOpen, setCcsCoursesOpen] = useState(onCcsCoursePath);
   const [studentProfile, setStudentProfile] = useState(null);
   const [studentProfileReady, setStudentProfileReady] = useState(() => {
     try {
@@ -254,10 +217,6 @@ export default function StudentLayout() {
   useEffect(() => {
     if (onMembershipPath) setMembershipOpen(true);
   }, [onMembershipPath]);
-
-  useEffect(() => {
-    if (onCcsCoursePath) setCcsCoursesOpen(true);
-  }, [onCcsCoursePath]);
 
   useEffect(() => {
     if (!PROFILE_ROLES_FOR_CURRICULUM.has(user?.role)) {
@@ -327,20 +286,6 @@ export default function StudentLayout() {
   const dashboardItem = menuItems[0];
   const restMenuItems = menuItems.slice(1);
 
-  const ccsCourseSidebarChildren = useMemo(() => {
-    const isBscs =
-      PROFILE_ROLES_FOR_CURRICULUM.has(user?.role) &&
-      studentProfileReady &&
-      normalizeCourseKey(studentProfile?.course) === 'BSCS';
-    if (isBscs) {
-      const y = studentProfile?.year_level || DEFAULT_YEAR_LEVEL_NEW_STUDENT;
-      const semRaw = studentProfile?.academic_semester;
-      const sem = parseInt(String(semRaw ?? 1), 10) === 2 ? 2 : 1;
-      return getBscsCourseSidebarChildren(y, sem);
-    }
-    return LEGACY_DEFAULT_CCS_SIDEBAR;
-  }, [user?.role, studentProfile, studentProfileReady]);
-
   const sidebarSemesterLabel = useMemo(() => {
     if (!PROFILE_ROLES_FOR_CURRICULUM.has(user?.role) || !studentProfileReady) {
       return 'First Semester';
@@ -354,7 +299,7 @@ export default function StudentLayout() {
     <div className="dashboard-layout">
       <header className="dashboard-header">
         <div className="dashboard-header-left">
-          <span className="dashboard-logo-text dashboard-logo-text--lms">CCS Learning Management System</span>
+          <span className="dashboard-logo-text dashboard-logo-text--lms">CCS Student Profiling</span>
         </div>
         <div className="dashboard-header-right">
           <button
@@ -446,44 +391,6 @@ export default function StudentLayout() {
               <span>{dashboardItem.label}</span>
             </button>
           )}
-          <div className="sidebar-membership">
-            <button
-              type="button"
-              className={`sidebar-item sidebar-item--membership-parent ${onCcsCoursePath ? 'sidebar-item--branch-active' : ''}`}
-              onClick={() => setCcsCoursesOpen((o) => !o)}
-              aria-expanded={ccsCoursesOpen}
-              aria-controls="sidebar-ccs-courses-subnav"
-            >
-              <Icon name="book" />
-              <span>My Classes</span>
-              <MembershipChevron className={`sidebar-membership-chevron ${ccsCoursesOpen ? 'sidebar-membership-chevron--open' : ''}`} />
-            </button>
-            {ccsCoursesOpen && (
-              <div id="sidebar-ccs-courses-subnav" className="sidebar-membership-sub">
-                {ccsCourseSidebarChildren.map((child) => {
-                  const subActive = location.pathname === child.path;
-                  return (
-                    <button
-                      key={child.path}
-                      type="button"
-                      className={`sidebar-item sidebar-item--sub ${subActive ? 'active' : ''}`}
-                      onClick={() => navigate(child.path)}
-                    >
-                      <span>{child.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            className={`sidebar-item ${location.pathname === '/dashboard/schedule' ? 'active' : ''}`}
-            onClick={() => navigate('/dashboard/schedule')}
-          >
-            <Icon name="calendar-week" className={location.pathname === '/dashboard/schedule' ? 'active' : ''} />
-            <span>My Schedule</span>
-          </button>
           <button
             type="button"
             className={`sidebar-item ${location.pathname === '/dashboard/calendar' ? 'active' : ''}`}
@@ -544,7 +451,9 @@ export default function StudentLayout() {
         </nav>
       </aside>
 
-      <main className="dashboard-content">
+      <main
+        className={`dashboard-content${location.pathname === '/dashboard/announcements' ? ' dashboard-content--announcements' : ''}`}
+      >
         <Outlet />
       </main>
     </div>

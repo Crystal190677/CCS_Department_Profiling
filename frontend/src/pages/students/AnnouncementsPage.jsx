@@ -33,7 +33,18 @@ export default function AnnouncementsPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const canPost = user && (user.role === 'ADMIN' || user.role === 'FACULTY');
+  const canPost = user && (user.role === 'ADMIN' || user.role === 'FACULTY' || user.role === 'OFFICER');
+  const isOfficer = user?.role === 'OFFICER';
+
+  const canMutateAnn = (ann) => {
+    if (!canPost || !user) return false;
+    if (user.role === 'ADMIN' || user.role === 'FACULTY') return true;
+    if (user.role === 'OFFICER') {
+      const authorId = ann.user_id ?? ann.author?.id;
+      return authorId != null && Number(authorId) === Number(user.id);
+    }
+    return false;
+  };
 
   const fetchAnnouncements = useCallback(async () => {
     const res = await fetch('/api/announcements', { headers: getAuthHeadersJson() });
@@ -181,13 +192,15 @@ export default function AnnouncementsPage() {
   if (!user) return null;
 
   return (
-    <div className="announcements-page">
-      <header className="ccs-gradient-hero">
+    <div className={`announcements-page ${isOfficer ? 'announcements-page--officer' : ''}`}>
+      <header className="ccs-gradient-hero announcements-page__hero">
         <div className="ccs-gradient-hero-pattern" aria-hidden />
         <div className="ccs-gradient-hero-inner">
           <h1 className="ccs-gradient-hero-title">Announcements</h1>
           <p className="ccs-gradient-hero-subtitle">
-            Official updates from CCS. {canPost ? 'You can post and attach JPEG or PNG images.' : ''}
+            {isOfficer
+              ? 'Share updates with the whole CCS community. Posts appear on student, faculty, and admin dashboards.'
+              : `Official updates from CCS.${canPost && !isOfficer ? ' You can post and attach JPEG or PNG images.' : ''}`}
           </p>
         </div>
       </header>
@@ -199,7 +212,13 @@ export default function AnnouncementsPage() {
       )}
 
       {canPost && (
-        <section className="ann-composer-card ccs-surface-gradient">
+        <section className={`ann-composer-card ccs-surface-gradient ${isOfficer ? 'ann-composer-card--officer' : ''}`}>
+          {isOfficer && (
+            <div className="ann-composer-accent" aria-hidden>
+              <span className="ann-composer-accent-bar" />
+              <span className="ann-composer-accent-label">Officer bulletin</span>
+            </div>
+          )}
           <h2 className="ann-composer-title">{editing ? 'Edit announcement' : 'New announcement'}</h2>
           <form className="ann-composer-form" onSubmit={editing ? submitEdit : submitCreate}>
             <div className="ann-form-row">
@@ -236,40 +255,46 @@ export default function AnnouncementsPage() {
                 <option value="urgent">Urgent</option>
               </select>
             </div>
-            <div className="ann-form-row">
-              <label htmlFor="ann-image">Photo (optional)</label>
-              <input
-                id="ann-image"
-                type="file"
-                accept={ACCEPT_IMAGES}
-                onChange={onPickImage}
-                disabled={saving}
-              />
-              <p className="ann-form-hint">JPEG, JPG, or PNG only. Max 5 MB.</p>
-              {(imagePreview || (editing?.image_url && !removeImageOnSave)) && (
-                <div className="ann-image-preview-wrap">
-                  <img
-                    src={imagePreview || editing?.image_url}
-                    alt=""
-                    className="ann-image-preview"
-                  />
-                  {editing?.image_url && !imageFile && (
-                    <button
-                      type="button"
-                      className="ann-remove-image-btn"
+            {(!isOfficer || (editing?.image_url && !removeImageOnSave)) && (
+              <div className="ann-form-row">
+                <label htmlFor="ann-image">{isOfficer ? 'Current photo' : 'Photo (optional)'}</label>
+                {!isOfficer && (
+                  <>
+                    <input
+                      id="ann-image"
+                      type="file"
+                      accept={ACCEPT_IMAGES}
+                      onChange={onPickImage}
                       disabled={saving}
-                      onClick={() => {
-                        setRemoveImageOnSave(true);
-                        setImagePreview(null);
-                        setImageFile(null);
-                      }}
-                    >
-                      Remove image
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+                    />
+                    <p className="ann-form-hint">JPEG, JPG, or PNG only. Max 5 MB.</p>
+                  </>
+                )}
+                {(imagePreview || (editing?.image_url && !removeImageOnSave)) && (
+                  <div className="ann-image-preview-wrap">
+                    <img
+                      src={imagePreview || editing?.image_url}
+                      alt=""
+                      className="ann-image-preview"
+                    />
+                    {editing?.image_url && !imageFile && (
+                      <button
+                        type="button"
+                        className="ann-remove-image-btn"
+                        disabled={saving}
+                        onClick={() => {
+                          setRemoveImageOnSave(true);
+                          setImagePreview(null);
+                          setImageFile(null);
+                        }}
+                      >
+                        Remove image
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="ann-form-actions">
               {editing && (
                 <button type="button" className="ann-btn-secondary" disabled={saving} onClick={resetComposer}>
@@ -285,7 +310,7 @@ export default function AnnouncementsPage() {
       )}
 
       <section className="ann-list-section">
-        <h2 className="ann-list-heading">All announcements</h2>
+        <h2 className="ann-list-heading">{isOfficer ? 'Posted announcements' : 'All announcements'}</h2>
         {loading ? (
           <p className="ann-muted">Loading…</p>
         ) : list.length === 0 ? (
@@ -308,7 +333,7 @@ export default function AnnouncementsPage() {
                   <span>By {ann.author?.name ?? 'Staff'}</span>
                   <span>{new Date(ann.created_at).toLocaleDateString()}</span>
                 </div>
-                {canPost && (
+                {canMutateAnn(ann) && (
                   <div className="ann-card-actions">
                     <button type="button" className="ann-btn-text" onClick={() => startEdit(ann)}>
                       Edit

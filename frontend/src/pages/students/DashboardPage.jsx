@@ -4,7 +4,10 @@ import './DashboardPage.css';
 
 function getAuthHeaders() {
   const token = localStorage.getItem('ccs_token');
-  return { ...(token && { Authorization: `Bearer ${token}` }) };
+  return {
+    Accept: 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
 }
 
 export default function DashboardPage() {

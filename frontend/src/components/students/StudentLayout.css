@@ -269,6 +269,17 @@
   font-size: 0.8125rem;
 }
 
+.dashboard-content--announcements {
+  padding: 1.5rem 0.75rem 2rem;
+}
+
+@media (min-width: 900px) {
+  .dashboard-content--announcements {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
 .dashboard-content {
   grid-area: content;
   overflow-y: auto;

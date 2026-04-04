@@ -64,6 +64,13 @@ class AnnouncementsController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         $announcement = Announcement::findOrFail($id);
+        $user = $request->user();
+        if ($user && $user->role === 'OFFICER' && (int) $announcement->user_id !== (int) $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You can only edit announcements you posted.',
+            ], 403);
+        }
 
         $request->validate([
             'title' => 'sometimes|string|max:255',
@@ -109,6 +116,14 @@ class AnnouncementsController extends Controller
     public function destroy(Request $request, int $id): JsonResponse
     {
         $announcement = Announcement::findOrFail($id);
+        $user = $request->user();
+        if ($user && $user->role === 'OFFICER' && (int) $announcement->user_id !== (int) $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You can only delete announcements you posted.',
+            ], 403);
+        }
+
         $title = $announcement->title;
 
         if ($announcement->image_path && Storage::disk('public')->exists($announcement->image_path)) {

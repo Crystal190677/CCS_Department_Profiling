@@ -142,7 +142,7 @@ export default function AdminFacultyLayout() {
     <div className="dashboard-layout">
       <header className="dashboard-header">
         <div className="dashboard-header-left">
-          <span className="dashboard-logo-text dashboard-logo-text--lms">CCS Learning Management System</span>
+          <span className="dashboard-logo-text dashboard-logo-text--lms">CCS Student Profiling</span>
         </div>
         <div className="dashboard-header-right">
           <button

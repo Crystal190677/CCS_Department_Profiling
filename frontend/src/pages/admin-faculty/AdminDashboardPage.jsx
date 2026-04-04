@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import CountUp from 'react-countup';
 import { GraduationCap, School, Shield, TriangleAlert } from 'lucide-react';
 import './AdminDashboardPage.css';
+import '../students/DashboardPage.css';
 
 function getAuthHeaders() {
   const token = localStorage.getItem('ccs_token');
@@ -50,6 +51,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [countKey, setCountKey] = useState(0);
+  const [announcements, setAnnouncements] = useState([]);
 
   const loadStats = useCallback(async () => {
     setError('');
@@ -65,6 +67,12 @@ export default function AdminDashboardPage() {
     setLoading(false);
   }, []);
 
+  const loadAnnouncements = useCallback(async () => {
+    const res = await fetch('/api/announcements', { headers: getAuthHeaders() });
+    const data = await res.json();
+    if (data.success) setAnnouncements(data.data || []);
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem('ccs_token');
     const raw = localStorage.getItem('ccs_user');
@@ -78,7 +86,8 @@ export default function AdminDashboardPage() {
       return;
     }
     loadStats();
-  }, [navigate, loadStats]);
+    loadAnnouncements();
+  }, [navigate, loadStats, loadAnnouncements]);
 
   return (
     <div className="adm-dash">
@@ -139,6 +148,47 @@ export default function AdminDashboardPage() {
               );
             })}
       </div>
+
+      <section className="dashboard-announcements ccs-surface-gradient adm-dash-announcements">
+        <div className="announcements-header">
+          <div className="announcements-title-row">
+            <svg className="announcements-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 11l18-5v12L3 14v-3z" />
+              <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+            </svg>
+            <div>
+              <h2 className="announcements-title">Recent Announcements</h2>
+              <p className="announcements-subtitle">Latest updates from CCS</p>
+            </div>
+          </div>
+        </div>
+        <div className="announcements-list">
+          {announcements.length === 0 ? (
+            <p className="announcements-empty">No announcements yet.</p>
+          ) : (
+            announcements.slice(0, 5).map((ann) => (
+              <article key={ann.id} className="announcement-card">
+                <h3 className="announcement-title">{ann.title}</h3>
+                {ann.image_url && (
+                  <div className="announcement-image-wrap">
+                    <img src={ann.image_url} alt="" className="announcement-image" />
+                  </div>
+                )}
+                <p className="announcement-content">{ann.content}</p>
+                <div className="announcement-meta">
+                  <div className="announcement-meta-left">
+                    <span className="announcement-author">By {ann.author?.name ?? 'Staff'}</span>
+                    <span className={`announcement-tag tag-${ann.tag || 'general'}`}>{ann.tag || 'general'}</span>
+                  </div>
+                  <span className="announcement-date">
+                    {ann.created_at ? new Date(ann.created_at).toLocaleDateString() : ''}
+                  </span>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
     </div>
   );
 }

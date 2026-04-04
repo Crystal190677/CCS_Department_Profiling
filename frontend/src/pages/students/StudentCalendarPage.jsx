@@ -10,6 +10,10 @@ function getAuthHeaders() {
   return { Accept: 'application/json', ...(token && { Authorization: `Bearer ${token}` }) };
 }
 
+function jsonHeaders() {
+  return { ...getAuthHeaders(), 'Content-Type': 'application/json' };
+}
+
 /** Gregorian civil Y-M-D weekday: 0=Sun … 6=Sat (independent of browser local TZ). */
 function civilWeekdaySun0(y, m, d) {
   return new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay();
@@ -29,6 +33,23 @@ function getManilaYearMonth(date = new Date()) {
 function manilaDateKeyFromIso(iso) {
   if (!iso) return '';
   return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso));
+}
+
+function manilaTimeHHMM(iso) {
+  if (!iso) return '';
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: TZ,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date(iso));
+    const h = parts.find((p) => p.type === 'hour')?.value ?? '00';
+    const m = parts.find((p) => p.type === 'minute')?.value ?? '00';
+    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+  } catch {
+    return '';
+  }
 }
 
 function formatTimeManila(iso) {
@@ -68,6 +89,7 @@ function getManilaTodayKey() {
 
 function kindBarClass(kind) {
   const k = String(kind || '').toLowerCase();
+  if (k === 'personal') return 'student-cal-event--personal';
   if (k === 'meet') return 'student-cal-event--meet';
   if (k === 'assignment') return 'student-cal-event--assignment';
   if (k === 'activity') return 'student-cal-event--activity';
@@ -75,12 +97,26 @@ function kindBarClass(kind) {
   return 'student-cal-event--task';
 }
 
+const emptyForm = () => ({
+  title: '',
+  event_date: '',
+  start_time: '09:00',
+  end_time: '10:00',
+  description: '',
+});
+
 export default function StudentCalendarPage() {
   const navigate = useNavigate();
   const [view, setView] = useState(() => getManilaYearMonth());
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('create');
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [modalError, setModalError] = useState('');
 
   const fetchCalendar = useCallback(async () => {
     setLoading(true);
@@ -113,6 +149,15 @@ export default function StudentCalendarPage() {
     }
     fetchCalendar();
   }, [navigate, fetchCalendar]);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setModalOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [modalOpen]);
 
   const eventsByDay = useMemo(() => {
     const map = {};
@@ -181,6 +226,118 @@ export default function StudentCalendarPage() {
     setView(getManilaYearMonth());
   };
 
+  const openCreate = (dateKey) => {
+    setModalMode('create');
+    setEditingId(null);
+    setForm({ ...emptyForm(), event_date: dateKey });
+    setModalError('');
+    setModalOpen(true);
+  };
+
+  const openEdit = (e) => {
+    setModalMode('edit');
+    setEditingId(e.id);
+    setForm({
+      title: e.title || '',
+      event_date: manilaDateKeyFromIso(e.starts_at),
+      start_time: manilaTimeHHMM(e.starts_at) || '09:00',
+      end_time: manilaTimeHHMM(e.ends_at) || '10:00',
+      description: e.description || '',
+    });
+    setModalError('');
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalError('');
+    setSaving(false);
+  };
+
+  const formatApiErrors = (data) => {
+    if (data?.message && typeof data.message === 'string') return data.message;
+    if (data?.errors && typeof data.errors === 'object') {
+      const first = Object.values(data.errors).flat()[0];
+      if (first) return String(first);
+    }
+    return 'Something went wrong.';
+  };
+
+  const handleSubmit = async (ev) => {
+    ev.preventDefault();
+    setSaving(true);
+    setModalError('');
+    const body = {
+      title: form.title.trim(),
+      event_date: form.event_date,
+      start_time: form.start_time,
+      end_time: form.end_time,
+      description: form.description.trim() || null,
+    };
+    if (!body.title) {
+      setModalError('Title is required.');
+      setSaving(false);
+      return;
+    }
+    try {
+      if (modalMode === 'create') {
+        const res = await fetch('/api/student-calendar/events', {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          setModalError(formatApiErrors(data));
+          return;
+        }
+        closeModal();
+        fetchCalendar();
+        return;
+      }
+      const res = await fetch(`/api/student-calendar/events/${encodeURIComponent(editingId)}`, {
+        method: 'PUT',
+        headers: jsonHeaders(),
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setModalError(formatApiErrors(data));
+        return;
+      }
+      closeModal();
+      fetchCalendar();
+    } catch {
+      setModalError('Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (modalMode !== 'edit' || editingId == null) return;
+    if (!window.confirm('Delete this event?')) return;
+    setSaving(true);
+    setModalError('');
+    try {
+      const res = await fetch(`/api/student-calendar/events/${encodeURIComponent(editingId)}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setModalError(formatApiErrors(data));
+        return;
+      }
+      closeModal();
+      fetchCalendar();
+    } catch {
+      setModalError('Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="student-cal-page">
       <header className="student-cal-toolbar">
@@ -226,40 +383,49 @@ export default function StudentCalendarPage() {
                 <div
                   key={cell.key}
                   role="gridcell"
-                  className={`student-cal-cell ${cell.isPadding ? 'student-cal-cell--pad' : ''} ${isToday ? 'student-cal-cell--today' : ''} ${rowEnd ? 'student-cal-cell--row-end' : ''}`}
+                  className={`student-cal-cell ${cell.isPadding ? 'student-cal-cell--pad' : ''} ${isToday ? 'student-cal-cell--today' : ''} ${rowEnd ? 'student-cal-cell--row-end' : ''} ${!cell.isPadding ? 'student-cal-cell--clickable' : ''}`}
                 >
-                  <span className="student-cal-daynum">{cell.day}</span>
-                  {!cell.isPadding && (
-                    <ul className="student-cal-events">
-                      {show.map((e) => (
-                        <li key={e.id} className={`student-cal-event ${kindBarClass(e.kind)}`}>
-                          <span className="student-cal-event-bar" aria-hidden />
-                          <span className="student-cal-event-main">
-                            <span className="student-cal-event-time">
-                              {e.kind === 'meet' && e.ends_at
-                                ? `${formatTimeManila(e.starts_at)}`
-                                : formatTimeManila(e.starts_at)}
-                            </span>
-                            <span className="student-cal-event-title" title={e.title}>
-                              {e.source === 'online_session' ? `Meet · ${e.course_code}` : `${e.course_code} · `}
-                              {e.title}
-                            </span>
-                            {e.meeting_url && (
-                              <a
-                                className="student-cal-event-link"
-                                href={e.meeting_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(ev) => ev.stopPropagation()}
-                              >
-                                Join
-                              </a>
-                            )}
-                          </span>
-                        </li>
-                      ))}
-                      {more > 0 && <li className="student-cal-more">+ {more}</li>}
-                    </ul>
+                  {!cell.isPadding ? (
+                    <button
+                      type="button"
+                      className="student-cal-cell-hit"
+                      onClick={() => openCreate(dateKey)}
+                      aria-label={`Add event on ${dateKey}`}
+                    >
+                      <span className="student-cal-daynum">{cell.day}</span>
+                      <ul className="student-cal-events">
+                        {show.map((e) => (
+                          <li key={e.id} className={`student-cal-event ${kindBarClass(e.kind)}`}>
+                            <span className="student-cal-event-bar" aria-hidden />
+                            <button
+                              type="button"
+                              className="student-cal-event-body"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                openEdit(e);
+                              }}
+                            >
+                              <span className="student-cal-event-main">
+                                <span className="student-cal-event-time">
+                                  {e.ends_at
+                                    ? `${formatTimeManila(e.starts_at)} – ${formatTimeManila(e.ends_at)}`
+                                    : formatTimeManila(e.starts_at)}
+                                </span>
+                                <span className="student-cal-event-title" title={e.title}>
+                                  {e.title}
+                                </span>
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                        {more > 0 && <li className="student-cal-more">+ {more}</li>}
+                      </ul>
+                    </button>
+                  ) : (
+                    <>
+                      <span className="student-cal-daynum">{cell.day}</span>
+                      <ul className="student-cal-events" />
+                    </>
                   )}
                 </div>
               );
@@ -267,6 +433,89 @@ export default function StudentCalendarPage() {
           </div>
         )}
       </div>
+
+      {modalOpen && (
+        <div className="student-cal-modal-backdrop" role="presentation" onClick={closeModal}>
+          <div
+            className="student-cal-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="student-cal-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="student-cal-modal-title" className="student-cal-modal-title">
+              {modalMode === 'create' ? 'New event' : 'Edit event'}
+            </h2>
+            <form className="student-cal-modal-form" onSubmit={handleSubmit}>
+              <label className="student-cal-field">
+                <span>Title</span>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  maxLength={255}
+                  required
+                  autoFocus
+                />
+              </label>
+              <label className="student-cal-field">
+                <span>Date</span>
+                <input
+                  type="date"
+                  value={form.event_date}
+                  onChange={(e) => setForm((f) => ({ ...f, event_date: e.target.value }))}
+                  required
+                />
+              </label>
+              <div className="student-cal-field-row">
+                <label className="student-cal-field">
+                  <span>Start</span>
+                  <input
+                    type="time"
+                    value={form.start_time}
+                    onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))}
+                    required
+                  />
+                </label>
+                <label className="student-cal-field">
+                  <span>End</span>
+                  <input
+                    type="time"
+                    value={form.end_time}
+                    onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))}
+                    required
+                  />
+                </label>
+              </div>
+              <label className="student-cal-field">
+                <span>Description (optional)</span>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  rows={3}
+                  maxLength={5000}
+                />
+              </label>
+              {modalError && <p className="student-cal-modal-error">{modalError}</p>}
+              <div className="student-cal-modal-actions">
+                {modalMode === 'edit' && (
+                  <button type="button" className="student-cal-btn student-cal-btn--danger" onClick={handleDelete} disabled={saving}>
+                    Delete
+                  </button>
+                )}
+                <div className="student-cal-modal-actions-end">
+                  <button type="button" className="student-cal-btn student-cal-btn--ghost" onClick={closeModal} disabled={saving}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="student-cal-btn student-cal-btn--primary" disabled={saving}>
+                    {saving ? 'Saving…' : modalMode === 'create' ? 'Create' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
