@@ -1271,120 +1271,89 @@
   margin-left: auto;
 }
 
-/* Main view: Browse vs Class lists */
-.spd-profiling-view-tabs {
-  display: flex;
-  gap: 0.35rem;
-  margin-bottom: 1.25rem;
-  padding: 0.2rem;
-  border-radius: 12px;
-  background: var(--ccs-bg-card);
-  border: 1px solid var(--ccs-border);
-  max-width: 28rem;
-}
-
-.spd-profiling-view-tab {
-  flex: 1;
-  padding: 0.55rem 0.85rem;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--ccs-text-muted);
-  cursor: pointer;
-}
-
-.spd-profiling-view-tab:hover {
-  color: var(--ccs-text);
-  background: rgba(249, 115, 22, 0.08);
-}
-
-.spd-profiling-view-tab.active {
-  background: linear-gradient(135deg, var(--ccs-orange) 0%, #c2410c 100%);
-  color: #fff;
-  box-shadow: 0 2px 10px var(--ccs-orange-glow);
-}
-
 .spd-class-lists-view {
   margin-bottom: 2rem;
 }
 
-.spd-class-lists-intro {
-  margin: 0 0 1rem;
-  font-size: 0.875rem;
-  color: var(--ccs-text-muted);
-  line-height: 1.5;
-  max-width: 44rem;
+.spd-class-lists-view--folders {
+  margin-top: 0.25rem;
 }
 
-.spd-class-lists-course-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+.spd-folder-back-row {
   margin-bottom: 0.75rem;
 }
 
-.spd-class-lists-course-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 1rem;
-  border-radius: 10px;
-  border: 1px solid var(--ccs-border);
-  background: var(--ccs-bg-card);
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--ccs-text);
+.spd-folder-back {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ccs-orange);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
 }
 
-.spd-class-lists-course-tab.active {
-  border-color: var(--ccs-orange);
+.spd-folder-back:hover {
   background: rgba(249, 115, 22, 0.1);
-  color: var(--ccs-orange);
 }
 
-.spd-class-lists-section-tabs {
+.spd-folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.spd-folder-card {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-bottom: 0.75rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 168px;
+  padding: 1.35rem 1.15rem;
+  text-align: center;
+  border: 2px solid rgba(249, 115, 22, 0.42);
+  border-radius: 16px;
+  background: linear-gradient(165deg, rgba(249, 115, 22, 0.16) 0%, var(--ccs-bg-card) 52%);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.08);
 }
 
-.spd-class-lists-section-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.75rem;
-  border-radius: 8px;
-  border: 1px solid var(--ccs-border);
-  background: var(--ccs-bg);
+.spd-folder-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--ccs-orange);
+  box-shadow: 0 10px 28px rgba(249, 115, 22, 0.18);
+}
+
+.spd-folder-icon {
+  width: 56px;
+  height: 46px;
+  color: var(--ccs-orange);
+  flex-shrink: 0;
+}
+
+.spd-folder-card-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ccs-text);
+  line-height: 1.25;
+}
+
+.spd-folder-card-count {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--ccs-text);
-  cursor: pointer;
-}
-
-.spd-class-lists-section-tab.active {
-  border-color: var(--ccs-orange);
-  background: rgba(249, 115, 22, 0.12);
-  color: var(--ccs-orange);
-}
-
-.spd-class-lists-tab-count {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0.1rem 0.4rem;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.08);
   color: var(--ccs-text-muted);
 }
 
-.spd-class-lists-course-tab.active .spd-class-lists-tab-count,
-.spd-class-lists-section-tab.active .spd-class-lists-tab-count {
-  background: rgba(255, 255, 255, 0.35);
-  color: inherit;
+[data-theme='dark'] .spd-folder-card {
+  background: linear-gradient(165deg, rgba(249, 115, 22, 0.14) 0%, var(--ccs-bg-card) 55%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
 }
 
 .spd-class-lists-meta {

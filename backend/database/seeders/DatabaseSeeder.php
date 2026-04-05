@@ -117,6 +117,7 @@ class DatabaseSeeder extends Seeder
         $this->call(CcsCourseWorkspaceDemoSeeder::class);
         $this->call(StudentClassScheduleSeeder::class);
         $this->call(MerchandiseCatalogSeeder::class);
+        $this->call(ClassListIrregularStudentsSeeder::class);
 
         $this->command->info('✓ Seed data created.');
     }

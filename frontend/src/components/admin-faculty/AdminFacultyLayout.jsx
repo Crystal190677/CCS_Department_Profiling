@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from '../../context/DarkModeContext';
 import NotificationsBell from '../NotificationsBell';
@@ -7,7 +7,7 @@ import './AdminFacultyLayout.css';
 
 function Icon({ name, className }) {
   const cls = `sidebar-icon sidebar-icon-${name} ${className || ''}`;
-  if (name === 'grid') {
+  if (name === 'grid' || name === 'dashboard') {
     return (
       <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -103,22 +103,44 @@ export default function AdminFacultyLayout() {
   const { isDark, toggleDarkMode } = useDarkMode();
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
 
-  const menuItems = useMemo(() => {
-    const base = [
-      { path: '/admin-dashboard', label: 'Dashboard', icon: 'dashboard', exact: true },
-      { path: '/admin-dashboard/profiling', label: 'Student Profiling', icon: 'grid' },
-      { path: '/admin-dashboard/announcements', label: 'Announcements', icon: 'megaphone' },
-      { path: '/admin-dashboard/profile-settings', label: 'Profile settings', icon: 'settings' },
-    ];
+  const profilingBranchActive =
+    location.pathname.startsWith('/admin-dashboard/profiling') ||
+    location.pathname === '/admin-dashboard/add-student';
+
+  const profilingSubItems = useMemo(
+    () => [
+      ...(user.role === 'ADMIN' ? [{ path: '/admin-dashboard/add-student', label: 'Add Student' }] : []),
+      { path: '/admin-dashboard/profiling/class-lists', label: 'Class List' },
+      { path: '/admin-dashboard/profiling/talent-directory', label: 'Talent Directory' },
+    ],
+    [user.role],
+  );
+
+  const [profilingMenuOpen, setProfilingMenuOpen] = useState(profilingBranchActive);
+
+  useEffect(() => {
+    if (profilingBranchActive) setProfilingMenuOpen(true);
+    else setProfilingMenuOpen(false);
+  }, [profilingBranchActive]);
+
+  const topNavItems = useMemo(() => {
+    const dash = { path: '/admin-dashboard', label: 'Dashboard', icon: 'dashboard', exact: true };
     if (user.role === 'ADMIN') {
       return [
-        base[0],
+        dash,
         { path: '/admin/audit-log', label: 'Audit log', icon: 'audit' },
-        ...base.slice(1),
       ];
     }
-    return base;
+    return [dash];
   }, [user.role]);
+
+  const bottomNavItems = useMemo(
+    () => [
+      { path: '/admin-dashboard/announcements', label: 'Announcements', icon: 'megaphone' },
+      { path: '/admin-dashboard/profile-settings', label: 'Profile settings', icon: 'settings' },
+    ],
+    [],
+  );
 
   useEffect(() => {
     const token = localStorage.getItem('ccs_token');
@@ -169,11 +191,68 @@ export default function AdminFacultyLayout() {
       </header>
       <aside className="dashboard-sidebar">
         <nav className="sidebar-nav">
-          {menuItems.map((item) => {
+          {topNavItems.map((item) => {
             const isActive =
-              item.path === '/admin-dashboard'
+              item.exact === true
                 ? location.pathname === '/admin-dashboard'
                 : location.pathname === item.path;
+            return (
+              <button
+                key={item.path}
+                type="button"
+                className={`sidebar-item ${isActive ? 'active' : ''}`}
+                onClick={() => navigate(item.path)}
+              >
+                <Icon name={item.icon} className={isActive ? 'active' : ''} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+          <div className="sidebar-membership">
+            <button
+              type="button"
+              className={`sidebar-item sidebar-item--membership-parent ${profilingBranchActive ? 'sidebar-item--branch-active' : ''}`}
+              onClick={() => setProfilingMenuOpen((o) => !o)}
+              aria-expanded={profilingMenuOpen}
+              aria-controls="admin-profiling-subnav"
+            >
+              <Icon name="grid" />
+              <span>Student Profiling</span>
+              <svg
+                className={`sidebar-membership-chevron ${profilingMenuOpen ? 'sidebar-membership-chevron--open' : ''}`}
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {profilingMenuOpen && (
+              <div id="admin-profiling-subnav" className="sidebar-membership-sub">
+                {profilingSubItems.map((child) => {
+                  const subActive = location.pathname === child.path;
+                  return (
+                    <button
+                      key={child.path}
+                      type="button"
+                      className={`sidebar-item sidebar-item--sub ${subActive ? 'active' : ''}`}
+                      onClick={() => navigate(child.path)}
+                    >
+                      <span>{child.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          {bottomNavItems.map((item) => {
+            const isActive = location.pathname === item.path;
             return (
               <button
                 key={item.path}
@@ -189,17 +268,6 @@ export default function AdminFacultyLayout() {
           {user.role === 'ADMIN' ? (
             <>
               <span className="admin-sidebar-section-label">Account management</span>
-              <button
-                type="button"
-                className={`sidebar-item ${location.pathname === '/admin-dashboard/add-student' ? 'active' : ''}`}
-                onClick={() => navigate('/admin-dashboard/add-student')}
-              >
-                <Icon
-                  name="user-plus"
-                  className={location.pathname === '/admin-dashboard/add-student' ? 'active' : ''}
-                />
-                <span>Add student</span>
-              </button>
               <button
                 type="button"
                 className={`sidebar-item ${location.pathname === '/admin-dashboard/create-faculty' ? 'active' : ''}`}

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import ClaimAccountPage from './pages/ClaimAccountPage';
@@ -15,6 +15,7 @@ import StudentSchedulePage from './pages/students/StudentSchedulePage';
 import StudentCalendarPage from './pages/students/StudentCalendarPage';
 import AdminFacultyLayout from './components/admin-faculty/AdminFacultyLayout';
 import StudentProfilingDashboard from './pages/admin-faculty/StudentProfilingDashboard';
+import AdminStudentProfileViewPage from './pages/admin-faculty/AdminStudentProfileViewPage';
 import AdminDashboardPage from './pages/admin-faculty/AdminDashboardPage';
 import AuditLogPage from './pages/admin-faculty/AuditLogPage';
 import AdminAddStudentPage from './pages/admin-faculty/AdminAddStudentPage';
@@ -45,7 +46,12 @@ function App() {
       </Route>
       <Route path="/admin-dashboard" element={<AdminFacultyLayout />}>
         <Route index element={<AdminDashboardPage />} />
-        <Route path="profiling" element={<StudentProfilingDashboard />} />
+        <Route path="profiling" element={<Outlet />}>
+          <Route index element={<Navigate to="talent-directory" replace />} />
+          <Route path="talent-directory" element={<StudentProfilingDashboard />} />
+          <Route path="class-lists" element={<StudentProfilingDashboard />} />
+          <Route path="student/:studentId" element={<AdminStudentProfileViewPage />} />
+        </Route>
         <Route path="add-student" element={<AdminAddStudentPage />} />
         <Route path="create-faculty" element={<AdminCreateFacultyPage />} />
         <Route path="announcements" element={<StudentAnnouncementsPage />} />

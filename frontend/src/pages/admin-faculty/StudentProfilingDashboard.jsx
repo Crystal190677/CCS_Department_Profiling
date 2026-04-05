@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ConfirmModal from '../../components/ConfirmModal';
 import {
   COURSE_OPTIONS,
@@ -10,9 +10,37 @@ import {
   ACADEMIC_SEMESTER_OPTIONS,
   mapLegacyCourseToSelect,
   mapLegacySectionToSelect,
-  buildClassListTree,
+  buildClassListTreeByYear,
+  CLASS_LIST_YEAR_FOLDER_KEYS,
+  CLASS_LIST_YEAR_FOLDER_LABELS,
+  CLASS_LIST_IRREGULAR_SUBYEAR_KEYS,
+  countStudentsInClassListCourse,
+  countStudentsInClassListYear,
+  countStudentsInIrregularSubYear,
 } from '../../constants/academicPlacement';
 import './StudentProfilingDashboard.css';
+
+function ClassListFolderIcon({ className }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 64 52"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M6 14h20l6 8h26a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V18a4 4 0 0 1 4-4z"
+        fill="currentColor"
+        fillOpacity="0.18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path d="M6 22h52" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 function getAuthHeaders() {
   const token = localStorage.getItem('ccs_token');
@@ -111,6 +139,7 @@ function slotSummaryForModal(activity) {
 
 export default function StudentProfilingDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [students, setStudents] = useState([]);
   const [activities, setActivities] = useState([]);
   const [search, setSearch] = useState('');
@@ -173,9 +202,15 @@ export default function StudentProfilingDashboard() {
   const [browseSkill, setBrowseSkill] = useState('');
   const [browseCourse, setBrowseCourse] = useState('');
   const [studentListLayout, setStudentListLayout] = useState('table');
-  const [profilingMainView, setProfilingMainView] = useState('browse');
-  const [classListCourse, setClassListCourse] = useState('BSCS');
-  const [classListSection, setClassListSection] = useState('A');
+  const profilingMainView = useMemo(
+    () => (location.pathname.includes('/class-lists') ? 'class_lists' : 'browse'),
+    [location.pathname],
+  );
+  const [classListCourse, setClassListCourse] = useState(null);
+  const [classListYear, setClassListYear] = useState(null);
+  const [classListSection, setClassListSection] = useState(null);
+  const [classListIrregularSubYear, setClassListIrregularSubYear] = useState(null);
+  const [classListFolderLevel, setClassListFolderLevel] = useState('program');
   const [classListRoster, setClassListRoster] = useState([]);
   const [classListLoading, setClassListLoading] = useState(false);
   const [classListRefreshKey, setClassListRefreshKey] = useState(0);
@@ -183,6 +218,7 @@ export default function StudentProfilingDashboard() {
   const [deleteStudentId, setDeleteStudentId] = useState(null);
   const [deletingStudent, setDeletingStudent] = useState(false);
   const browseFilterBootRef = useRef(true);
+  const processedOpenEditForClassListRef = useRef(null);
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
 
   const typeLabels = { past_activity: 'Past activity', award: 'Award', leadership: 'Leadership' };
@@ -386,7 +422,16 @@ export default function StudentProfilingDashboard() {
     fetchClassListRoster();
   }, [profilingMainView, classListRefreshKey, fetchClassListRoster]);
 
-  const classListTree = useMemo(() => buildClassListTree(classListRoster), [classListRoster]);
+  useEffect(() => {
+    if (profilingMainView !== 'class_lists') return;
+    setClassListFolderLevel('program');
+    setClassListCourse(null);
+    setClassListYear(null);
+    setClassListSection(null);
+    setClassListIrregularSubYear(null);
+  }, [profilingMainView]);
+
+  const classListYearTree = useMemo(() => buildClassListTreeByYear(classListRoster), [classListRoster]);
 
   const fetchRankAudit = async () => {
     if (!activityFilter) return;
@@ -866,7 +911,7 @@ export default function StudentProfilingDashboard() {
     }
   };
 
-  const openEditProfile = (student) => {
+  const openEditProfile = useCallback((student) => {
     const p = student.student_profile || {};
     setEditProfileStudent(student);
     setProfileForm({
@@ -889,7 +934,7 @@ export default function StudentProfilingDashboard() {
       skills: p.skills ?? '',
       notes: p.notes ?? '',
     });
-  };
+  }, []);
 
   const showPhysicalColumn = user?.role === 'ADMIN' || user?.is_sports_faculty;
 
@@ -946,37 +991,77 @@ export default function StudentProfilingDashboard() {
     }
   };
 
+  useEffect(() => {
+    const uid = location.state?.openEditForUserId;
+    if (uid == null) {
+      processedOpenEditForClassListRef.current = null;
+      return;
+    }
+    if (profilingMainView !== 'class_lists') return;
+
+    const key = String(uid);
+    if (processedOpenEditForClassListRef.current === key) return;
+
+    const fromRoster = classListRoster.find((s) => Number(s.id) === Number(uid));
+    if (fromRoster) {
+      processedOpenEditForClassListRef.current = key;
+      openEditProfile(fromRoster);
+      navigate(location.pathname, { replace: true, state: {} });
+      return;
+    }
+
+    if (classListLoading) return;
+
+    let cancelled = false;
+    processedOpenEditForClassListRef.current = key;
+    (async () => {
+      try {
+        const res = await fetch(`/api/students/${uid}/full-profile`, { headers: getAuthHeaders() });
+        const json = await res.json();
+        if (cancelled) return;
+        if (!json.success) {
+          processedOpenEditForClassListRef.current = null;
+          return;
+        }
+        const d = json.data;
+        openEditProfile({
+          id: d.id,
+          name: d.name,
+          email: d.email,
+          student_number: d.student_number,
+          student_profile: d.student_profile,
+        });
+        navigate(location.pathname, { replace: true, state: {} });
+      } catch {
+        processedOpenEditForClassListRef.current = null;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    location.state,
+    profilingMainView,
+    classListRoster,
+    classListLoading,
+    openEditProfile,
+    navigate,
+    location.pathname,
+  ]);
+
   if (!user?.role) return null;
 
   return (
     <div className="student-profiling-dashboard">
-      <header className="ccs-gradient-hero ccs-gradient-hero--compact spd-page-hero">
-        <div className="ccs-gradient-hero-pattern" aria-hidden />
-        <div className="ccs-gradient-hero-inner">
-          <h1 className="ccs-gradient-hero-title">Student Profiling Dashboard</h1>
-        </div>
-      </header>
-
-      <div className="spd-profiling-view-tabs" role="tablist" aria-label="Profiling view">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={profilingMainView === 'browse'}
-          className={`spd-profiling-view-tab ${profilingMainView === 'browse' ? 'active' : ''}`}
-          onClick={() => setProfilingMainView('browse')}
-        >
-          Browse &amp; filter
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={profilingMainView === 'class_lists'}
-          className={`spd-profiling-view-tab ${profilingMainView === 'class_lists' ? 'active' : ''}`}
-          onClick={() => setProfilingMainView('class_lists')}
-        >
-          Class lists
-        </button>
-      </div>
+      {profilingMainView !== 'class_lists' && (
+        <header className="ccs-gradient-hero ccs-gradient-hero--compact spd-page-hero">
+          <div className="ccs-gradient-hero-pattern" aria-hidden />
+          <div className="ccs-gradient-hero-inner">
+            <h1 className="ccs-gradient-hero-title">Student Profiling Dashboard</h1>
+          </div>
+        </header>
+      )}
 
       {error && (
         <div className="spd-error" role="alert">
@@ -1585,132 +1670,278 @@ export default function StudentProfilingDashboard() {
 
       {profilingMainView === 'class_lists' && (() => {
         const sectionKeys = [...SECTION_LETTERS, 'Unassigned', 'Other'];
-        const branch = classListTree[classListCourse] || {};
-        const listForTab = branch[classListSection] || [];
-        const overCap = listForTab.length > SECTION_CAPACITY;
         const sectionLabel = (s) => (s === 'Unassigned' ? 'No section' : s === 'Other' ? 'Other' : `Section ${s}`);
+        const listForRoster =
+          classListCourse && classListYear === 'Irregulars' && classListIrregularSubYear != null
+            ? classListYearTree[classListCourse]?.Irregulars?.[classListIrregularSubYear] || []
+            : classListCourse && classListYear && classListYear !== 'Irregulars' && classListSection != null
+              ? classListYearTree[classListCourse]?.[classListYear]?.[classListSection] || []
+              : [];
+        const overCap = listForRoster.length > SECTION_CAPACITY;
+        const extraYearKeys =
+          classListCourse != null
+            ? ['Unassigned', '5th yr', 'Other'].filter(
+                (yk) => countStudentsInClassListYear(classListYearTree, classListCourse, yk) > 0,
+              )
+            : [];
+        const yearKeysToShow = [...CLASS_LIST_YEAR_FOLDER_KEYS, ...extraYearKeys];
+        const extraIrregularSubYearKeys =
+          classListCourse != null
+            ? ['Unassigned', '5th yr', 'Other'].filter(
+                (sk) => countStudentsInIrregularSubYear(classListYearTree, classListCourse, sk) > 0,
+              )
+            : [];
+        const irregularSubYearKeysToShow = [...CLASS_LIST_IRREGULAR_SUBYEAR_KEYS, ...extraIrregularSubYearKeys];
+
+        const handleClassListBack = () => {
+          if (classListFolderLevel === 'roster') {
+            if (classListYear === 'Irregulars') {
+              setClassListIrregularSubYear(null);
+              setClassListFolderLevel('irregular_year');
+            } else {
+              setClassListFolderLevel('section');
+              setClassListSection(null);
+            }
+          } else if (classListFolderLevel === 'irregular_year') {
+            setClassListFolderLevel('year');
+            setClassListYear(null);
+          } else if (classListFolderLevel === 'section') {
+            setClassListFolderLevel('year');
+            setClassListYear(null);
+          } else if (classListFolderLevel === 'year') {
+            setClassListFolderLevel('program');
+            setClassListCourse(null);
+          }
+        };
 
         return (
-          <div className="spd-class-lists-view">
-            <p className="spd-class-lists-intro">
-              Students are grouped by program and section, sorted alphabetically by name (then student number). Typical section size: {SECTION_CAPACITY}.
-            </p>
-            <div className="spd-class-lists-course-tabs" role="tablist" aria-label="Program">
-              {['BSCS', 'BSIT'].map((c) => {
-                const b = classListTree[c] || {};
-                const total = sectionKeys.reduce((acc, s) => acc + (b[s]?.length || 0), 0);
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    role="tab"
-                    aria-selected={classListCourse === c}
-                    className={`spd-class-lists-course-tab ${classListCourse === c ? 'active' : ''}`}
-                    onClick={() => {
-                      setClassListCourse(c);
-                      setClassListSection('A');
-                    }}
-                  >
-                    {c}
-                    <span className="spd-class-lists-tab-count">{total}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="spd-class-lists-section-tabs" role="tablist" aria-label="Section">
-              {sectionKeys.map((s) => {
-                const n = (branch[s] || []).length;
-                if ((s === 'Unassigned' || s === 'Other') && n === 0) return null;
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    role="tab"
-                    aria-selected={classListSection === s}
-                    className={`spd-class-lists-section-tab ${classListSection === s ? 'active' : ''}`}
-                    onClick={() => setClassListSection(s)}
-                  >
-                    {sectionLabel(s)}
-                    <span className="spd-class-lists-tab-count">{n}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="spd-class-lists-meta">
-              {classListLoading ? (
-                <span className="spd-muted">Loading roster…</span>
-              ) : (
-                <>
-                  <strong>{listForTab.length}</strong> in this section
-                  <span className={overCap ? 'spd-class-lists-cap spd-class-lists-cap--over' : 'spd-class-lists-cap'}>
-                    {' '}
-                    · {SECTION_CAPACITY} typical max
-                    {overCap ? ' (over typical capacity)' : ''}
-                  </span>
-                </>
-              )}
-            </div>
-            {classListLoading ? (
-              <div className="spd-loading">Loading class list…</div>
-            ) : listForTab.length === 0 ? (
-              <p className="spd-qualified-empty">No students in {sectionLabel(classListSection)} for {classListCourse}.</p>
-            ) : (
-              <ul className="spd-class-lists-cards">
-                {listForTab.map((student) => {
-                  const p = student.student_profile || {};
-                  const skills = student.skill_entries || [];
+          <div className="spd-class-lists-view spd-class-lists-view--folders">
+            {classListFolderLevel !== 'program' && (
+              <div className="spd-folder-back-row">
+                <button type="button" className="spd-folder-back" onClick={handleClassListBack}>
+                  ← Back
+                </button>
+              </div>
+            )}
+
+            {classListLoading && classListFolderLevel === 'program' ? (
+              <div className="spd-loading">Loading class lists…</div>
+            ) : null}
+
+            {classListFolderLevel === 'program' && !classListLoading && (
+              <div className="spd-folder-grid" role="navigation" aria-label="Programs">
+                {['BSCS', 'BSIT'].map((c) => {
+                  const total = countStudentsInClassListCourse(classListYearTree, c);
                   return (
-                    <li key={student.id} className="spd-class-lists-card">
-                      <div className="spd-class-lists-card-head">
-                        <QualifiedStudentAvatar name={student.name} photoUrl={p.photo_url} />
-                        <div className="spd-class-lists-card-info">
-                          <h3 className="spd-class-lists-card-name">{student.name}</h3>
-                          <p className="spd-class-lists-card-meta">{student.email}</p>
-                          <p className="spd-class-lists-card-meta">
-                            #{student.student_number || '—'}
-                            {p.year_level ? ` · ${p.year_level}` : ''}
-                            {p.course ? ` · ${p.course}` : ''}
-                          </p>
-                          {p.academic_standing && (
-                            <span className={`spd-class-lists-standing spd-class-lists-standing--${String(p.academic_standing).toLowerCase()}`}>
-                              {p.academic_standing}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {skills.length > 0 ? (
-                        <div className="spd-class-lists-card-skills">
-                          {skills.slice(0, 6).map((sk) => (
-                            <span key={sk.id} className="spd-tag">
-                              {sk.skill}
-                              {sk.proficiency_level ? ` · ${sk.proficiency_level}` : ''}
-                            </span>
-                          ))}
-                          {skills.length > 6 ? <span className="spd-muted">+{skills.length - 6} more</span> : null}
-                        </div>
-                      ) : null}
-                      <div className="spd-class-lists-card-actions">
-                        <button type="button" className="spd-edit-profile-btn" onClick={() => openFullProfile(student)}>
-                          Full profile
-                        </button>
-                        {(user.role === 'ADMIN' || user.role === 'FACULTY') && (
-                          <>
-                            <button type="button" className="spd-edit-profile-btn" onClick={() => openEntriesModal(student)}>Entries</button>
-                            <button type="button" className="spd-edit-profile-btn" onClick={() => openSkillsModal(student)}>Skills</button>
-                            <button type="button" className="spd-edit-profile-btn" onClick={() => openConductModal(student)}>Conduct</button>
-                          </>
-                        )}
-                        {user.role === 'ADMIN' && (
-                          <>
-                            <button type="button" className="spd-edit-profile-btn" onClick={() => openEditProfile(student)}>Edit profile</button>
-                            <button type="button" className="spd-officer-remove" onClick={() => setDeleteStudentId(student.id)}>Delete</button>
-                          </>
-                        )}
-                      </div>
-                    </li>
+                    <button
+                      key={c}
+                      type="button"
+                      className="spd-folder-card"
+                      onClick={() => {
+                        setClassListCourse(c);
+                        setClassListFolderLevel('year');
+                      }}
+                    >
+                      <ClassListFolderIcon className="spd-folder-icon" />
+                      <span className="spd-folder-card-title">{c}</span>
+                      <span className="spd-folder-card-count">
+                        {total} student{total === 1 ? '' : 's'}
+                      </span>
+                    </button>
                   );
                 })}
-              </ul>
+              </div>
+            )}
+
+            {classListFolderLevel === 'year' && classListCourse && (
+              <div className="spd-folder-grid" role="navigation" aria-label="Year levels">
+                {yearKeysToShow.map((yk) => {
+                  const n = countStudentsInClassListYear(classListYearTree, classListCourse, yk);
+                  return (
+                    <button
+                      key={yk}
+                      type="button"
+                      className="spd-folder-card"
+                      onClick={() => {
+                        setClassListYear(yk);
+                        setClassListSection(null);
+                        setClassListIrregularSubYear(null);
+                        setClassListFolderLevel(yk === 'Irregulars' ? 'irregular_year' : 'section');
+                      }}
+                    >
+                      <ClassListFolderIcon className="spd-folder-icon" />
+                      <span className="spd-folder-card-title">{CLASS_LIST_YEAR_FOLDER_LABELS[yk] || yk}</span>
+                      <span className="spd-folder-card-count">
+                        {n} student{n === 1 ? '' : 's'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {classListFolderLevel === 'irregular_year' && classListCourse && classListYear === 'Irregulars' && (
+              <div className="spd-folder-grid" role="navigation" aria-label="Irregular students by year level">
+                {irregularSubYearKeysToShow.map((sk) => {
+                  const n = countStudentsInIrregularSubYear(classListYearTree, classListCourse, sk);
+                  return (
+                    <button
+                      key={sk}
+                      type="button"
+                      className="spd-folder-card"
+                      onClick={() => {
+                        setClassListIrregularSubYear(sk);
+                        setClassListFolderLevel('roster');
+                      }}
+                    >
+                      <ClassListFolderIcon className="spd-folder-icon" />
+                      <span className="spd-folder-card-title">{CLASS_LIST_YEAR_FOLDER_LABELS[sk] || sk}</span>
+                      <span className="spd-folder-card-count">
+                        {n} student{n === 1 ? '' : 's'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {classListFolderLevel === 'section' && classListCourse && classListYear && classListYear !== 'Irregulars' && (
+              <div className="spd-folder-grid" role="navigation" aria-label="Sections">
+                {sectionKeys.map((s) => {
+                  const n = (classListYearTree[classListCourse]?.[classListYear]?.[s] || []).length;
+                  if ((s === 'Unassigned' || s === 'Other') && n === 0) return null;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      className="spd-folder-card"
+                      onClick={() => {
+                        setClassListSection(s);
+                        setClassListFolderLevel('roster');
+                      }}
+                    >
+                      <ClassListFolderIcon className="spd-folder-icon" />
+                      <span className="spd-folder-card-title">{sectionLabel(s)}</span>
+                      <span className="spd-folder-card-count">
+                        {n} student{n === 1 ? '' : 's'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {classListFolderLevel === 'roster' &&
+              classListCourse &&
+              classListYear &&
+              ((classListYear === 'Irregulars' && classListIrregularSubYear != null) ||
+                (classListYear !== 'Irregulars' && classListSection != null)) && (
+              <>
+                <div className="spd-class-lists-meta">
+                  {classListLoading ? (
+                    <span className="spd-muted">Loading roster…</span>
+                  ) : (
+                    <>
+                      <strong>{listForRoster.length}</strong>
+                      {classListYear === 'Irregulars' && classListIrregularSubYear != null ? (
+                        <>
+                          {' '}
+                          irregular in {CLASS_LIST_YEAR_FOLDER_LABELS[classListIrregularSubYear] || classListIrregularSubYear}{' '}
+                          · {classListCourse} · Irregulars
+                        </>
+                      ) : (
+                        <>
+                          {' '}
+                          in {sectionLabel(classListSection)} · {classListCourse} ·{' '}
+                          {CLASS_LIST_YEAR_FOLDER_LABELS[classListYear] || classListYear}
+                        </>
+                      )}
+                      <span className={overCap ? 'spd-class-lists-cap spd-class-lists-cap--over' : 'spd-class-lists-cap'}>
+                        {' '}
+                        · {SECTION_CAPACITY} typical max
+                        {overCap ? ' (over typical capacity)' : ''}
+                      </span>
+                    </>
+                  )}
+                </div>
+                {classListLoading ? (
+                  <div className="spd-loading">Loading class list…</div>
+                ) : listForRoster.length === 0 ? (
+                  <p className="spd-qualified-empty">
+                    {classListYear === 'Irregulars' && classListIrregularSubYear != null ? (
+                      <>
+                        No irregular students in {CLASS_LIST_YEAR_FOLDER_LABELS[classListIrregularSubYear] || classListIrregularSubYear}{' '}
+                        for {classListCourse}.
+                      </>
+                    ) : (
+                      <>
+                        No students in {sectionLabel(classListSection)} for{' '}
+                        {CLASS_LIST_YEAR_FOLDER_LABELS[classListYear] || classListYear}, {classListCourse}.
+                      </>
+                    )}
+                  </p>
+                ) : (
+                  <ul className="spd-class-lists-cards">
+                    {listForRoster.map((student) => {
+                      const p = student.student_profile || {};
+                      const skills = student.skill_entries || [];
+                      return (
+                        <li key={student.id} className="spd-class-lists-card">
+                          <div className="spd-class-lists-card-head">
+                            <QualifiedStudentAvatar name={student.name} photoUrl={p.photo_url} />
+                            <div className="spd-class-lists-card-info">
+                              <h3 className="spd-class-lists-card-name">{student.name}</h3>
+                              <p className="spd-class-lists-card-meta">{student.email}</p>
+                              <p className="spd-class-lists-card-meta">
+                                #{student.student_number || '—'}
+                                {p.year_level ? ` · ${p.year_level}` : ''}
+                                {p.course ? ` · ${p.course}` : ''}
+                              </p>
+                              {p.academic_standing && (
+                                <span
+                                  className={`spd-class-lists-standing spd-class-lists-standing--${String(p.academic_standing).toLowerCase()}`}
+                                >
+                                  {p.academic_standing}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {skills.length > 0 ? (
+                            <div className="spd-class-lists-card-skills">
+                              {skills.slice(0, 6).map((sk) => (
+                                <span key={sk.id} className="spd-tag">
+                                  {sk.skill}
+                                  {sk.proficiency_level ? ` · ${sk.proficiency_level}` : ''}
+                                </span>
+                              ))}
+                              {skills.length > 6 ? <span className="spd-muted">+{skills.length - 6} more</span> : null}
+                            </div>
+                          ) : null}
+                          <div className="spd-class-lists-card-actions">
+                            <button
+                              type="button"
+                              className="spd-edit-profile-btn"
+                              onClick={() => navigate(`/admin-dashboard/profiling/student/${student.id}`)}
+                            >
+                              View Profile
+                            </button>
+                            {user.role === 'ADMIN' && (
+                              <>
+                                <button type="button" className="spd-edit-profile-btn" onClick={() => openEditProfile(student)}>
+                                  Edit
+                                </button>
+                                <button type="button" className="spd-officer-remove" onClick={() => setDeleteStudentId(student.id)}>
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
             )}
           </div>
         );

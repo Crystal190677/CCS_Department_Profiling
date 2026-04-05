@@ -98,7 +98,7 @@ export default function AdminDashboardPage() {
             <h1 className="ccs-gradient-hero-title">Admin dashboard</h1>
             <p className="ccs-gradient-hero-subtitle">Live overview of CCS department metrics</p>
           </div>
-          <button type="button" className="adm-dash-link-profiling" onClick={() => navigate('/admin-dashboard/profiling')}>
+          <button type="button" className="adm-dash-link-profiling" onClick={() => navigate('/admin-dashboard/profiling/talent-directory')}>
             Open student profiling →
           </button>
         </div>

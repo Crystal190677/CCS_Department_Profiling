@@ -67,7 +67,7 @@ export default function AdminAddStudentPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setSuccess('Student account created (1st year). View class lists under Student Profiling → Class lists.');
+        setSuccess('Student account created (1st year). View class lists under Student Profiling → Class List.');
         setForm({
           name: '',
           email: '',
@@ -190,7 +190,7 @@ export default function AdminAddStudentPage() {
             </select>
           </div>
           <div className="admin-account-actions">
-            <button type="button" className="admin-account-btn-ghost" onClick={() => navigate('/admin-dashboard/profiling')}>
+            <button type="button" className="admin-account-btn-ghost" onClick={() => navigate('/admin-dashboard/profiling/talent-directory')}>
               Back to roster
             </button>
             <button type="submit" className="admin-account-btn-primary" disabled={saving}>

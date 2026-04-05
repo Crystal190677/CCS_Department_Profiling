@@ -1,0 +1,380 @@
+/* Wider layout: cancel .dashboard-content 2rem horizontal padding; keep small side gutters only. */
+.aspv-page {
+  width: calc(100% + 4rem);
+  max-width: none;
+  margin-left: -2rem;
+  margin-right: -2rem;
+  padding: 0 1rem 2rem;
+  box-sizing: border-box;
+}
+
+@media (max-width: 48rem) {
+  .aspv-page {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+.aspv-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.aspv-toolbar-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.aspv-btn {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg-card);
+  color: var(--ccs-text);
+}
+
+.aspv-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ccs-accent, #ea580c);
+}
+
+.aspv-btn--ghost:hover {
+  background: rgba(234, 88, 12, 0.08);
+}
+
+.aspv-btn--primary {
+  background: linear-gradient(135deg, #ea580c, #f97316);
+  border-color: transparent;
+  color: #fff;
+}
+
+.aspv-btn--primary:hover {
+  filter: brightness(1.05);
+}
+
+.aspv-muted {
+  color: var(--ccs-text-muted);
+  font-size: 0.875rem;
+}
+
+.aspv-center {
+  text-align: center;
+  padding: 2rem;
+}
+
+.aspv-error {
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
+[data-theme='dark'] .aspv-error {
+  color: #fca5a5;
+}
+
+.aspv-header {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 12px;
+}
+
+.aspv-avatar-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--ccs-border);
+}
+
+.aspv-avatar-fallback {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ea580c, #f97316);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.aspv-header-text {
+  min-width: 0;
+}
+
+.aspv-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ccs-text);
+}
+
+.aspv-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.875rem;
+  color: var(--ccs-text-muted);
+}
+
+.aspv-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--ccs-border);
+  padding-bottom: 0.5rem;
+}
+
+.aspv-tab {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--ccs-text-muted);
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.aspv-tab:hover {
+  color: var(--ccs-text);
+  background: rgba(234, 88, 12, 0.06);
+}
+
+.aspv-tab--active {
+  color: var(--ccs-text);
+  background: rgba(234, 88, 12, 0.12);
+  font-weight: 600;
+}
+
+.aspv-panel {
+  padding: 0.25rem 0;
+}
+
+.aspv-section {
+  animation: aspv-fade 0.2s ease;
+}
+
+@keyframes aspv-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.aspv-section-title {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+}
+
+.aspv-hint {
+  margin: -0.35rem 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+}
+
+.aspv-fields {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.aspv-dl-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 32%) 1fr;
+  gap: 0.5rem 1rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--ccs-border);
+  font-size: 0.875rem;
+}
+
+.aspv-dl-row:last-child {
+  border-bottom: none;
+}
+
+.aspv-field-label {
+  margin: 0;
+  color: var(--ccs-text-muted);
+  font-weight: 500;
+}
+
+.aspv-field-value {
+  margin: 0;
+  color: var(--ccs-text);
+  word-break: break-word;
+}
+
+.aspv-subblock {
+  margin-top: 1.5rem;
+}
+
+.aspv-subblock-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+}
+
+.aspv-free-text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ccs-text);
+  white-space: pre-wrap;
+}
+
+.aspv-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.aspv-card {
+  padding: 0.85rem 1rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 10px;
+}
+
+.aspv-card--compact {
+  padding: 0.65rem 0.85rem;
+}
+
+.aspv-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+}
+
+.aspv-card-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+}
+
+.aspv-card-desc {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+  line-height: 1.45;
+}
+
+.aspv-card-meta {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ccs-text-muted);
+}
+
+.aspv-card-meta a {
+  color: var(--ccs-accent, #ea580c);
+}
+
+.aspv-badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: var(--ccs-border);
+  color: var(--ccs-text);
+}
+
+.aspv-badge--pending {
+  background: rgba(234, 179, 8, 0.2);
+  color: #a16207;
+}
+
+.aspv-badge--approved {
+  background: rgba(34, 197, 94, 0.2);
+  color: #15803d;
+}
+
+.aspv-badge--rejected {
+  background: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+}
+
+.aspv-badge--conduct {
+  background: rgba(234, 88, 12, 0.15);
+  color: #c2410c;
+}
+
+[data-theme='dark'] .aspv-badge--pending {
+  color: #facc15;
+}
+
+[data-theme='dark'] .aspv-badge--approved {
+  color: #4ade80;
+}
+
+[data-theme='dark'] .aspv-badge--rejected {
+  color: #fca5a5;
+}
+
+.aspv-tag-group {
+  margin-bottom: 0.85rem;
+}
+
+.aspv-tag-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ccs-text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.aspv-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.aspv-tag {
+  display: inline-block;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  background: rgba(234, 88, 12, 0.1);
+  color: var(--ccs-text);
+  border: 1px solid rgba(234, 88, 12, 0.25);
+}
+
+@media (max-width: 540px) {
+  .aspv-dl-row {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+}
