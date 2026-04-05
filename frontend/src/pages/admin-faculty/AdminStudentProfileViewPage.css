@@ -300,6 +300,141 @@
   color: var(--ccs-accent, #ea580c);
 }
 
+.asp-form-grid,
+.aspv-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 1rem 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.asp-field,
+.aspv-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.asp-field--full,
+.aspv-field--full {
+  grid-column: 1 / -1;
+}
+
+.asp-input,
+.aspv-input {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.asp-input--inline,
+.aspv-input--inline {
+  flex: 1;
+  min-width: 0;
+}
+
+.asp-select,
+.aspv-select {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.asp-textarea,
+.aspv-textarea {
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.asp-edit-list,
+.aspv-edit-list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.asp-edit-row,
+.aspv-edit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.asp-edit-cards,
+.aspv-edit-cards {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.asp-edit-card,
+.aspv-edit-card {
+  padding: 1rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.asp-edit-card-actions,
+.aspv-edit-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.25rem;
+}
+
+.asp-btn--small,
+.aspv-btn--small {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.8125rem;
+}
+
+.asp-btn--danger,
+.aspv-btn--danger {
+  border-color: rgba(220, 38, 38, 0.35);
+  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.06);
+}
+
+[data-theme='dark'] .asp-btn--danger,
+[data-theme='dark'] .aspv-btn--danger {
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(220, 38, 38, 0.12);
+}
+
+.asp-btn--danger:hover,
+.aspv-btn--danger:hover {
+  background: rgba(220, 38, 38, 0.12);
+}
+
 .aspv-badge {
   display: inline-block;
   padding: 0.15rem 0.45rem;
@@ -377,4 +512,168 @@
     grid-template-columns: 1fr;
     gap: 0.2rem;
   }
+}
+
+/* —— Confirmation modals & success toast (orange theme) —— */
+.aspv-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  animation: aspv-dialog-fade-in 0.2s ease;
+}
+
+@keyframes aspv-dialog-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.aspv-dialog {
+  width: 100%;
+  max-width: 26rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 14px;
+  padding: 1.35rem 1.4rem 1.25rem;
+  box-shadow:
+    0 4px 6px rgba(234, 88, 12, 0.08),
+    0 20px 50px rgba(15, 23, 42, 0.18);
+  animation: aspv-dialog-pop 0.22s ease;
+}
+
+@keyframes aspv-dialog-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.aspv-dialog-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ccs-accent, #ea580c);
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.aspv-dialog-message {
+  margin: 0 0 1.35rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ccs-text-muted);
+  text-align: center;
+}
+
+.aspv-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.aspv-dialog-btn {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 9px;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.12s;
+}
+
+.aspv-dialog-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.aspv-dialog-btn--secondary {
+  background: var(--ccs-bg);
+  border-color: var(--ccs-border);
+  color: var(--ccs-text);
+}
+
+.aspv-dialog-btn--secondary:hover {
+  border-color: rgba(234, 88, 12, 0.35);
+  color: var(--ccs-accent, #ea580c);
+}
+
+.aspv-dialog-btn--primary {
+  background: linear-gradient(135deg, #ea580c, #f97316);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 10px rgba(234, 88, 12, 0.35);
+}
+
+.aspv-dialog-btn--primary:hover {
+  filter: brightness(1.06);
+}
+
+.aspv-dialog-btn--warning {
+  background: rgba(234, 88, 12, 0.12);
+  border-color: rgba(234, 88, 12, 0.45);
+  color: #c2410c;
+}
+
+.aspv-dialog-btn--warning:hover {
+  background: rgba(234, 88, 12, 0.2);
+}
+
+[data-theme='dark'] .aspv-dialog-btn--warning {
+  color: #fdba74;
+  border-color: rgba(251, 146, 60, 0.45);
+  background: rgba(234, 88, 12, 0.15);
+}
+
+.aspv-toast {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4100;
+  min-width: min(20rem, calc(100vw - 2rem));
+  padding: 1rem 1.35rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ea580c, #f97316);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow:
+    0 4px 14px rgba(234, 88, 12, 0.45),
+    0 12px 40px rgba(15, 23, 42, 0.2);
+  pointer-events: none;
+  animation: aspv-toast-in 0.28s ease;
+}
+
+@keyframes aspv-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.aspv-toast-text {
+  display: block;
+  line-height: 1.4;
 }

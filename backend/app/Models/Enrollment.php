@@ -10,7 +10,7 @@ class Enrollment extends Model
     /** Legacy + confirmed roster seat (counts toward activity capacity). */
     public const STATUS_ACTIVE = 'active';
 
-    /** Faculty selected student; student must confirm (Phase 5). */
+    /** Admin selected student; student must confirm (Phase 5). */
     public const STATUS_PENDING_CONFIRMATION = 'pending_confirmation';
 
     /** Student accepted enrollment. */

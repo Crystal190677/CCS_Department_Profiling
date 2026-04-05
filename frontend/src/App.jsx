@@ -19,7 +19,6 @@ import AdminStudentProfileViewPage from './pages/admin-faculty/AdminStudentProfi
 import AdminDashboardPage from './pages/admin-faculty/AdminDashboardPage';
 import AuditLogPage from './pages/admin-faculty/AuditLogPage';
 import AdminAddStudentPage from './pages/admin-faculty/AdminAddStudentPage';
-import AdminCreateFacultyPage from './pages/admin-faculty/AdminCreateFacultyPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 
 function App() {
@@ -53,7 +52,6 @@ function App() {
           <Route path="student/:studentId" element={<AdminStudentProfileViewPage />} />
         </Route>
         <Route path="add-student" element={<AdminAddStudentPage />} />
-        <Route path="create-faculty" element={<AdminCreateFacultyPage />} />
         <Route path="announcements" element={<StudentAnnouncementsPage />} />
         <Route path="profile-settings" element={<ProfileSettingsPage />} />
       </Route>

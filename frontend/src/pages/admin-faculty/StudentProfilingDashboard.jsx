@@ -10,6 +10,7 @@ import {
   ACADEMIC_SEMESTER_OPTIONS,
   mapLegacyCourseToSelect,
   mapLegacySectionToSelect,
+  formatClassSectionLabel,
   buildClassListTreeByYear,
   CLASS_LIST_YEAR_FOLDER_KEYS,
   CLASS_LIST_YEAR_FOLDER_LABELS,
@@ -66,28 +67,6 @@ function QualifiedStudentAvatar({ name, photoUrl }) {
   return <div className="spd-q-photo-fallback" aria-hidden>{initialsFromName(name)}</div>;
 }
 
-function activityCriteriaSummary(activity) {
-  const c = activity?.criteria || {};
-  const parts = [];
-  if (c.min_gpa != null && c.min_gpa !== '') parts.push(`GPA≥${c.min_gpa}`);
-  if (c.max_failed_units != null && c.max_failed_units !== '') parts.push(`failed≤${c.max_failed_units}`);
-  if (Array.isArray(c.academic_standings) && c.academic_standings.length) parts.push(c.academic_standings.join('/'));
-  if (c.year_level_min != null && c.year_level_min !== '') parts.push(`Yr≥${c.year_level_min}`);
-  if (c.enrolled_units_min != null && c.enrolled_units_min !== '') parts.push(`units≥${c.enrolled_units_min}`);
-  if (c.min_height_cm != null && c.min_height_cm !== '') parts.push(`H≥${c.min_height_cm}cm`);
-  if (c.require_preferred_position) parts.push('position req.');
-  if (Array.isArray(c.required_skills) && c.required_skills.length) parts.push(`${c.required_skills.length} skill(s)`);
-  if (Array.isArray(c.bonus_skills) && c.bonus_skills.length) parts.push(`+${c.bonus_skills.length} bonus`);
-  const permitsMajorGrave = c.no_major_grave === false || !!c.permit_major_grave_violations;
-  if (!permitsMajorGrave) parts.push('no Maj/Grave');
-  if (c.allow_probationary_and_hold) parts.push('Prob/on-hold OK');
-  if (c.max_minor_violations != null && c.max_minor_violations !== '') parts.push(`minor≤${c.max_minor_violations}`);
-  if (Array.isArray(c.conflicting_activity_ids) && c.conflicting_activity_ids.length) parts.push(`${c.conflicting_activity_ids.length} conflict(s)`);
-  if (activity?.time_slot && !c.skip_schedule_conflict) parts.push('schedule check');
-  if (parts.length === 0) return '—';
-  return parts.join(' · ');
-}
-
 function rosterFilledCount(activity) {
   if (!activity) return 0;
   const c = activity.enrollment_counts || {};
@@ -137,6 +116,184 @@ function slotSummaryForModal(activity) {
   return `Roster: ${roster} of ${max} filled (${open} open). Waitlist: ${wait}.`;
 }
 
+function browseSkillTagClass(skillName, filterRaw) {
+  const q = String(filterRaw || '').trim().toLowerCase();
+  const base = 'spd-talent-skill-tag';
+  if (!q) return base;
+  return String(skillName || '').toLowerCase().includes(q) ? `${base} spd-talent-skill-tag--match` : base;
+}
+
+function enrollmentTagClass(activityName, filterRaw) {
+  const q = String(filterRaw || '').trim().toLowerCase();
+  const base = 'spd-talent-enroll-tag';
+  if (!q) return base;
+  return String(activityName || '').toLowerCase().includes(q) ? `${base} spd-talent-enroll-tag--match` : base;
+}
+
+const BROWSE_ENROLLMENT_STATUSES = ['active', 'pending_confirmation', 'confirmed', 'waitlist'];
+
+function enrollmentStatusSuffix(status) {
+  if (status === 'waitlist') return ' · waitlist';
+  if (status === 'pending_confirmation') return ' · pending';
+  return '';
+}
+
+/** Activity enrollments to show in Talent Directory skills column (with activity name loaded). */
+function browseEnrollmentDisplayEntries(student) {
+  const list = student.enrollments || [];
+  return list
+    .filter((e) => e.activity?.name && BROWSE_ENROLLMENT_STATUSES.includes(e.status))
+    .map((e) => ({
+      key: `enr-${e.id}`,
+      name: e.activity.name,
+      status: e.status,
+    }));
+}
+
+const ATHLETIC_RECOMMENDATION_POOL = ['Basketball', 'Volleyball', 'Badminton', 'Table Tennis', 'Track and Field'];
+
+const TALENT_INTEREST_RE = /\b(dance|cheer|cheerdance|singing|music|theater|theatre|drama|performance|pageant|model|runway|talent|arts|cultural|drill|choir)\b/i;
+const SPORTSFEST_RE = /\b(mr\.?\s*and\s*ms|ms\.?\s*sportsfest|sportsfest|pageant|binibining|ginoong)\b/i;
+const ATHLETIC_SPORT_INTEREST_RE =
+  /\b(basket|volley|badminton|tennis|track|field|football|soccer|swim|run|athletic|sport|sprint|relay)\b/i;
+
+function tpNorm(s) {
+  return String(s || '')
+    .toLowerCase()
+    .trim();
+}
+
+function tpIsAcademicProfile(p) {
+  const gpa = p?.current_gpa != null ? Number(p.current_gpa) : null;
+  return gpa != null && !Number.isNaN(gpa) && gpa >= 3.5;
+}
+
+function tpSportsInterestsAthletic(p) {
+  const sports = Array.isArray(p?.sports_interests) ? p.sports_interests : [];
+  return sports.some((x) => {
+    const n = tpNorm(x);
+    if (!n) return false;
+    if (/\b(cheer|cheerdance|pageant)\b/i.test(n)) return false;
+    return ATHLETIC_SPORT_INTEREST_RE.test(n);
+  });
+}
+
+function tpIsAthletic(student, p) {
+  if (tpSportsInterestsAthletic(p)) return true;
+  const skills = student.skill_entries || [];
+  for (const sk of skills) {
+    const raw = sk.skill || '';
+    if (/cheerdance|\bcheer\b/i.test(raw) && !ATHLETIC_SPORT_INTEREST_RE.test(raw)) continue;
+    if (ATHLETIC_RECOMMENDATION_POOL.some((act) => tpNorm(raw).includes(tpNorm(act)))) return true;
+    if (/\b(basketball|volleyball|badminton|table tennis|track and field|track|field sport|sprinter|relay)\b/i.test(raw)) return true;
+  }
+  for (const e of student.enrollments || []) {
+    const name = e.activity?.name || '';
+    if (/cheerdance/i.test(name)) continue;
+    if (e.activity?.type === 'sport') return true;
+  }
+  return false;
+}
+
+function tpIsTalented(student, p) {
+  const ai = Array.isArray(p?.activity_interests) ? p.activity_interests : [];
+  if (ai.some((x) => TALENT_INTEREST_RE.test(String(x)))) return true;
+  for (const sk of student.skill_entries || []) {
+    if (TALENT_INTEREST_RE.test(sk.skill || '')) return true;
+  }
+  const decl = student.interest_declarations || student.interestDeclarations || [];
+  for (const d of decl) {
+    const n = d.activity?.name || '';
+    if (/cheerdance|mr\.?\s*and\s*ms|sportsfest/i.test(n)) return true;
+  }
+  for (const e of student.enrollments || []) {
+    const n = e.activity?.name || '';
+    if (/cheerdance|mr\.?\s*and\s*ms|sportsfest/i.test(n)) return true;
+  }
+  return false;
+}
+
+function tpRecommendAcademic(student) {
+  const course = tpNorm(student.student_profile?.course);
+  if (/\b(bscs|bsit|ict|computer|it|programming|software)\b/.test(course)) return 'Programming';
+  return Number(student.id) % 2 === 0 ? 'Programming' : 'Mobile Competition';
+}
+
+function tpRecommendAthletic(student, p) {
+  const hay = [
+    ...(p?.sports_interests || []).map(tpNorm),
+    ...(student.skill_entries || []).map((s) => tpNorm(s.skill)),
+    ...(student.enrollments || []).map((e) => tpNorm(e.activity?.name)),
+  ].join(' ');
+  for (const act of ATHLETIC_RECOMMENDATION_POOL) {
+    const a = tpNorm(act);
+    if (hay.includes(a) || hay.replace(/\s+/g, '').includes(a.replace(/\s+/g, ''))) return act;
+  }
+  if (/basketball/i.test(hay)) return 'Basketball';
+  if (/volley/i.test(hay)) return 'Volleyball';
+  if (/badminton/i.test(hay)) return 'Badminton';
+  if (/table\s*tennis|ping\s*pong/i.test(hay)) return 'Table Tennis';
+  if (/track|field|sprint|relay|running/i.test(hay)) return 'Track and Field';
+  return ATHLETIC_RECOMMENDATION_POOL[0];
+}
+
+function tpRecommendTalented(student, p) {
+  const blob = [
+    ...(p?.activity_interests || []).join(' '),
+    ...(student.skill_entries || []).map((s) => s.skill).join(' '),
+    ...((student.interest_declarations || student.interestDeclarations || []).map((d) => d.activity?.name || '')),
+  ].join(' ');
+  if (SPORTSFEST_RE.test(blob)) return 'Mr. and Ms. Sportsfest';
+  return 'Cheerdance';
+}
+
+function tpPrimaryCategory(academic, athletic, talented) {
+  if (academic) return 'academic';
+  if (athletic) return 'athletic';
+  if (talented) return 'talented';
+  return null;
+}
+
+function tpRecommendationForPrimary(primary, student, p) {
+  if (primary === 'academic') return tpRecommendAcademic(student);
+  if (primary === 'athletic') return tpRecommendAthletic(student, p);
+  if (primary === 'talented') return tpRecommendTalented(student, p);
+  return '';
+}
+
+/** @returns {{ student: object, primary: string, academic: boolean, athletic: boolean, talented: boolean, recommendedActivity: string } | null} */
+function buildTopPerformerEntry(student) {
+  const p = student.student_profile || {};
+  const academic = tpIsAcademicProfile(p);
+  const athletic = tpIsAthletic(student, p);
+  const talented = tpIsTalented(student, p);
+  if (!academic && !athletic && !talented) return null;
+  const primary = tpPrimaryCategory(academic, athletic, talented);
+  const recommendedActivity = tpRecommendationForPrimary(primary, student, p);
+  return { student, primary, academic, athletic, talented, recommendedActivity };
+}
+
+function activityCriteriaSummary(activity) {
+  const c = activity?.criteria || {};
+  const parts = [];
+  if (c.min_gpa != null && c.min_gpa !== '') parts.push(`GPA≥${c.min_gpa}`);
+  if (c.max_failed_units != null && c.max_failed_units !== '') parts.push(`failed≤${c.max_failed_units}`);
+  if (Array.isArray(c.academic_standings) && c.academic_standings.length) parts.push(c.academic_standings.join('/'));
+  if (c.year_level_min != null && c.year_level_min !== '') parts.push(`Yr≥${c.year_level_min}`);
+  if (c.enrolled_units_min != null && c.enrolled_units_min !== '') parts.push(`units≥${c.enrolled_units_min}`);
+  if (c.min_height_cm != null && c.min_height_cm !== '') parts.push(`H≥${c.min_height_cm}cm`);
+  if (c.require_preferred_position) parts.push('position req.');
+  if (Array.isArray(c.required_skills) && c.required_skills.length) parts.push(`${c.required_skills.length} skill(s)`);
+  if (Array.isArray(c.bonus_skills) && c.bonus_skills.length) parts.push(`+${c.bonus_skills.length} bonus`);
+  if (c.no_major_grave) parts.push('no Maj/Grave');
+  if (c.allow_probationary_and_hold) parts.push('Prob/on-hold OK');
+  if (c.max_minor_violations != null && c.max_minor_violations !== '') parts.push(`minor≤${c.max_minor_violations}`);
+  if (Array.isArray(c.conflicting_activity_ids) && c.conflicting_activity_ids.length) parts.push(`${c.conflicting_activity_ids.length} conflict(s)`);
+  if (activity?.time_slot && !c.skip_schedule_conflict) parts.push('schedule check');
+  if (parts.length === 0) return '—';
+  return parts.join(' · ');
+}
+
 export default function StudentProfilingDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -177,12 +334,6 @@ export default function StudentProfilingDashboard() {
   const [resolveDisputeStatus, setResolveDisputeStatus] = useState('resolved_upheld');
   const [resolveDisputeNote, setResolveDisputeNote] = useState('');
   const [savingResolve, setSavingResolve] = useState(false);
-  const [activitiesForAdmin, setActivitiesForAdmin] = useState([]);
-  const [activitySetupOpen, setActivitySetupOpen] = useState(false);
-  const [activityForm, setActivityForm] = useState(null);
-  const [savingActivity, setSavingActivity] = useState(false);
-  const [confirmDeleteActivityId, setConfirmDeleteActivityId] = useState(null);
-  const [deletingActivity, setDeletingActivity] = useState(false);
   const [listSection, setListSection] = useState('');
   const [listYear, setListYear] = useState('');
   const [listSkill, setListSkill] = useState('');
@@ -206,6 +357,10 @@ export default function StudentProfilingDashboard() {
     () => (location.pathname.includes('/class-lists') ? 'class_lists' : 'browse'),
     [location.pathname],
   );
+  const isTalentDirectory = useMemo(
+    () => profilingMainView === 'browse' && location.pathname.includes('talent-directory'),
+    [profilingMainView, location.pathname],
+  );
   const [classListCourse, setClassListCourse] = useState(null);
   const [classListYear, setClassListYear] = useState(null);
   const [classListSection, setClassListSection] = useState(null);
@@ -217,6 +372,19 @@ export default function StudentProfilingDashboard() {
   const [roleUpdatingId, setRoleUpdatingId] = useState(null);
   const [deleteStudentId, setDeleteStudentId] = useState(null);
   const [deletingStudent, setDeletingStudent] = useState(false);
+  const [studentDeleteSuccessToast, setStudentDeleteSuccessToast] = useState(false);
+  const [activitiesForAdmin, setActivitiesForAdmin] = useState([]);
+  const [activitySetupOpen, setActivitySetupOpen] = useState(false);
+  const [activityForm, setActivityForm] = useState(null);
+  const [savingActivity, setSavingActivity] = useState(false);
+  const [confirmDeleteActivityId, setConfirmDeleteActivityId] = useState(null);
+  const [deletingActivity, setDeletingActivity] = useState(false);
+  const [assignActivityStudent, setAssignActivityStudent] = useState(null);
+  const [assignActivityId, setAssignActivityId] = useState('');
+  const [talentDirectoryView, setTalentDirectoryView] = useState('all_students');
+  const [topPerformerCategory, setTopPerformerCategory] = useState('all');
+  const [performersRoster, setPerformersRoster] = useState([]);
+  const [performersLoading, setPerformersLoading] = useState(false);
   const browseFilterBootRef = useRef(true);
   const processedOpenEditForClassListRef = useRef(null);
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
@@ -303,6 +471,7 @@ export default function StudentProfilingDashboard() {
         fetchStudents();
         fetchStudentsForOfficers();
         setClassListRefreshKey((k) => k + 1);
+        setStudentDeleteSuccessToast(true);
       } else setError(data.message || 'Delete failed');
     } catch {
       setError('Request failed');
@@ -312,12 +481,27 @@ export default function StudentProfilingDashboard() {
   };
 
   useEffect(() => {
+    if (!studentDeleteSuccessToast) return undefined;
+    const t = setTimeout(() => setStudentDeleteSuccessToast(false), 3200);
+    return () => clearTimeout(t);
+  }, [studentDeleteSuccessToast]);
+
+  useEffect(() => {
+    if (deleteStudentId == null) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !deletingStudent) setDeleteStudentId(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [deleteStudentId, deletingStudent]);
+
+  useEffect(() => {
     if (officerActivityId) fetchOfficerPositions();
     else setOfficerPositions([]);
   }, [officerActivityId, fetchOfficerPositions]);
 
   useEffect(() => {
-    if (user?.role === 'ADMIN' || user?.role === 'FACULTY') fetchStudentsForOfficers();
+    if (user?.role === 'ADMIN') fetchStudentsForOfficers();
   }, [user?.role, fetchStudentsForOfficers]);
 
   const fetchPendingEntries = useCallback(async () => {
@@ -504,7 +688,7 @@ export default function StudentProfilingDashboard() {
   useEffect(() => {
     const token = localStorage.getItem('ccs_token');
     const role = user?.role;
-    if (!token || (role !== 'ADMIN' && role !== 'FACULTY')) {
+    if (!token || role !== 'ADMIN') {
       navigate('/login');
       return;
     }
@@ -514,6 +698,40 @@ export default function StudentProfilingDashboard() {
       fetchActivitiesForAdmin();
     }
   }, [navigate, user?.role, fetchStudents, fetchActivities, fetchPendingEntries, fetchActivitiesForAdmin]);
+
+  const topPerformerEntries = useMemo(
+    () => performersRoster.map((s) => buildTopPerformerEntry(s)).filter(Boolean),
+    [performersRoster],
+  );
+
+  const filteredTopPerformerEntries = useMemo(() => {
+    if (topPerformerCategory === 'all') return topPerformerEntries;
+    return topPerformerEntries.filter((e) => e[topPerformerCategory]);
+  }, [topPerformerEntries, topPerformerCategory]);
+
+  useEffect(() => {
+    if (!isTalentDirectory || talentDirectoryView !== 'top_performers') return undefined;
+    let cancelled = false;
+    setPerformersLoading(true);
+    const params = new URLSearchParams();
+    params.set('include_officers', '1');
+    params.set('per_page', '500');
+    (async () => {
+      try {
+        const res = await fetch(`/api/students?${params}`, { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (!cancelled && data.success) setPerformersRoster(data.data?.data || []);
+        else if (!cancelled) setPerformersRoster([]);
+      } catch {
+        if (!cancelled) setPerformersRoster([]);
+      } finally {
+        if (!cancelled) setPerformersLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isTalentDirectory, talentDirectoryView]);
 
   const handleApproveEntry = async (id) => {
     try {
@@ -667,57 +885,71 @@ export default function StudentProfilingDashboard() {
 
   const openActivitySetup = (activity = null) => {
     const c = activity?.criteria || {};
-    setActivityForm(activity ? {
-      id: activity.id,
-      name: activity.name,
-      type: activity.type || 'sport',
-      description: activity.description || '',
-      time_slot: activity.time_slot || '',
-      max_enrollees: activity.max_enrollees ?? '',
-      reserve_slots: activity.reserve_slots ?? '',
-      is_active: activity.is_active !== false,
-      min_gpa: c.min_gpa ?? '',
-      max_failed_units: c.max_failed_units ?? '',
-      academic_standings: Array.isArray(c.academic_standings) ? c.academic_standings : [],
-      year_level_min: c.year_level_min ?? '',
-      enrolled_units_min: c.enrolled_units_min ?? '',
-      min_height_cm: c.min_height_cm ?? c.min_height ?? '',
-      required_skills: Array.isArray(c.required_skills) ? c.required_skills.map((s) => (typeof s === 'string' ? { skill: s, min_proficiency: 'Intermediate' } : { skill: s.skill || s.name || '', min_proficiency: s.min_proficiency || 'Intermediate' })) : [],
-      conflicting_activity_ids: Array.isArray(c.conflicting_activity_ids) ? c.conflicting_activity_ids : [],
-      exclude_major_grave: !((c.no_major_grave === false) || !!c.permit_major_grave_violations),
-      allow_probationary_and_hold: !!c.allow_probationary_and_hold,
-      max_minor_violations: c.max_minor_violations ?? '',
-      require_preferred_position: !!c.require_preferred_position,
-      allowed_positions_text: Array.isArray(c.allowed_positions) ? c.allowed_positions.join(', ') : '',
-      skip_schedule_conflict: !!c.skip_schedule_conflict,
-      bonus_skills: Array.isArray(c.bonus_skills)
-        ? c.bonus_skills.map((s) => (typeof s === 'string' ? { skill: s, min_proficiency: 'Intermediate' } : { skill: s.skill || s.name || '', min_proficiency: s.min_proficiency || 'Intermediate' }))
-        : [],
-    } : {
-      id: null,
-      name: '',
-      type: 'sport',
-      description: '',
-      time_slot: '',
-      max_enrollees: '',
-      reserve_slots: '',
-      is_active: true,
-      min_gpa: '',
-      max_failed_units: '',
-      academic_standings: [],
-      year_level_min: '',
-      enrolled_units_min: '',
-      min_height_cm: '',
-      required_skills: [],
-      bonus_skills: [],
-      conflicting_activity_ids: [],
-      exclude_major_grave: true,
-      allow_probationary_and_hold: false,
-      max_minor_violations: '',
-      require_preferred_position: false,
-      allowed_positions_text: '',
-      skip_schedule_conflict: false,
-    });
+    setActivityForm(
+      activity
+        ? {
+            id: activity.id,
+            name: activity.name,
+            type: activity.type || 'sport',
+            description: activity.description || '',
+            time_slot: activity.time_slot || '',
+            max_enrollees: activity.max_enrollees ?? '',
+            reserve_slots: activity.reserve_slots ?? '',
+            is_active: activity.is_active !== false,
+            min_gpa: c.min_gpa ?? '',
+            max_failed_units: c.max_failed_units ?? '',
+            academic_standings: Array.isArray(c.academic_standings) ? c.academic_standings : [],
+            year_level_min: c.year_level_min ?? '',
+            enrolled_units_min: c.enrolled_units_min ?? '',
+            min_height_cm: c.min_height_cm ?? c.min_height ?? '',
+            required_skills: Array.isArray(c.required_skills)
+              ? c.required_skills.map((s) =>
+                  typeof s === 'string'
+                    ? { skill: s, min_proficiency: 'Intermediate' }
+                    : { skill: s.skill || s.name || '', min_proficiency: s.min_proficiency || 'Intermediate' },
+                )
+              : [],
+            conflicting_activity_ids: Array.isArray(c.conflicting_activity_ids) ? c.conflicting_activity_ids : [],
+            exclude_major_grave: !((c.no_major_grave === false) || !!c.permit_major_grave_violations),
+            allow_probationary_and_hold: !!c.allow_probationary_and_hold,
+            max_minor_violations: c.max_minor_violations ?? '',
+            require_preferred_position: !!c.require_preferred_position,
+            allowed_positions_text: Array.isArray(c.allowed_positions) ? c.allowed_positions.join(', ') : '',
+            skip_schedule_conflict: !!c.skip_schedule_conflict,
+            bonus_skills: Array.isArray(c.bonus_skills)
+              ? c.bonus_skills.map((s) =>
+                  typeof s === 'string'
+                    ? { skill: s, min_proficiency: 'Intermediate' }
+                    : { skill: s.skill || s.name || '', min_proficiency: s.min_proficiency || 'Intermediate' },
+                )
+              : [],
+          }
+        : {
+            id: null,
+            name: '',
+            type: 'sport',
+            description: '',
+            time_slot: '',
+            max_enrollees: '',
+            reserve_slots: '',
+            is_active: true,
+            min_gpa: '',
+            max_failed_units: '',
+            academic_standings: [],
+            year_level_min: '',
+            enrolled_units_min: '',
+            min_height_cm: '',
+            required_skills: [],
+            bonus_skills: [],
+            conflicting_activity_ids: [],
+            exclude_major_grave: true,
+            allow_probationary_and_hold: false,
+            max_minor_violations: '',
+            require_preferred_position: false,
+            allowed_positions_text: '',
+            skip_schedule_conflict: false,
+          },
+    );
     setActivitySetupOpen(true);
   };
 
@@ -734,17 +966,26 @@ export default function StudentProfilingDashboard() {
         ...(activityForm.year_level_min !== '' && { year_level_min: parseInt(activityForm.year_level_min, 10) }),
         ...(activityForm.enrolled_units_min !== '' && { enrolled_units_min: parseInt(activityForm.enrolled_units_min, 10) }),
         ...(activityForm.min_height_cm !== '' && { min_height_cm: parseFloat(activityForm.min_height_cm) }),
-        ...(activityForm.required_skills?.length > 0 && { required_skills: activityForm.required_skills.filter((s) => s.skill?.trim()) }),
+        ...(activityForm.required_skills?.length > 0 && {
+          required_skills: activityForm.required_skills
+            .filter((s) => s.skill?.trim())
+            .map((s) => ({ skill: s.skill.trim(), min_proficiency: s.min_proficiency || 'Intermediate' })),
+        }),
         ...(activityForm.conflicting_activity_ids?.length > 0 && { conflicting_activity_ids: activityForm.conflicting_activity_ids }),
-        ...(activityForm.no_major_grave && { no_major_grave: true }),
+        ...(activityForm.exclude_major_grave && { no_major_grave: true }),
+        ...(!activityForm.exclude_major_grave && { permit_major_grave_violations: true }),
+        ...(activityForm.allow_probationary_and_hold && { allow_probationary_and_hold: true }),
         ...(activityForm.max_minor_violations !== '' && { max_minor_violations: parseInt(activityForm.max_minor_violations, 10) }),
         ...(activityForm.require_preferred_position && { require_preferred_position: true }),
-        ...(activityForm.require_preferred_position && activityForm.allowed_positions_text?.trim() && {
-          allowed_positions: activityForm.allowed_positions_text.split(',').map((s) => s.trim()).filter(Boolean),
-        }),
+        ...(activityForm.require_preferred_position &&
+          activityForm.allowed_positions_text?.trim() && {
+            allowed_positions: activityForm.allowed_positions_text.split(',').map((s) => s.trim()).filter(Boolean),
+          }),
         ...(activityForm.skip_schedule_conflict && { skip_schedule_conflict: true }),
         ...(activityForm.bonus_skills?.length > 0 && {
-          bonus_skills: activityForm.bonus_skills.filter((s) => s.skill?.trim()).map((s) => ({ skill: s.skill.trim(), min_proficiency: s.min_proficiency || 'Intermediate' })),
+          bonus_skills: activityForm.bonus_skills
+            .filter((s) => s.skill?.trim())
+            .map((s) => ({ skill: s.skill.trim(), min_proficiency: s.min_proficiency || 'Intermediate' })),
         }),
       };
       const payload = {
@@ -767,8 +1008,11 @@ export default function StudentProfilingDashboard() {
         fetchActivities();
         fetchActivitiesForAdmin();
       } else setError(data.message || 'Failed to save');
-    } catch (err) { setError('Request failed'); }
-    finally { setSavingActivity(false); }
+    } catch {
+      setError('Request failed');
+    } finally {
+      setSavingActivity(false);
+    }
   };
 
   const handleDeleteActivity = (id) => {
@@ -786,8 +1030,19 @@ export default function StudentProfilingDashboard() {
         fetchActivitiesForAdmin();
         setConfirmDeleteActivityId(null);
       } else setError(data.message || 'Failed to delete');
-    } catch (err) { setError('Request failed'); }
-    finally { setDeletingActivity(false); }
+    } catch {
+      setError('Request failed');
+    } finally {
+      setDeletingActivity(false);
+    }
+  };
+
+  const openAssignActivityModal = (student) => {
+    setError('');
+    setAssignActivityStudent(student);
+    const pool = activities.filter((a) => a.is_active !== false);
+    const pick = pool.find((a) => !isEnrolled(student, a.id));
+    setAssignActivityId(String(pick?.id ?? pool[0]?.id ?? ''));
   };
 
   const handleSaveSkillModal = async (e) => {
@@ -851,7 +1106,7 @@ export default function StudentProfilingDashboard() {
         setEnrollConfirm(null);
         fetchStudents();
         fetchActivities();
-        if (user.role === 'ADMIN') fetchActivitiesForAdmin();
+        if (user?.role === 'ADMIN') fetchActivitiesForAdmin();
       } else {
         setError(data.message || 'Enrollment failed');
       }
@@ -863,7 +1118,7 @@ export default function StudentProfilingDashboard() {
   };
 
   const isEnrolled = (student, activityId) =>
-    student.enrollments?.some((e) => e.activity_id === activityId);
+    student.enrollments?.some((e) => Number(e.activity_id) === Number(activityId));
 
   const handleAssignOfficer = async (e) => {
     e.preventDefault();
@@ -935,8 +1190,6 @@ export default function StudentProfilingDashboard() {
       notes: p.notes ?? '',
     });
   }, []);
-
-  const showPhysicalColumn = user?.role === 'ADMIN' || user?.is_sports_faculty;
 
   const handleProfileFormChange = (field, value) => {
     setProfileForm((prev) => ({ ...prev, [field]: value }));
@@ -1053,12 +1306,14 @@ export default function StudentProfilingDashboard() {
   if (!user?.role) return null;
 
   return (
-    <div className="student-profiling-dashboard">
+    <div className={`student-profiling-dashboard${isTalentDirectory ? ' student-profiling-dashboard--talent' : ''}`}>
       {profilingMainView !== 'class_lists' && (
         <header className="ccs-gradient-hero ccs-gradient-hero--compact spd-page-hero">
           <div className="ccs-gradient-hero-pattern" aria-hidden />
           <div className="ccs-gradient-hero-inner">
-            <h1 className="ccs-gradient-hero-title">Student Profiling Dashboard</h1>
+            <h1 className="ccs-gradient-hero-title">
+              {location.pathname.includes('talent-directory') ? 'Talent Directory' : 'Student Profiling Dashboard'}
+            </h1>
           </div>
         </header>
       )}
@@ -1071,109 +1326,282 @@ export default function StudentProfilingDashboard() {
 
       {profilingMainView === 'browse' && (
       <>
-      <div className="spd-toolbar">
-        <div className="spd-search">
-          <svg className="spd-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search by name, student number, or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && fetchStudents()}
-            className="spd-search-input"
-          />
-        </div>
-        <div className="spd-filter">
-          <select
-            value={activityFilter}
-            onChange={(e) => {
-              flushSync(() => {
-                setActivityFilter(e.target.value);
-                setListSection('');
-                setListYear('');
-                setListSkill('');
-                setListInterestOnly(false);
-                setListSort('score');
-                setListSortDir('desc');
-              });
-              fetchStudents();
-            }}
-            className="spd-filter-select"
-          >
-            <option value="">All students</option>
-            <option value="" disabled>— Filter by activity —</option>
-            {activities.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button type="button" className="spd-search-btn" onClick={fetchStudents}>
-          Search
+      <div className="spd-talent-main-tabs" role="tablist" aria-label="Talent directory views">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={talentDirectoryView === 'all_students'}
+          className={talentDirectoryView === 'all_students' ? 'spd-talent-main-tab spd-talent-main-tab--active' : 'spd-talent-main-tab'}
+          onClick={() => setTalentDirectoryView('all_students')}
+        >
+          All Students
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={talentDirectoryView === 'top_performers'}
+          className={talentDirectoryView === 'top_performers' ? 'spd-talent-main-tab spd-talent-main-tab--active' : 'spd-talent-main-tab'}
+          onClick={() => setTalentDirectoryView('top_performers')}
+        >
+          Top Performers
+        </button>
+      </div>
+
+      {talentDirectoryView === 'top_performers' && (
+        <div className="spd-tp-wrap">
+          <p className="spd-tp-intro spd-muted">
+            Students are highlighted from profile data: high GPA (3.5+), sports skills or athletic activity enrollments, or performance and arts signals.
+            Strength shown is the primary match (Academic first, then Athletic, then Talented).
+          </p>
+          <div className="spd-tp-filters" role="group" aria-label="Filter by category">
+            {[
+              { id: 'all', label: 'All' },
+              { id: 'academic', label: 'Academic' },
+              { id: 'athletic', label: 'Athletic' },
+              { id: 'talented', label: 'Talented' },
+            ].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={topPerformerCategory === f.id ? 'spd-tp-filter-chip spd-tp-filter-chip--active' : 'spd-tp-filter-chip'}
+                onClick={() => setTopPerformerCategory(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {performersLoading ? (
+            <div className="spd-loading">Loading top performers…</div>
+          ) : filteredTopPerformerEntries.length === 0 ? (
+            <p className="spd-tp-empty">No students match this category with the current rules.</p>
+          ) : (
+            <ul className="spd-tp-grid">
+              {filteredTopPerformerEntries.map((entry) => {
+                const { student, primary, recommendedActivity } = entry;
+                const p = student.student_profile || {};
+                const strengthLabel = primary === 'academic' ? 'Academic' : primary === 'athletic' ? 'Athletic' : 'Talented';
+                return (
+                  <li key={student.id} className="spd-tp-card">
+                    <div className="spd-tp-card-top">
+                      <QualifiedStudentAvatar name={student.name} photoUrl={p.photo_url} />
+                      <div className="spd-tp-card-text">
+                        <h3 className="spd-tp-card-name">{student.name}</h3>
+                        <p className="spd-tp-card-meta">
+                          {[p.course || '—', p.year_level || '—'].join(' · ')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="spd-tp-badges">
+                      <span className={`spd-tp-strength spd-tp-strength--${primary}`}>{strengthLabel}</span>
+                      <span className="spd-tp-rec">Recommended: {recommendedActivity}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="spd-tp-view-profile"
+                      onClick={() => navigate(`/admin-dashboard/profiling/student/${student.id}`)}
+                    >
+                      View Profile
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {talentDirectoryView === 'all_students' && (
+      <>
+      <div className="spd-talent-shell">
+        <div className="spd-talent-row spd-talent-row--primary">
+          <div className="spd-talent-search">
+            <svg className="spd-talent-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by name, student number, or email…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && fetchStudents()}
+              className="spd-talent-search-input"
+              aria-label="Search students"
+            />
+          </div>
+          <div className="spd-talent-activity-wrap">
+            <label className="spd-talent-inline-label" htmlFor="spd-activity-filter">Activity</label>
+            <select
+              id="spd-activity-filter"
+              value={activityFilter}
+              onChange={(e) => {
+                flushSync(() => {
+                  setActivityFilter(e.target.value);
+                  setListSection('');
+                  setListYear('');
+                  setListSkill('');
+                  setListInterestOnly(false);
+                  setListSort('score');
+                  setListSortDir('desc');
+                });
+                fetchStudents();
+              }}
+              className="spd-talent-select"
+            >
+              <option value="">All students</option>
+              {activities.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="button" className="spd-talent-search-submit" onClick={fetchStudents}>
+            Search
+          </button>
+          {!activityFilter && (
+            <div className="spd-talent-layout-toggle" role="group" aria-label="Result layout">
+              <button
+                type="button"
+                className={studentListLayout === 'table' ? 'spd-talent-layout-btn spd-talent-layout-btn--active' : 'spd-talent-layout-btn'}
+                onClick={() => setStudentListLayout('table')}
+              >
+                Table
+              </button>
+              <button
+                type="button"
+                className={studentListLayout === 'cards' ? 'spd-talent-layout-btn spd-talent-layout-btn--active' : 'spd-talent-layout-btn'}
+                onClick={() => setStudentListLayout('cards')}
+              >
+                Cards
+              </button>
+            </div>
+          )}
+        </div>
         {!activityFilter && (
-          <div className="spd-layout-toggle" role="group" aria-label="Result layout">
-            <button
-              type="button"
-              className={studentListLayout === 'table' ? 'spd-layout-btn active' : 'spd-layout-btn'}
-              onClick={() => setStudentListLayout('table')}
-            >
-              Table
-            </button>
-            <button
-              type="button"
-              className={studentListLayout === 'cards' ? 'spd-layout-btn active' : 'spd-layout-btn'}
-              onClick={() => setStudentListLayout('cards')}
-            >
-              Cards
-            </button>
+          <div className="spd-talent-row spd-talent-row--filters">
+            <div className="spd-talent-filter-field">
+              <label htmlFor="spd-browse-skill">Skill or talent</label>
+              <input
+                id="spd-browse-skill"
+                type="text"
+                placeholder="Type a skill (e.g. Programming, Python)…"
+                value={browseSkill}
+                onChange={(e) => setBrowseSkill(e.target.value)}
+                aria-label="Filter by skill or talent"
+                className="spd-talent-filter-input"
+              />
+            </div>
+            <div className="spd-talent-filter-field spd-talent-filter-field--narrow">
+              <label htmlFor="spd-browse-course">Course</label>
+              <input
+                id="spd-browse-course"
+                type="text"
+                placeholder="BSCS, BSIT…"
+                value={browseCourse}
+                onChange={(e) => setBrowseCourse(e.target.value)}
+                aria-label="Filter by course"
+                className="spd-talent-filter-input"
+              />
+            </div>
+            <div className="spd-talent-quick">
+              <span className="spd-talent-quick-label">Quick filters</span>
+              <button type="button" className="spd-talent-chip" onClick={() => setBrowseSkill('Programming')}>
+                Programming
+              </button>
+              <button type="button" className="spd-talent-chip" onClick={() => setBrowseSkill('Basketball')}>
+                Basketball
+              </button>
+              <button
+                type="button"
+                className="spd-talent-chip spd-talent-chip--ghost"
+                onClick={() => {
+                  setBrowseSkill('');
+                  setBrowseCourse('');
+                }}
+              >
+                Clear
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {!activityFilter && (
-        <div className="spd-browse-toolbar">
-          <span className="spd-browse-label">Filter all students</span>
-          <input
-            type="text"
-            className="spd-phase4-input spd-browse-input"
-            placeholder="Skill contains… (e.g. Programming)"
-            value={browseSkill}
-            onChange={(e) => setBrowseSkill(e.target.value)}
-            aria-label="Filter by skill"
+      {isTalentDirectory && !activityFilter && user?.role === 'ADMIN' && (
+        <>
+          <details className="spd-talent-activity-manage">
+            <summary className="spd-talent-activity-manage-summary">Manage activities &amp; events (admin)</summary>
+            <p className="spd-officer-desc spd-talent-activity-manage-desc">
+              Add quiz bees, sports, clubs, and events. They appear in Assign to activity and on each student&apos;s profile under Affiliations.
+            </p>
+            <div className="spd-activity-setup-toolbar">
+              <button type="button" className="spd-talent-search-submit" onClick={() => openActivitySetup()}>
+                Add activity
+              </button>
+            </div>
+            <div className="spd-table-wrap">
+              <table className="spd-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Slots</th>
+                    <th>Roster / Waitlist</th>
+                    <th>Criteria summary</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activitiesForAdmin.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="spd-empty">
+                        No activities. Add one to get started.
+                      </td>
+                    </tr>
+                  ) : (
+                    activitiesForAdmin.map((a) => (
+                      <tr key={a.id}>
+                        <td>
+                          <strong>{a.name}</strong>
+                          {!a.is_active && <span className="spd-muted"> (inactive)</span>}
+                        </td>
+                        <td>{a.type}</td>
+                        <td>
+                          {a.max_enrollees != null ? `${a.max_enrollees} max` : '—'}
+                          {a.reserve_slots > 0 ? `, ${a.reserve_slots} waitlist` : ''}
+                        </td>
+                        <td>
+                          {(a.enrollment_counts?.roster ?? a.enrollment_counts?.active ?? 0)} /{' '}
+                          {(a.enrollment_counts?.waitlist ?? 0)}
+                        </td>
+                        <td className="spd-criteria-summary spd-criteria-summary-wrap">{activityCriteriaSummary(a)}</td>
+                        <td>
+                          <button type="button" className="spd-edit-profile-btn" onClick={() => openActivitySetup(a)}>
+                            Edit
+                          </button>
+                          <button type="button" className="spd-officer-remove" onClick={() => handleDeleteActivity(a.id)}>
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <ConfirmModal
+            open={!!confirmDeleteActivityId}
+            title="Delete activity"
+            message="Delete this activity? All enrollments for it will be removed. This cannot be undone."
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
+            variant="danger"
+            loading={deletingActivity}
+            onConfirm={handleConfirmDeleteActivity}
+            onCancel={() => !deletingActivity && setConfirmDeleteActivityId(null)}
           />
-          <input
-            type="text"
-            className="spd-phase4-input spd-browse-input"
-            placeholder="Course contains…"
-            value={browseCourse}
-            onChange={(e) => setBrowseCourse(e.target.value)}
-            aria-label="Filter by course"
-          />
-          <div className="spd-quick-filters">
-            <span className="spd-muted">Quick:</span>
-            <button type="button" className="spd-quick-filter-btn" onClick={() => setBrowseSkill('Programming')}>
-              Programming
-            </button>
-            <button type="button" className="spd-quick-filter-btn" onClick={() => setBrowseSkill('Basketball')}>
-              Basketball
-            </button>
-            <button
-              type="button"
-              className="spd-quick-filter-btn spd-quick-filter-clear"
-              onClick={() => {
-                setBrowseSkill('');
-                setBrowseCourse('');
-              }}
-            >
-              Clear filters
-            </button>
-          </div>
-        </div>
+        </>
       )}
 
       {activityFilter && (
@@ -1233,62 +1661,6 @@ export default function StudentProfilingDashboard() {
             </button>
           )}
         </div>
-      )}
-
-      {user?.role === 'ADMIN' && (
-        <section className="spd-activity-setup">
-          <h2 className="spd-officer-title">Activity / Event Setup</h2>
-          <p className="spd-officer-desc">Configure activities and qualification criteria before enrollment. Students are filtered by these rules when you use &quot;Filter by activity&quot;.</p>
-          <div className="spd-activity-setup-toolbar">
-            <button type="button" className="spd-search-btn" onClick={() => openActivitySetup()}>Add activity</button>
-          </div>
-          <div className="spd-table-wrap">
-            <table className="spd-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Slots</th>
-                  <th>Roster / Waitlist</th>
-                  <th>Criteria summary</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activitiesForAdmin.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="spd-empty">No activities. Add one to get started.</td>
-                  </tr>
-                ) : (
-                  activitiesForAdmin.map((a) => (
-                    <tr key={a.id}>
-                      <td><strong>{a.name}</strong>{!a.is_active && <span className="spd-muted"> (inactive)</span>}</td>
-                      <td>{a.type}</td>
-                      <td>{a.max_enrollees != null ? `${a.max_enrollees} max` : '—'} {a.reserve_slots > 0 ? `, ${a.reserve_slots} waitlist` : ''}</td>
-                      <td>{(a.enrollment_counts?.roster ?? a.enrollment_counts?.active ?? 0)} / {(a.enrollment_counts?.waitlist ?? 0)}</td>
-                      <td className="spd-criteria-summary spd-criteria-summary-wrap">{activityCriteriaSummary(a)}</td>
-                      <td>
-                        <button type="button" className="spd-edit-profile-btn" onClick={() => openActivitySetup(a)}>Edit</button>
-                        <button type="button" className="spd-officer-remove" onClick={() => handleDeleteActivity(a.id)}>Delete</button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          <ConfirmModal
-            open={!!confirmDeleteActivityId}
-            title="Delete activity"
-            message="Delete this activity? All enrollments for it will be removed. This cannot be undone."
-            confirmLabel="Delete"
-            cancelLabel="Cancel"
-            variant="danger"
-            loading={deletingActivity}
-            onConfirm={handleConfirmDeleteActivity}
-            onCancel={() => setConfirmDeleteActivityId(null)}
-          />
-        </section>
       )}
 
       {loading ? (
@@ -1398,7 +1770,7 @@ export default function StudentProfilingDashboard() {
                       </div>
                     )}
                     <div className="spd-q-actions">
-                      {(user.role === 'ADMIN' || user.role === 'FACULTY') && (
+                      {user.role === 'ADMIN' && (
                         <>
                           <button type="button" className="spd-edit-profile-btn" onClick={() => openEntriesModal(student)}>Entries</button>
                           <button type="button" className="spd-edit-profile-btn" onClick={() => openSkillsModal(student)}>Skills</button>
@@ -1442,79 +1814,79 @@ export default function StudentProfilingDashboard() {
           )}
         </div>
       ) : studentListLayout === 'cards' ? (
-        <div className="spd-browse-cards-wrap">
+        <div className="spd-talent-cards-wrap">
           {students.length === 0 ? (
-            <p className="spd-qualified-empty">No students match your search or filters.</p>
+            <p className="spd-talent-empty">No students match your search or filters.</p>
           ) : (
-            <ul className="spd-browse-cards">
+            <ul className="spd-talent-cards">
               {students.map((student) => {
                 const p = student.student_profile || {};
                 const skills = student.skill_entries || [];
+                const enrollTags = browseEnrollmentDisplayEntries(student);
+                const hasTalentCol = skills.length > 0 || enrollTags.length > 0;
+                const sectionDisp = (() => {
+                  const f = formatClassSectionLabel(p);
+                  if (f && f !== '—') return f;
+                  return p.section || '—';
+                })();
                 return (
-                  <li key={student.id} className="spd-browse-card">
-                    <div className="spd-browse-card-head">
+                  <li key={student.id} className="spd-talent-card">
+                    <div className="spd-talent-card-top">
                       <QualifiedStudentAvatar name={student.name} photoUrl={p.photo_url} />
-                      <div className="spd-browse-card-info">
-                        <h3 className="spd-browse-card-name">{student.name}</h3>
-                        <p className="spd-browse-card-meta">{student.email}</p>
-                        <p className="spd-browse-card-meta">
-                          #{student.student_number || '—'}
-                          {p.course ? ` · ${p.course}` : ''}
+                      <div className="spd-talent-card-text">
+                        <h3 className="spd-talent-card-name">{student.name}</h3>
+                        <p className="spd-talent-card-line">
+                          {[
+                            student.student_number ? `#${student.student_number}` : '—',
+                            p.course || '—',
+                            p.year_level || '—',
+                            sectionDisp,
+                          ].join(' · ')}
                         </p>
-                        {p.current_gpa != null && (
-                          <p className="spd-browse-card-gpa">GPA {Number(p.current_gpa).toFixed(2)}</p>
+                      </div>
+                      <div className="spd-talent-card-actions">
+                        {user.role === 'ADMIN' && isTalentDirectory && !activityFilter && (
+                          <button
+                            type="button"
+                            className="spd-talent-assign-btn"
+                            onClick={() => openAssignActivityModal(student)}
+                          >
+                            Assign to activity
+                          </button>
                         )}
+                        <button
+                          type="button"
+                          className="spd-talent-view-profile"
+                          onClick={() => navigate(`/admin-dashboard/profiling/student/${student.id}`)}
+                        >
+                          View Profile
+                        </button>
                       </div>
                     </div>
-                    {skills.length > 0 ? (
-                      <div className="spd-browse-card-skills">
-                        {skills.map((s) => (
-                          <span key={s.id} className="spd-tag">
-                            {s.skill}
-                            {s.proficiency_level ? ` · ${s.proficiency_level}` : ''}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="spd-muted spd-browse-card-skills">No skill entries yet.</p>
-                    )}
-                    <div className="spd-browse-card-actions">
-                      <button type="button" className="spd-edit-profile-btn" onClick={() => openFullProfile(student)}>Full profile</button>
-                      {(user.role === 'ADMIN' || user.role === 'FACULTY') && (
+                    <div className="spd-talent-card-skills">
+                      {!hasTalentCol ? (
+                        <span className="spd-talent-no-skills">No skills or activity enrollments on file</span>
+                      ) : (
                         <>
-                          <button type="button" className="spd-edit-profile-btn" onClick={() => openEntriesModal(student)}>Entries</button>
-                          <button type="button" className="spd-edit-profile-btn" onClick={() => openSkillsModal(student)}>Skills</button>
-                          <button type="button" className="spd-edit-profile-btn" onClick={() => openConductModal(student)}>Conduct</button>
-                        </>
-                      )}
-                      {user.role === 'ADMIN' && (
-                        <>
-                          <button type="button" className="spd-edit-profile-btn" onClick={() => openEditProfile(student)}>Edit profile</button>
-                          <button type="button" className="spd-officer-remove" onClick={() => setDeleteStudentId(student.id)}>Delete</button>
+                          {enrollTags.map((en) => (
+                            <span
+                              key={en.key}
+                              className={enrollmentTagClass(en.name, browseSkill)}
+                              title={en.status}
+                            >
+                              {en.name}
+                              {enrollmentStatusSuffix(en.status)}
+                            </span>
+                          ))}
+                          {skills.map((s) => (
+                            <span key={s.id} className={browseSkillTagClass(s.skill, browseSkill)}>
+                              {s.skill}
+                              {s.proficiency_level ? ` · ${s.proficiency_level}` : ''}
+                            </span>
+                          ))}
                         </>
                       )}
                     </div>
-                    {activities.length > 0 && (
-                      <div className="spd-browse-card-enroll">
-                        <span className="spd-muted">Enroll:</span>
-                        <div className="spd-enroll-group">
-                          {activities.map((activity) => {
-                            const enrolled = isEnrolled(student, activity.id);
-                            return (
-                              <button
-                                key={activity.id}
-                                type="button"
-                                className={`spd-enroll-btn ${enrolled ? 'enrolled' : ''} ${enrollmentStatusForActivity(student, activity.id) === 'pending_confirmation' ? 'spd-enroll-pending' : ''}`}
-                                disabled={enrolled || enrolling === student.id}
-                                onClick={() => openEnrollConfirm(student, activity)}
-                              >
-                                {enrolled ? enrollmentButtonLabel(student, activity.id, activity.name) : activity.name}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                   </li>
                 );
               })}
@@ -1522,147 +1894,101 @@ export default function StudentProfilingDashboard() {
           )}
         </div>
       ) : (
-        <div className="spd-table-wrap">
-          <table className="spd-table">
+        <div className="spd-table-wrap spd-talent-table-wrap">
+          <table className="spd-table spd-talent-table">
             <thead>
               <tr>
                 <th>Student</th>
                 <th>Student #</th>
                 <th>Course</th>
-                <th>Academic</th>
-                {showPhysicalColumn && <th>Physical</th>}
-                <th>Profile</th>
-                <th>Interests</th>
-                <th>Actions</th>
+                <th>Year</th>
+                <th>Section</th>
+                <th>Skills &amp; talents</th>
+                <th className="spd-talent-th-action"> </th>
               </tr>
             </thead>
             <tbody>
               {students.length === 0 ? (
                 <tr>
-                  <td colSpan={7 + (showPhysicalColumn ? 1 : 0)} className="spd-empty">
-                    No students found. Try adjusting your search or filter.
+                  <td colSpan={7} className="spd-empty">
+                    No students found. Try adjusting your search or filters.
                   </td>
                 </tr>
               ) : (
-                students.map((student) => (
-                  <tr key={student.id}>
-                    <td>
-                      <strong>{student.name}</strong>
-                      <br />
-                      <span className="spd-email">{student.email}</span>
-                    </td>
-                    <td>{student.student_number || '—'}</td>
-                    <td>{student.student_profile?.course || '—'}</td>
-                    <td className="spd-academic-cell">
-                      {student.student_profile?.current_gpa != null && (
-                        <span className="spd-academic-gpa">GPA {Number(student.student_profile.current_gpa).toFixed(2)}</span>
-                      )}
-                      {student.student_profile?.academic_standing && (
-                        <span className="spd-academic-standing">{student.student_profile.academic_standing}</span>
-                      )}
-                      {(!student.student_profile?.current_gpa && !student.student_profile?.academic_standing) && '—'}
-                    </td>
-                    {showPhysicalColumn && (
-                      <td className="spd-physical-cell">
-                        {student.student_profile?.height_cm != null || student.student_profile?.weight_kg != null
-                          ? `${student.student_profile?.height_cm ?? '—'} cm / ${student.student_profile?.weight_kg ?? '—'} kg`
-                          : '—'}
-                        {(student.student_profile?.dominant_hand || student.student_profile?.preferred_position) && (
-                          <span className="spd-physical-extra">
-                            {[student.student_profile?.dominant_hand, student.student_profile?.preferred_position].filter(Boolean).join(' · ')}
-                          </span>
+                students.map((student) => {
+                  const p = student.student_profile || {};
+                  const skills = student.skill_entries || [];
+                  const enrollTags = browseEnrollmentDisplayEntries(student);
+                  const hasTalentCol = skills.length > 0 || enrollTags.length > 0;
+                  const sectionDisp = (() => {
+                    const f = formatClassSectionLabel(p);
+                    if (f && f !== '—') return f;
+                    return p.section || '—';
+                  })();
+                  return (
+                    <tr key={student.id} className="spd-talent-tr">
+                      <td className="spd-talent-td-student">
+                        <strong>{student.name}</strong>
+                        <span className="spd-talent-email">{student.email}</span>
+                      </td>
+                      <td>{student.student_number || '—'}</td>
+                      <td>{p.course || '—'}</td>
+                      <td>{p.year_level || '—'}</td>
+                      <td>{sectionDisp}</td>
+                      <td className="spd-talent-td-skills">
+                        {!hasTalentCol ? (
+                          <span className="spd-muted">—</span>
+                        ) : (
+                          <div className="spd-talent-skill-tags spd-talent-skill-tags--inline">
+                            {enrollTags.map((en) => (
+                              <span
+                                key={en.key}
+                                className={enrollmentTagClass(en.name, browseSkill)}
+                                title={en.status}
+                              >
+                                {en.name}
+                                {enrollmentStatusSuffix(en.status)}
+                              </span>
+                            ))}
+                            {skills.map((s) => (
+                              <span key={s.id} className={browseSkillTagClass(s.skill, browseSkill)}>
+                                {s.skill}
+                                {s.proficiency_level ? ` · ${s.proficiency_level}` : ''}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </td>
-                    )}
-                    <td>
-                      <div className="spd-profile-tags">
-                        {student.student_profile?.sports_interests?.map((s, i) => (
-                          <span key={i} className="spd-tag">
-                            {s}
-                          </span>
-                        ))}
-                        {student.student_profile?.activity_interests?.map((s, i) => (
-                          <span key={i} className="spd-tag spd-tag-activity">
-                            {s}
-                          </span>
-                        ))}
-                        {!student.student_profile && <span className="spd-tag spd-tag-none">No profile</span>}
-                      </div>
-                    </td>
-                    <td className="spd-interests-cell">
-                      {(student.interest_declarations?.length > 0) ? (
-                        <div className="spd-profile-tags">
-                          {student.interest_declarations.map((d) => (
-                            <span key={d.id} className="spd-tag spd-tag-activity">{d.activity?.name ?? `#${d.activity_id}`}</span>
-                          ))}
-                        </div>
-                      ) : '—'}
-                    </td>
-                    <td>
-                      <div className="spd-actions-cell">
-                        <button type="button" className="spd-edit-profile-btn" onClick={() => openFullProfile(student)}>
-                          Full profile
-                        </button>
-                        {(user.role === 'ADMIN' || user.role === 'FACULTY') && (
-                          <>
-                            <button type="button" className="spd-edit-profile-btn" onClick={() => openEntriesModal(student)}>
-                              Entries
-                            </button>
-                            <button type="button" className="spd-edit-profile-btn" onClick={() => openSkillsModal(student)}>
-                              Skills
-                            </button>
-                            <button type="button" className="spd-edit-profile-btn" onClick={() => openConductModal(student)}>
-                              Conduct
-                            </button>
-                          </>
-                        )}
-                        {user.role === 'ADMIN' && (
-                          <>
+                      <td className="spd-talent-td-action">
+                        <div className="spd-talent-action-btns">
+                          {user.role === 'ADMIN' && isTalentDirectory && !activityFilter && (
                             <button
                               type="button"
-                              className="spd-edit-profile-btn"
-                              onClick={() => openEditProfile(student)}
+                              className="spd-talent-assign-btn spd-talent-assign-btn--table"
+                              onClick={() => openAssignActivityModal(student)}
                             >
-                              Edit profile
+                              Assign to activity
                             </button>
-                            <button
-                              type="button"
-                              className="spd-officer-remove"
-                              onClick={() => setDeleteStudentId(student.id)}
-                            >
-                              Delete
-                            </button>
-                          </>
-                        )}
-                        {activities.length > 0 ? (
-                        <div className="spd-enroll-group">
-                          {activities.map((activity) => {
-                            const enrolled = isEnrolled(student, activity.id);
-                            return (
-                              <button
-                                key={activity.id}
-                                type="button"
-                                className={`spd-enroll-btn ${enrolled ? 'enrolled' : ''} ${enrollmentStatusForActivity(student, activity.id) === 'pending_confirmation' ? 'spd-enroll-pending' : ''}`}
-                                disabled={enrolled || enrolling === student.id}
-                                onClick={() => openEnrollConfirm(student, activity)}
-                                title={enrolled ? enrollmentButtonLabel(student, activity.id, activity.name) : `Enroll in ${activity.name}`}
-                              >
-                                {enrolled ? enrollmentButtonLabel(student, activity.id, activity.name) : activity.name}
-                              </button>
-                            );
-                          })}
+                          )}
+                          <button
+                            type="button"
+                            className="spd-talent-view-profile spd-talent-view-profile--table"
+                            onClick={() => navigate(`/admin-dashboard/profiling/student/${student.id}`)}
+                          >
+                            View Profile
+                          </button>
                         </div>
-                      ) : (
-                          <span className="spd-muted">No activities</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
+      )}
+
+      </>
       )}
 
       </>
@@ -1926,14 +2252,9 @@ export default function StudentProfilingDashboard() {
                               View Profile
                             </button>
                             {user.role === 'ADMIN' && (
-                              <>
-                                <button type="button" className="spd-edit-profile-btn" onClick={() => openEditProfile(student)}>
-                                  Edit
-                                </button>
-                                <button type="button" className="spd-officer-remove" onClick={() => setDeleteStudentId(student.id)}>
-                                  Delete
-                                </button>
-                              </>
+                              <button type="button" className="spd-officer-remove" onClick={() => setDeleteStudentId(student.id)}>
+                                Delete
+                              </button>
                             )}
                           </div>
                         </li>
@@ -1947,16 +2268,53 @@ export default function StudentProfilingDashboard() {
         );
       })()}
 
-      <ConfirmModal
-        open={deleteStudentId != null}
-        title="Delete student"
-        message="Remove this student account and all related profiling data? This cannot be undone."
-        confirmLabel="Delete"
-        variant="danger"
-        loading={deletingStudent}
-        onConfirm={confirmDeleteStudent}
-        onCancel={() => !deletingStudent && setDeleteStudentId(null)}
-      />
+      {deleteStudentId != null && (
+        <div
+          className="spd-student-delete-overlay"
+          role="presentation"
+          onClick={() => !deletingStudent && setDeleteStudentId(null)}
+        >
+          <div
+            className="spd-student-delete-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="spd-student-delete-title"
+            aria-describedby="spd-student-delete-desc"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="spd-student-delete-title" className="spd-student-delete-title">
+              Reminder
+            </h3>
+            <p id="spd-student-delete-desc" className="spd-student-delete-message">
+              Are you sure you want to delete this student? This action cannot be undone.
+            </p>
+            <div className="spd-student-delete-actions">
+              <button
+                type="button"
+                className="spd-student-delete-btn spd-student-delete-btn--secondary"
+                onClick={() => !deletingStudent && setDeleteStudentId(null)}
+                disabled={deletingStudent}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="spd-student-delete-btn spd-student-delete-btn--delete"
+                onClick={() => confirmDeleteStudent()}
+                disabled={deletingStudent}
+              >
+                {deletingStudent ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {studentDeleteSuccessToast && (
+        <div className="spd-student-delete-toast" role="status" aria-live="polite">
+          <span className="spd-student-delete-toast-text">Student deleted successfully!</span>
+        </div>
+      )}
 
       {profilingMainView === 'browse' && (
       <>
@@ -2120,19 +2478,17 @@ export default function StudentProfilingDashboard() {
                         {entry.github_url && <a href={entry.github_url} target="_blank" rel="noopener noreferrer">GitHub</a>}
                       </div>
                       <div className="spd-entries-actions">
-                        {user.role === 'FACULTY' && (
+                        {user.role === 'ADMIN' && (
                           <>
                             <button type="button" className="spd-enroll-btn" onClick={() => handleEndorseSkill(entry.id)}>Endorse</button>
                             <button type="button" className="spd-officer-remove" onClick={() => handleDisputeSkill(entry.id)}>Dispute</button>
+                            <button type="button" className="spd-officer-remove" onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/skill-entries/${entry.id}`, { method: 'DELETE', headers: getAuthHeaders() });
+                                if (res.ok && skillsModalStudent) fetchStudentSkills(skillsModalStudent.id);
+                              } catch (err) {}
+                            }}>Delete</button>
                           </>
-                        )}
-                        {user.role === 'ADMIN' && (
-                          <button type="button" className="spd-officer-remove" onClick={async () => {
-                            try {
-                              const res = await fetch(`/api/skill-entries/${entry.id}`, { method: 'DELETE', headers: getAuthHeaders() });
-                              if (res.ok && skillsModalStudent) fetchStudentSkills(skillsModalStudent.id);
-                            } catch (err) {}
-                          }}>Delete</button>
                         )}
                       </div>
                     </li>
@@ -2174,7 +2530,7 @@ export default function StudentProfilingDashboard() {
                             )}
                           </>
                         )}
-                        {user.role === 'FACULTY' && (
+                        {user.role === 'ADMIN' && (
                           <>
                             <button type="button" className="spd-edit-profile-btn" onClick={() => handleFlagEntry(entry.id)} title="Flag">Flag</button>
                             <button type="button" className="spd-enroll-btn" onClick={() => handleEndorseEntry(entry.id)} title="Endorse">Endorse</button>
@@ -2486,193 +2842,6 @@ export default function StudentProfilingDashboard() {
         </div>
       )}
 
-      {activitySetupOpen && activityForm && (
-        <div className="spd-modal-overlay" onClick={() => { setActivitySetupOpen(false); setActivityForm(null); }}>
-          <div className="spd-modal spd-modal-activity-setup" onClick={(e) => e.stopPropagation()}>
-            <div className="spd-modal-header">
-              <h3>{activityForm.id ? 'Edit activity' : 'Add activity'}</h3>
-              <button type="button" className="spd-modal-close" onClick={() => { setActivitySetupOpen(false); setActivityForm(null); }} aria-label="Close">×</button>
-            </div>
-            <form onSubmit={handleSaveActivity} className="spd-modal-form">
-              <fieldset className="spd-modal-fieldset">
-                <legend>Basic</legend>
-                <div className="spd-modal-row">
-                  <label>Name</label>
-                  <input value={activityForm.name} onChange={(e) => setActivityForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Basketball" required />
-                </div>
-                <div className="spd-modal-row">
-                  <label>Type</label>
-                  <select value={activityForm.type} onChange={(e) => setActivityForm((f) => ({ ...f, type: e.target.value }))}>
-                    <option value="sport">Sport</option>
-                    <option value="activity">Activity</option>
-                    <option value="event">Event</option>
-                  </select>
-                </div>
-                <div className="spd-modal-row">
-                  <label>Description (optional)</label>
-                  <textarea value={activityForm.description} onChange={(e) => setActivityForm((f) => ({ ...f, description: e.target.value }))} rows={2} />
-                </div>
-                <div className="spd-modal-row">
-                  <label>Time slot (optional)</label>
-                  <input value={activityForm.time_slot} onChange={(e) => setActivityForm((f) => ({ ...f, time_slot: e.target.value }))} placeholder="e.g. MWF 3-5PM — same text on two activities = schedule conflict" />
-                </div>
-                <p className="spd-muted spd-activity-hint">If set, students already enrolled in another activity with the same time slot (exact match, case-insensitive) are excluded unless you disable the check below.</p>
-                <label className="spd-modal-row-inline">
-                  <input type="checkbox" checked={activityForm.skip_schedule_conflict} onChange={(e) => setActivityForm((f) => ({ ...f, skip_schedule_conflict: e.target.checked }))} />
-                  Skip schedule conflict check (ignore time slot overlap rule)
-                </label>
-                <label className="spd-modal-row-inline">
-                  <input type="checkbox" checked={activityForm.is_active} onChange={(e) => setActivityForm((f) => ({ ...f, is_active: e.target.checked }))} />
-                  Active
-                </label>
-              </fieldset>
-              <fieldset className="spd-modal-fieldset">
-                <legend>Slot configuration</legend>
-                <div className="spd-modal-row spd-modal-row-inline">
-                  <div>
-                    <label>Max enrollees</label>
-                    <input type="number" min="0" value={activityForm.max_enrollees} onChange={(e) => setActivityForm((f) => ({ ...f, max_enrollees: e.target.value }))} placeholder="Leave empty for unlimited" />
-                  </div>
-                  <div>
-                    <label>Reserve / waitlist slots</label>
-                    <input type="number" min="0" value={activityForm.reserve_slots} onChange={(e) => setActivityForm((f) => ({ ...f, reserve_slots: e.target.value }))} placeholder="0" />
-                  </div>
-                </div>
-              </fieldset>
-              <fieldset className="spd-modal-fieldset">
-                <legend>Academic requirements</legend>
-                <p className="spd-muted spd-activity-hint">By default, students with <strong>Probationary</strong> or <strong>On hold</strong> standing are excluded. Check below to allow them.</p>
-                <label className="spd-modal-row-inline">
-                  <input type="checkbox" checked={activityForm.allow_probationary_and_hold} onChange={(e) => setActivityForm((f) => ({ ...f, allow_probationary_and_hold: e.target.checked }))} />
-                  Allow Probationary / On-hold students
-                </label>
-                <div className="spd-modal-row spd-modal-row-inline">
-                  <div>
-                    <label>Min GPA</label>
-                    <input type="number" step="0.01" min="0" max="5" value={activityForm.min_gpa} onChange={(e) => setActivityForm((f) => ({ ...f, min_gpa: e.target.value }))} placeholder="e.g. 2.5" />
-                  </div>
-                  <div>
-                    <label>Max failed units</label>
-                    <input type="number" min="0" value={activityForm.max_failed_units} onChange={(e) => setActivityForm((f) => ({ ...f, max_failed_units: e.target.value }))} placeholder="e.g. 2" />
-                  </div>
-                </div>
-                <div className="spd-modal-row">
-                  <label>Academic standing (leave empty = any)</label>
-                  <div className="spd-modal-checkgroup">
-                    {['Regular', 'Irregular', 'Probationary', 'On hold'].map((standing) => (
-                      <label key={standing}>
-                        <input
-                          type="checkbox"
-                          checked={activityForm.academic_standings.includes(standing)}
-                          onChange={(e) => setActivityForm((f) => ({
-                            ...f,
-                            academic_standings: e.target.checked ? [...(f.academic_standings || []), standing] : (f.academic_standings || []).filter((s) => s !== standing),
-                          }))}
-                        />
-                        {standing}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="spd-modal-row spd-modal-row-inline">
-                  <div>
-                    <label>Year level min</label>
-                    <input type="number" min="1" value={activityForm.year_level_min} onChange={(e) => setActivityForm((f) => ({ ...f, year_level_min: e.target.value }))} placeholder="e.g. 2" />
-                  </div>
-                  <div>
-                    <label>Enrolled units min (full-time)</label>
-                    <input type="number" min="0" value={activityForm.enrolled_units_min} onChange={(e) => setActivityForm((f) => ({ ...f, enrolled_units_min: e.target.value }))} placeholder="e.g. 12" />
-                  </div>
-                </div>
-              </fieldset>
-              <fieldset className="spd-modal-fieldset">
-                <legend>Physical (sports)</legend>
-                <div className="spd-modal-row">
-                  <label>Min height (cm)</label>
-                  <input type="number" step="0.01" min="0" value={activityForm.min_height_cm} onChange={(e) => setActivityForm((f) => ({ ...f, min_height_cm: e.target.value }))} placeholder="e.g. 173 for 5&#39;8&quot;" />
-                </div>
-                <label className="spd-modal-row-inline">
-                  <input type="checkbox" checked={activityForm.require_preferred_position} onChange={(e) => setActivityForm((f) => ({ ...f, require_preferred_position: e.target.checked }))} />
-                  Require preferred position on profile
-                </label>
-                {activityForm.require_preferred_position && (
-                  <div className="spd-modal-row">
-                    <label>Allowed positions (optional — comma-separated; leave empty for any)</label>
-                    <input value={activityForm.allowed_positions_text} onChange={(e) => setActivityForm((f) => ({ ...f, allowed_positions_text: e.target.value }))} placeholder="e.g. Point Guard, Center" />
-                  </div>
-                )}
-                <div className="spd-modal-row">
-                  <label>Conflicting activities (cannot be enrolled in both)</label>
-                  <select
-                    multiple
-                    value={activityForm.conflicting_activity_ids}
-                    onChange={(e) => setActivityForm((f) => ({
-                      ...f,
-                      conflicting_activity_ids: Array.from(e.target.selectedOptions, (o) => Number(o.value)),
-                    }))}
-                    className="spd-modal-multi"
-                  >
-                    {activitiesForAdmin.filter((a) => a.id !== activityForm.id).map((a) => (
-                      <option key={a.id} value={a.id}>{a.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </fieldset>
-              <fieldset className="spd-modal-fieldset">
-                <legend>Conduct</legend>
-                <label className="spd-modal-row-inline">
-                  <input type="checkbox" checked={activityForm.exclude_major_grave} onChange={(e) => setActivityForm((f) => ({ ...f, exclude_major_grave: e.target.checked }))} />
-                  Exclude students with Major or Grave violations
-                </label>
-                <p className="spd-muted spd-activity-hint">Uncheck only if this activity may enroll students with active Major/Grave conduct records.</p>
-                <div className="spd-modal-row">
-                  <label>Max minor violations allowed</label>
-                  <input type="number" min="0" value={activityForm.max_minor_violations} onChange={(e) => setActivityForm((f) => ({ ...f, max_minor_violations: e.target.value }))} placeholder="e.g. 1" />
-                </div>
-              </fieldset>
-              <fieldset className="spd-modal-fieldset">
-                <legend>Skills (e.g. programming contests)</legend>
-                <p className="spd-muted">Required: student must have at least one skill matching (skill name + min proficiency).</p>
-                {activityForm.required_skills.map((s, i) => (
-                  <div key={i} className="spd-modal-row spd-modal-row-inline">
-                    <input placeholder="Skill name" value={s.skill} onChange={(e) => setActivityForm((f) => ({ ...f, required_skills: f.required_skills.map((r, j) => j === i ? { ...r, skill: e.target.value } : r) }))} />
-                    <select value={s.min_proficiency} onChange={(e) => setActivityForm((f) => ({ ...f, required_skills: f.required_skills.map((r, j) => j === i ? { ...r, min_proficiency: e.target.value } : r) }))}>
-                      <option value="Beginner">Beginner</option>
-                      <option value="Intermediate">Intermediate</option>
-                      <option value="Advanced">Advanced</option>
-                      <option value="Expert">Expert</option>
-                    </select>
-                    <button type="button" className="spd-officer-remove" onClick={() => setActivityForm((f) => ({ ...f, required_skills: f.required_skills.filter((_, j) => j !== i) }))}>Remove</button>
-                  </div>
-                ))}
-                <button type="button" className="spd-edit-profile-btn" onClick={() => setActivityForm((f) => ({ ...f, required_skills: [...(f.required_skills || []), { skill: '', min_proficiency: 'Intermediate' }] }))}>+ Add required skill</button>
-              </fieldset>
-              <fieldset className="spd-modal-fieldset">
-                <legend>Bonus skills (ranking)</legend>
-                <p className="spd-muted">Not required to qualify. Rank score also uses GPA, declared interest, past activities, awards, commendations, and (for sports) height/position fit.</p>
-                {activityForm.bonus_skills.map((s, i) => (
-                  <div key={i} className="spd-modal-row spd-modal-row-inline">
-                    <input placeholder="Skill name" value={s.skill} onChange={(e) => setActivityForm((f) => ({ ...f, bonus_skills: f.bonus_skills.map((r, j) => j === i ? { ...r, skill: e.target.value } : r) }))} />
-                    <select value={s.min_proficiency} onChange={(e) => setActivityForm((f) => ({ ...f, bonus_skills: f.bonus_skills.map((r, j) => j === i ? { ...r, min_proficiency: e.target.value } : r) }))}>
-                      <option value="Beginner">Beginner</option>
-                      <option value="Intermediate">Intermediate</option>
-                      <option value="Advanced">Advanced</option>
-                      <option value="Expert">Expert</option>
-                    </select>
-                    <button type="button" className="spd-officer-remove" onClick={() => setActivityForm((f) => ({ ...f, bonus_skills: f.bonus_skills.filter((_, j) => j !== i) }))}>Remove</button>
-                  </div>
-                ))}
-                <button type="button" className="spd-edit-profile-btn" onClick={() => setActivityForm((f) => ({ ...f, bonus_skills: [...(f.bonus_skills || []), { skill: '', min_proficiency: 'Intermediate' }] }))}>+ Add bonus skill</button>
-              </fieldset>
-              <div className="spd-modal-actions">
-                <button type="button" className="spd-modal-cancel" onClick={() => { setActivitySetupOpen(false); setActivityForm(null); }}>Cancel</button>
-                <button type="submit" className="spd-search-btn" disabled={savingActivity}>{savingActivity ? 'Saving…' : 'Save activity'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {fullProfile && (
         <div className="spd-modal-overlay" onClick={() => setFullProfile(null)}>
           <div className="spd-modal spd-modal-full-profile" onClick={(e) => e.stopPropagation()}>
@@ -2766,6 +2935,488 @@ export default function StudentProfilingDashboard() {
                 })()}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {assignActivityStudent && (
+        <div
+          className="spd-modal-overlay"
+          onClick={() => setAssignActivityStudent(null)}
+          role="presentation"
+        >
+          <div className="spd-modal spd-modal-assign-activity" onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="spd-assign-activity-title">
+            <div className="spd-modal-header">
+              <h3 id="spd-assign-activity-title">Assign to activity</h3>
+              <button
+                type="button"
+                className="spd-modal-close"
+                onClick={() => setAssignActivityStudent(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="spd-modal-form">
+              <p className="spd-muted" style={{ margin: '0 0 1rem' }}>
+                Select an activity or sport for <strong>{assignActivityStudent.name}</strong>. You will confirm roster slots on the next step.
+              </p>
+              <div className="spd-modal-row">
+                <label htmlFor="spd-assign-activity-select">Activity</label>
+                <select
+                  id="spd-assign-activity-select"
+                  value={assignActivityId}
+                  onChange={(e) => setAssignActivityId(e.target.value)}
+                  className="spd-filter-select"
+                  style={{ width: '100%', maxWidth: '100%' }}
+                >
+                  {activities
+                    .filter((a) => a.is_active !== false)
+                    .map((a) => {
+                      const enrolled = isEnrolled(assignActivityStudent, a.id);
+                      return (
+                        <option key={a.id} value={a.id} disabled={enrolled}>
+                          {a.name}
+                          {enrolled ? ' (already enrolled)' : ''}
+                        </option>
+                      );
+                    })}
+                </select>
+              </div>
+              <div className="spd-modal-actions">
+                <button type="button" className="spd-modal-cancel" onClick={() => setAssignActivityStudent(null)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="spd-search-btn"
+                  disabled={
+                    !assignActivityId || isEnrolled(assignActivityStudent, Number(assignActivityId))
+                  }
+                  onClick={() => {
+                    const act = activities.find((a) => String(a.id) === String(assignActivityId));
+                    if (!act || isEnrolled(assignActivityStudent, act.id)) return;
+                    const stu = assignActivityStudent;
+                    setAssignActivityStudent(null);
+                    openEnrollConfirm(stu, act);
+                  }}
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activitySetupOpen && activityForm && (
+        <div
+          className="spd-modal-overlay"
+          onClick={() => {
+            setActivitySetupOpen(false);
+            setActivityForm(null);
+          }}
+          role="presentation"
+        >
+          <div className="spd-modal spd-modal-activity-setup" onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="spd-activity-setup-title">
+            <div className="spd-modal-header">
+              <h3 id="spd-activity-setup-title">{activityForm.id ? 'Edit activity' : 'Add activity'}</h3>
+              <button
+                type="button"
+                className="spd-modal-close"
+                onClick={() => {
+                  setActivitySetupOpen(false);
+                  setActivityForm(null);
+                }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleSaveActivity} className="spd-modal-form">
+              <fieldset className="spd-modal-fieldset">
+                <legend>Basic</legend>
+                <div className="spd-modal-row">
+                  <label htmlFor="spd-act-name">Name</label>
+                  <input
+                    id="spd-act-name"
+                    value={activityForm.name}
+                    onChange={(e) => setActivityForm((f) => ({ ...f, name: e.target.value }))}
+                    placeholder="e.g. Basketball"
+                    required
+                  />
+                </div>
+                <div className="spd-modal-row">
+                  <label htmlFor="spd-act-type">Type</label>
+                  <select
+                    id="spd-act-type"
+                    value={activityForm.type}
+                    onChange={(e) => setActivityForm((f) => ({ ...f, type: e.target.value }))}
+                  >
+                    <option value="sport">Sport</option>
+                    <option value="activity">Activity</option>
+                    <option value="event">Event</option>
+                  </select>
+                </div>
+                <div className="spd-modal-row">
+                  <label htmlFor="spd-act-desc">Description (optional)</label>
+                  <textarea
+                    id="spd-act-desc"
+                    value={activityForm.description}
+                    onChange={(e) => setActivityForm((f) => ({ ...f, description: e.target.value }))}
+                    rows={2}
+                  />
+                </div>
+                <div className="spd-modal-row">
+                  <label htmlFor="spd-act-slot">Time slot (optional)</label>
+                  <input
+                    id="spd-act-slot"
+                    value={activityForm.time_slot}
+                    onChange={(e) => setActivityForm((f) => ({ ...f, time_slot: e.target.value }))}
+                    placeholder="e.g. MWF 3–5PM — same text on two activities = schedule conflict"
+                  />
+                </div>
+                <p className="spd-muted spd-activity-hint">
+                  If set, students already enrolled in another activity with the same time slot (exact match, case-insensitive) are excluded unless you disable the check below.
+                </p>
+                <label className="spd-modal-row-inline">
+                  <input
+                    type="checkbox"
+                    checked={activityForm.skip_schedule_conflict}
+                    onChange={(e) => setActivityForm((f) => ({ ...f, skip_schedule_conflict: e.target.checked }))}
+                  />
+                  Skip schedule conflict check (ignore time slot overlap rule)
+                </label>
+                <label className="spd-modal-row-inline">
+                  <input
+                    type="checkbox"
+                    checked={activityForm.is_active}
+                    onChange={(e) => setActivityForm((f) => ({ ...f, is_active: e.target.checked }))}
+                  />
+                  Active
+                </label>
+              </fieldset>
+              <fieldset className="spd-modal-fieldset">
+                <legend>Slot configuration</legend>
+                <div className="spd-modal-row spd-modal-row-inline">
+                  <div>
+                    <label htmlFor="spd-act-max">Max enrollees</label>
+                    <input
+                      id="spd-act-max"
+                      type="number"
+                      min="0"
+                      value={activityForm.max_enrollees}
+                      onChange={(e) => setActivityForm((f) => ({ ...f, max_enrollees: e.target.value }))}
+                      placeholder="Unlimited"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="spd-act-reserve">Reserve / waitlist slots</label>
+                    <input
+                      id="spd-act-reserve"
+                      type="number"
+                      min="0"
+                      value={activityForm.reserve_slots}
+                      onChange={(e) => setActivityForm((f) => ({ ...f, reserve_slots: e.target.value }))}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </fieldset>
+              <fieldset className="spd-modal-fieldset">
+                <legend>Academic requirements</legend>
+                <p className="spd-muted spd-activity-hint">
+                  By default, students with <strong>Probationary</strong> or <strong>On hold</strong> standing are excluded. Check below to allow them.
+                </p>
+                <label className="spd-modal-row-inline">
+                  <input
+                    type="checkbox"
+                    checked={activityForm.allow_probationary_and_hold}
+                    onChange={(e) => setActivityForm((f) => ({ ...f, allow_probationary_and_hold: e.target.checked }))}
+                  />
+                  Allow Probationary / On-hold students
+                </label>
+                <div className="spd-modal-row spd-modal-row-inline">
+                  <div>
+                    <label htmlFor="spd-act-mingpa">Min GPA</label>
+                    <input
+                      id="spd-act-mingpa"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="5"
+                      value={activityForm.min_gpa}
+                      onChange={(e) => setActivityForm((f) => ({ ...f, min_gpa: e.target.value }))}
+                      placeholder="e.g. 2.5"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="spd-act-fail">Max failed units</label>
+                    <input
+                      id="spd-act-fail"
+                      type="number"
+                      min="0"
+                      value={activityForm.max_failed_units}
+                      onChange={(e) => setActivityForm((f) => ({ ...f, max_failed_units: e.target.value }))}
+                      placeholder="e.g. 2"
+                    />
+                  </div>
+                </div>
+                <div className="spd-modal-row">
+                  <span className="spd-modal-legend">Academic standing (leave empty = any)</span>
+                  <div className="spd-modal-checkgroup">
+                    {['Regular', 'Irregular', 'Probationary', 'On hold'].map((standing) => (
+                      <label key={standing}>
+                        <input
+                          type="checkbox"
+                          checked={activityForm.academic_standings.includes(standing)}
+                          onChange={(e) =>
+                            setActivityForm((f) => ({
+                              ...f,
+                              academic_standings: e.target.checked
+                                ? [...(f.academic_standings || []), standing]
+                                : (f.academic_standings || []).filter((s) => s !== standing),
+                            }))
+                          }
+                        />
+                        {standing}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="spd-modal-row spd-modal-row-inline">
+                  <div>
+                    <label htmlFor="spd-act-yrmin">Year level min</label>
+                    <input
+                      id="spd-act-yrmin"
+                      type="number"
+                      min="1"
+                      value={activityForm.year_level_min}
+                      onChange={(e) => setActivityForm((f) => ({ ...f, year_level_min: e.target.value }))}
+                      placeholder="e.g. 2"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="spd-act-units">Enrolled units min (full-time)</label>
+                    <input
+                      id="spd-act-units"
+                      type="number"
+                      min="0"
+                      value={activityForm.enrolled_units_min}
+                      onChange={(e) => setActivityForm((f) => ({ ...f, enrolled_units_min: e.target.value }))}
+                      placeholder="e.g. 12"
+                    />
+                  </div>
+                </div>
+              </fieldset>
+              <fieldset className="spd-modal-fieldset">
+                <legend>Physical (sports)</legend>
+                <div className="spd-modal-row">
+                  <label htmlFor="spd-act-height">Min height (cm)</label>
+                  <input
+                    id="spd-act-height"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={activityForm.min_height_cm}
+                    onChange={(e) => setActivityForm((f) => ({ ...f, min_height_cm: e.target.value }))}
+                    placeholder="e.g. 173"
+                  />
+                </div>
+                <label className="spd-modal-row-inline">
+                  <input
+                    type="checkbox"
+                    checked={activityForm.require_preferred_position}
+                    onChange={(e) => setActivityForm((f) => ({ ...f, require_preferred_position: e.target.checked }))}
+                  />
+                  Require preferred position on profile
+                </label>
+                {activityForm.require_preferred_position && (
+                  <div className="spd-modal-row">
+                    <label htmlFor="spd-act-pos">Allowed positions (optional — comma-separated; leave empty for any)</label>
+                    <input
+                      id="spd-act-pos"
+                      value={activityForm.allowed_positions_text}
+                      onChange={(e) => setActivityForm((f) => ({ ...f, allowed_positions_text: e.target.value }))}
+                      placeholder="e.g. Point Guard, Center"
+                    />
+                  </div>
+                )}
+                <div className="spd-modal-row">
+                  <label htmlFor="spd-act-conflict">Conflicting activities (cannot be enrolled in both)</label>
+                  <select
+                    id="spd-act-conflict"
+                    multiple
+                    value={activityForm.conflicting_activity_ids.map(String)}
+                    onChange={(e) =>
+                      setActivityForm((f) => ({
+                        ...f,
+                        conflicting_activity_ids: Array.from(e.target.selectedOptions, (o) => Number(o.value)),
+                      }))
+                    }
+                    className="spd-modal-multi"
+                  >
+                    {activitiesForAdmin
+                      .filter((a) => a.id !== activityForm.id)
+                      .map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </fieldset>
+              <fieldset className="spd-modal-fieldset">
+                <legend>Conduct</legend>
+                <label className="spd-modal-row-inline">
+                  <input
+                    type="checkbox"
+                    checked={activityForm.exclude_major_grave}
+                    onChange={(e) => setActivityForm((f) => ({ ...f, exclude_major_grave: e.target.checked }))}
+                  />
+                  Exclude students with Major or Grave violations
+                </label>
+                <p className="spd-muted spd-activity-hint">Uncheck only if this activity may enroll students with active Major/Grave conduct records.</p>
+                <div className="spd-modal-row">
+                  <label htmlFor="spd-act-minor">Max minor violations allowed</label>
+                  <input
+                    id="spd-act-minor"
+                    type="number"
+                    min="0"
+                    value={activityForm.max_minor_violations}
+                    onChange={(e) => setActivityForm((f) => ({ ...f, max_minor_violations: e.target.value }))}
+                    placeholder="e.g. 1"
+                  />
+                </div>
+              </fieldset>
+              <fieldset className="spd-modal-fieldset">
+                <legend>Skills (e.g. programming contests)</legend>
+                <p className="spd-muted">Required: student must have at least one skill matching (skill name + min proficiency).</p>
+                {activityForm.required_skills.map((s, i) => (
+                  <div key={i} className="spd-modal-row spd-modal-row-inline">
+                    <input
+                      placeholder="Skill name"
+                      value={s.skill}
+                      onChange={(e) =>
+                        setActivityForm((f) => ({
+                          ...f,
+                          required_skills: f.required_skills.map((r, j) => (j === i ? { ...r, skill: e.target.value } : r)),
+                        }))
+                      }
+                    />
+                    <select
+                      value={s.min_proficiency}
+                      onChange={(e) =>
+                        setActivityForm((f) => ({
+                          ...f,
+                          required_skills: f.required_skills.map((r, j) =>
+                            j === i ? { ...r, min_proficiency: e.target.value } : r,
+                          ),
+                        }))
+                      }
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                      <option value="Expert">Expert</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="spd-officer-remove"
+                      onClick={() =>
+                        setActivityForm((f) => ({ ...f, required_skills: f.required_skills.filter((_, j) => j !== i) }))
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="spd-edit-profile-btn"
+                  onClick={() =>
+                    setActivityForm((f) => ({
+                      ...f,
+                      required_skills: [...(f.required_skills || []), { skill: '', min_proficiency: 'Intermediate' }],
+                    }))
+                  }
+                >
+                  + Add required skill
+                </button>
+              </fieldset>
+              <fieldset className="spd-modal-fieldset">
+                <legend>Bonus skills (ranking)</legend>
+                <p className="spd-muted">
+                  Not required to qualify. Rank score also uses GPA, declared interest, past activities, awards, commendations, and (for sports) height/position fit.
+                </p>
+                {activityForm.bonus_skills.map((s, i) => (
+                  <div key={i} className="spd-modal-row spd-modal-row-inline">
+                    <input
+                      placeholder="Skill name"
+                      value={s.skill}
+                      onChange={(e) =>
+                        setActivityForm((f) => ({
+                          ...f,
+                          bonus_skills: f.bonus_skills.map((r, j) => (j === i ? { ...r, skill: e.target.value } : r)),
+                        }))
+                      }
+                    />
+                    <select
+                      value={s.min_proficiency}
+                      onChange={(e) =>
+                        setActivityForm((f) => ({
+                          ...f,
+                          bonus_skills: f.bonus_skills.map((r, j) =>
+                            j === i ? { ...r, min_proficiency: e.target.value } : r,
+                          ),
+                        }))
+                      }
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                      <option value="Expert">Expert</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="spd-officer-remove"
+                      onClick={() =>
+                        setActivityForm((f) => ({ ...f, bonus_skills: f.bonus_skills.filter((_, j) => j !== i) }))
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="spd-edit-profile-btn"
+                  onClick={() =>
+                    setActivityForm((f) => ({
+                      ...f,
+                      bonus_skills: [...(f.bonus_skills || []), { skill: '', min_proficiency: 'Intermediate' }],
+                    }))
+                  }
+                >
+                  + Add bonus skill
+                </button>
+              </fieldset>
+              <div className="spd-modal-actions">
+                <button
+                  type="button"
+                  className="spd-modal-cancel"
+                  onClick={() => {
+                    setActivitySetupOpen(false);
+                    setActivityForm(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="spd-search-btn" disabled={savingActivity}>
+                  {savingActivity ? 'Saving…' : 'Save activity'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

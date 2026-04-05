@@ -570,7 +570,7 @@ export default function MyProfilePage() {
         <>
           <div className="profile-info profile-academic">
             <h2 className="profile-academic-title">Skills (tagged with proficiency, portfolio &amp; GitHub)</h2>
-            <p className="profile-form-hint">Add your skills and optional links. Faculty can endorse or dispute entries.</p>
+            <p className="profile-form-hint">Add your skills and optional links. Admins can endorse or dispute entries.</p>
             {skillEntries.length > 0 ? (
               <ul className="profile-skill-list">
                 {skillEntries.map((entry) => (
@@ -630,7 +630,7 @@ export default function MyProfilePage() {
         <>
           <div className="profile-info profile-academic">
             <h2 className="profile-academic-title">Interest declarations</h2>
-            <p className="profile-form-hint">Activities you are willing to join. Add, update, or retract anytime. Visible to Admin and Faculty for enrollment and ranking.</p>
+            <p className="profile-form-hint">Activities you are willing to join. Add, update, or retract anytime. Visible to admins for enrollment and ranking.</p>
             {interestLoading ? (
               <p className="profile-form-hint">Loading…</p>
             ) : interestDeclarations.length === 0 ? (
@@ -677,7 +677,7 @@ export default function MyProfilePage() {
         <div className="profile-info profile-academic">
           <h2 className="profile-academic-title">Activity enrollments</h2>
           <p className="profile-form-hint">
-            When faculty or admin selects you, the enrollment is recorded here. Confirm roster spots in your profile to finalize your place.
+            When an admin selects you, the enrollment is recorded here. Confirm roster spots in your profile to finalize your place.
           </p>
           {enrollmentNotice && <p className="profile-message">{enrollmentNotice}</p>}
           {enrollmentsLoading ? (

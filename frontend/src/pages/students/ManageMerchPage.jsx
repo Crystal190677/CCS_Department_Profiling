@@ -54,7 +54,7 @@ export default function ManageMerchPage() {
       navigate('/login');
       return;
     }
-    if (u.role !== 'OFFICER' && u.role !== 'ADMIN' && u.role !== 'FACULTY') {
+    if (u.role !== 'OFFICER' && u.role !== 'ADMIN') {
       navigate('/dashboard');
       return;
     }

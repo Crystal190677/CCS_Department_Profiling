@@ -13,7 +13,7 @@ class AdminStatsController extends Controller
     public function stats(Request $request): JsonResponse
     {
         $auth = $request->user();
-        if (!$auth || !in_array($auth->role, ['ADMIN', 'FACULTY'], true)) {
+        if (!$auth || $auth->role !== 'ADMIN') {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
@@ -29,7 +29,6 @@ class AdminStatsController extends Controller
             'success' => true,
             'data' => [
                 'students' => User::query()->where('role', 'STUDENT')->count(),
-                'faculty' => User::query()->where('role', 'FACULTY')->count(),
                 'officers' => User::query()->where('role', 'OFFICER')->count(),
                 'violations_this_month' => $violationsThisMonth,
             ],

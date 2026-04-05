@@ -91,7 +91,7 @@ class StudentProfileController extends Controller
 
     /**
      * Admin only: update any student's profile including academic data.
-     * Faculty has read-only access (no route to this method).
+     * Admin-only update path for student profiles (talent directory / class list).
      */
     public function updateForStudent(Request $request, int $userId): JsonResponse
     {

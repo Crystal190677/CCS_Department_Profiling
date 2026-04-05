@@ -518,22 +518,22 @@ const COURSE_OFFERING_OVERRIDES = {
   CCS107: {
     classNumber: '3107',
     lecture: {
-      professor: 'Prof. John Faculty',
+      professor: 'Course coordinator',
       schedule: 'Monday / Wednesday, 10:00 am – 12:00 pm (CS Hall B)',
     },
     lab: {
-      professor: 'Prof. John Faculty',
+      professor: 'Course coordinator',
       schedule: 'Thursday, 1:00 pm – 4:00 pm (COMLAB 3)',
     },
   },
   CCS108: {
     classNumber: '3108',
     lecture: {
-      professor: 'Prof. John Faculty',
+      professor: 'Course coordinator',
       schedule: 'Tuesday / Friday, 8:00 am – 10:00 am (Room 204)',
     },
     lab: {
-      professor: 'Prof. John Faculty',
+      professor: 'Course coordinator',
       schedule: 'Wednesday, 1:00 pm – 4:00 pm (COMLAB 2)',
     },
   },
@@ -576,11 +576,11 @@ export function getCourseOfferingMeta(courseCode) {
   return {
     classNumber: String(n),
     lecture: {
-      professor: 'Prof. John Faculty',
+      professor: 'Course coordinator',
       schedule: 'Monday / Wednesday, 8:00 am – 10:00 am (Room 201)',
     },
     lab: {
-      professor: 'Prof. John Faculty',
+      professor: 'Course coordinator',
       schedule: 'Tuesday / Thursday, 1:00 pm – 4:00 pm (COMLAB 2)',
     },
   };

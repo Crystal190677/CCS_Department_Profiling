@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use App\Models\StudentInterestDeclaration;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,7 +13,7 @@ class InterestDeclarationsController extends Controller
 {
     /**
      * List interest declarations.
-     * Officers: 403. Student: own only. Faculty/Admin: all, optional user_id and activity_id filters.
+     * Officers: 403. Student: own only. Admin: all, optional user_id and activity_id filters.
      */
     public function index(Request $request): JsonResponse
     {
@@ -30,13 +31,15 @@ class InterestDeclarationsController extends Controller
 
         if ($authUser->role === 'STUDENT') {
             $query->where('user_id', $authUser->id);
-        } else {
+        } elseif ($authUser->role === 'ADMIN') {
             if ($request->filled('user_id')) {
                 $query->where('user_id', (int) $request->input('user_id'));
             }
             if ($request->filled('activity_id')) {
                 $query->where('activity_id', (int) $request->input('activity_id'));
             }
+        } else {
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
         $perPage = (int) $request->input('per_page', 50);
@@ -54,19 +57,31 @@ class InterestDeclarationsController extends Controller
     public function store(Request $request): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'STUDENT') {
-            return response()->json(['success' => false, 'message' => 'Only students can add interest declarations'], 403);
+        if (!$authUser) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
         }
 
         $request->validate([
             'activity_id' => 'required|exists:activities,id',
             'note' => 'nullable|string|max:500',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
+        $targetUserId = $authUser->id;
+        if ($authUser->role === 'ADMIN' && $request->filled('user_id')) {
+            $u = User::find((int) $request->input('user_id'));
+            if (!$u || !in_array($u->role, ['STUDENT', 'OFFICER'], true)) {
+                return response()->json(['success' => false, 'message' => 'Invalid target user'], 422);
+            }
+            $targetUserId = $u->id;
+        } elseif ($authUser->role !== 'STUDENT') {
+            return response()->json(['success' => false, 'message' => 'Only students can add interest declarations'], 403);
+        }
+
         $activityId = (int) $request->input('activity_id');
-        $existing = StudentInterestDeclaration::where('user_id', $authUser->id)->where('activity_id', $activityId)->first();
+        $existing = StudentInterestDeclaration::where('user_id', $targetUserId)->where('activity_id', $activityId)->first();
         if ($existing) {
-            return response()->json(['success' => false, 'message' => 'You already declared interest in this activity'], 422);
+            return response()->json(['success' => false, 'message' => 'Interest already recorded for this activity'], 422);
         }
 
         $activity = Activity::find($activityId);
@@ -75,7 +90,7 @@ class InterestDeclarationsController extends Controller
         }
 
         $declaration = StudentInterestDeclaration::create([
-            'user_id' => $authUser->id,
+            'user_id' => $targetUserId,
             'activity_id' => $activityId,
             'note' => $request->input('note'),
         ]);
@@ -93,12 +108,16 @@ class InterestDeclarationsController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'STUDENT') {
-            return response()->json(['success' => false, 'message' => 'Only students can update their interest declarations'], 403);
+        if (!$authUser) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
         }
 
         $declaration = StudentInterestDeclaration::findOrFail($id);
-        if ($declaration->user_id !== $authUser->id) {
+        if ($authUser->role === 'ADMIN') {
+            // Admin may update any declaration (e.g. note).
+        } elseif ($authUser->role === 'STUDENT' && $declaration->user_id === $authUser->id) {
+            // Own declaration.
+        } else {
             return response()->json(['success' => false, 'message' => 'You can only update your own declarations'], 403);
         }
 
@@ -121,12 +140,18 @@ class InterestDeclarationsController extends Controller
     public function destroy(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'STUDENT') {
-            return response()->json(['success' => false, 'message' => 'Only students can retract their interest declarations'], 403);
+        if (!$authUser) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
         }
 
         $declaration = StudentInterestDeclaration::findOrFail($id);
-        if ($declaration->user_id !== $authUser->id) {
+        if ($authUser->role === 'ADMIN') {
+            $declaration->delete();
+
+            return response()->json(['success' => true, 'message' => 'Interest removed']);
+        }
+
+        if ($authUser->role !== 'STUDENT' || $declaration->user_id !== $authUser->id) {
             return response()->json(['success' => false, 'message' => 'You can only retract your own declarations'], 403);
         }
 

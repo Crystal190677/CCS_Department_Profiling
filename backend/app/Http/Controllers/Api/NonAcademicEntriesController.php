@@ -54,29 +54,40 @@ class NonAcademicEntriesController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
         }
 
-        if ($authUser->role !== 'STUDENT' && $authUser->role !== 'OFFICER') {
-            return response()->json(['success' => false, 'message' => 'Only students or officers can submit non-academic entries'], 403);
-        }
-
         $request->validate([
             'type' => 'required|string|in:past_activity,award,leadership',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'proof' => 'nullable|file|max:5120|mimes:pdf,jpg,jpeg,png',
+            'user_id' => 'nullable|exists:users,id',
         ]);
+
+        $targetUserId = $authUser->id;
+        if ($authUser->role === 'ADMIN' && $request->filled('user_id')) {
+            $u = User::find((int) $request->input('user_id'));
+            if (!$u || !in_array($u->role, ['STUDENT', 'OFFICER'], true)) {
+                return response()->json(['success' => false, 'message' => 'Invalid target user'], 422);
+            }
+            $targetUserId = $u->id;
+        } elseif ($authUser->role !== 'STUDENT' && $authUser->role !== 'OFFICER') {
+            return response()->json(['success' => false, 'message' => 'Only students or officers can submit non-academic entries'], 403);
+        }
 
         $proofPath = null;
         if ($request->hasFile('proof')) {
             $proofPath = $request->file('proof')->store('non-academic-proofs', 'public');
         }
 
+        $isAdminForOther = $authUser->role === 'ADMIN' && $targetUserId !== $authUser->id;
         $entry = StudentNonAcademicEntry::create([
-            'user_id' => $authUser->id,
+            'user_id' => $targetUserId,
             'type' => $request->input('type'),
             'title' => $request->input('title'),
             'description' => $request->input('description'),
             'proof_path' => $proofPath,
-            'status' => StudentNonAcademicEntry::STATUS_PENDING,
+            'status' => $isAdminForOther ? StudentNonAcademicEntry::STATUS_APPROVED : StudentNonAcademicEntry::STATUS_PENDING,
+            'approved_by' => $isAdminForOther ? $authUser->id : null,
+            'approved_at' => $isAdminForOther ? now() : null,
         ]);
 
         return response()->json([
@@ -117,6 +128,22 @@ class NonAcademicEntriesController extends Controller
             'message' => 'Entry updated',
             'data' => $entry->fresh(['user:id,name,student_number,email', 'approvedByUser:id,name']),
         ]);
+    }
+
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $authUser = $request->user();
+        if (!$authUser || $authUser->role !== 'ADMIN') {
+            return response()->json(['success' => false, 'message' => 'Only Admin can delete entries'], 403);
+        }
+
+        $entry = StudentNonAcademicEntry::findOrFail($id);
+        if ($entry->proof_path) {
+            Storage::disk('public')->delete($entry->proof_path);
+        }
+        $entry->delete();
+
+        return response()->json(['success' => true, 'message' => 'Entry deleted']);
     }
 
     public function approve(Request $request, int $id): JsonResponse
@@ -170,8 +197,8 @@ class NonAcademicEntriesController extends Controller
     public function flag(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'FACULTY') {
-            return response()->json(['success' => false, 'message' => 'Only Faculty can flag entries'], 403);
+        if (!$authUser || $authUser->role !== 'ADMIN') {
+            return response()->json(['success' => false, 'message' => 'Only Admin can flag entries'], 403);
         }
 
         $entry = StudentNonAcademicEntry::findOrFail($id);
@@ -190,8 +217,8 @@ class NonAcademicEntriesController extends Controller
     public function endorse(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'FACULTY') {
-            return response()->json(['success' => false, 'message' => 'Only Faculty can endorse entries'], 403);
+        if (!$authUser || $authUser->role !== 'ADMIN') {
+            return response()->json(['success' => false, 'message' => 'Only Admin can endorse entries'], 403);
         }
 
         $entry = StudentNonAcademicEntry::findOrFail($id);

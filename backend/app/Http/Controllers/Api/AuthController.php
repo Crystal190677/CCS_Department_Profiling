@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    private const ROLES = ['ADMIN', 'FACULTY', 'OFFICER', 'STUDENT'];
+    private const ROLES = ['ADMIN', 'OFFICER', 'STUDENT'];
 
     public function login(Request $request): JsonResponse
     {

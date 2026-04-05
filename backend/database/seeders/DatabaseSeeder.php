@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
 
         $users = [
             ['name' => 'System Admin', 'email' => 'admin@ccs.edu', 'student_number' => null, 'role' => 'ADMIN'],
-            ['name' => 'John Faculty', 'email' => 'faculty@ccs.edu', 'student_number' => null, 'role' => 'FACULTY', 'is_sports_faculty' => true],
             ['name' => 'Jane Officer', 'email' => 'officer@ccs.edu', 'student_number' => 'OFC001', 'role' => 'OFFICER'],
             ['name' => 'Alex Student', 'email' => 'student@ccs.edu', 'student_number' => '1', 'role' => 'STUDENT'],
         ];
@@ -49,7 +48,7 @@ class DatabaseSeeder extends Seeder
                         'section' => 'A',
                         'academic_standing' => 'Regular',
                         'sports_interests' => ['basketball', 'volleyball'],
-                        'activity_interests' => ['hackathon', 'chess'],
+                        'activity_interests' => ['programming', 'basketball'],
                     ]
                 );
 
@@ -68,10 +67,15 @@ class DatabaseSeeder extends Seeder
         }
 
         $activities = [
-            ['name' => 'Basketball', 'type' => 'sport', 'criteria' => ['min_height' => 160]],
+            ['name' => 'Programming', 'type' => 'activity', 'criteria' => []],
+            ['name' => 'Mr. and Ms. Sportsfest', 'type' => 'event', 'criteria' => []],
+            ['name' => 'Cheerdance', 'type' => 'sport', 'criteria' => []],
+            ['name' => 'Basketball', 'type' => 'sport', 'criteria' => []],
             ['name' => 'Volleyball', 'type' => 'sport', 'criteria' => []],
-            ['name' => 'Hackathon 2026', 'type' => 'activity', 'criteria' => []],
-            ['name' => 'Chess Club', 'type' => 'activity', 'criteria' => []],
+            ['name' => 'Badminton', 'type' => 'sport', 'criteria' => []],
+            ['name' => 'Table Tennis', 'type' => 'sport', 'criteria' => []],
+            ['name' => 'Track and Field', 'type' => 'sport', 'criteria' => []],
+            ['name' => 'Mobile Competition', 'type' => 'activity', 'criteria' => []],
         ];
 
         foreach ($activities as $data) {
@@ -87,8 +91,8 @@ class DatabaseSeeder extends Seeder
                 ['created', 'Student: Alex Student (#1)', now()->subDays(3)],
                 ['updated', 'Student/officer role → OFFICER: Jane Officer (#OFC001)', now()->subDays(2)],
                 ['deleted', 'Student: Archived record (#9999)', now()->subDay()],
-                ['created', 'Faculty account: John Faculty (faculty@ccs.edu)', now()->subHours(20)],
-                ['updated', 'Announcement: Upcoming Hackathon 2026', now()->subHours(6)],
+                ['created', 'Merchandise catalog seeded', now()->subHours(20)],
+                ['updated', 'Announcement: Intramurals & sportsfest schedule', now()->subHours(6)],
             ];
             foreach ($samples as [$action, $target, $at]) {
                 AuditLog::query()->insert([
@@ -101,13 +105,12 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $facultyUser = User::where('email', 'faculty@ccs.edu')->first();
-        if ($facultyUser) {
+        if ($adminUser) {
             Announcement::updateOrCreate(
-                ['title' => 'Upcoming Hackathon 2026'],
+                ['title' => 'Intramurals & Mr. and Ms. Sportsfest'],
                 [
-                    'user_id' => $facultyUser->id,
-                    'content' => 'Join us for the annual CCS Hackathon on March 20-21, 2026. Prizes and registration details will be posted soon.',
+                    'user_id' => $adminUser->id,
+                    'content' => 'Stay tuned for Cheerdance, team sports (Basketball, Volleyball, Badminton, Table Tennis, Track and Field), and the Mr. and Ms. Sportsfest. Registration opens through the student portal.',
                     'tag' => 'event',
                     'image_path' => null,
                 ]

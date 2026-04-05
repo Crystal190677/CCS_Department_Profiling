@@ -144,8 +144,8 @@ class SkillEntriesController extends Controller
     public function endorse(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'FACULTY') {
-            return response()->json(['success' => false, 'message' => 'Only Faculty can endorse skills'], 403);
+        if (!$authUser || $authUser->role !== 'ADMIN') {
+            return response()->json(['success' => false, 'message' => 'Only Admin can endorse skills'], 403);
         }
 
         $entry = StudentSkillEntry::findOrFail($id);
@@ -166,8 +166,8 @@ class SkillEntriesController extends Controller
     public function dispute(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'FACULTY') {
-            return response()->json(['success' => false, 'message' => 'Only Faculty can dispute skills'], 403);
+        if (!$authUser || $authUser->role !== 'ADMIN') {
+            return response()->json(['success' => false, 'message' => 'Only Admin can dispute skills'], 403);
         }
 
         $entry = StudentSkillEntry::findOrFail($id);

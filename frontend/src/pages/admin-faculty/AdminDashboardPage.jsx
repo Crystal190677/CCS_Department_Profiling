@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CountUp from 'react-countup';
-import { GraduationCap, School, Shield, TriangleAlert } from 'lucide-react';
+import { GraduationCap, Shield, TriangleAlert } from 'lucide-react';
 import './AdminDashboardPage.css';
 import '../students/DashboardPage.css';
 
@@ -21,13 +21,6 @@ const CARDS = [
     icon: GraduationCap,
     cardClass: 'adm-card-students',
     iconWrapClass: 'adm-icon-students',
-  },
-  {
-    key: 'faculty',
-    label: 'Total Faculty',
-    icon: School,
-    cardClass: 'adm-card-faculty',
-    iconWrapClass: 'adm-icon-faculty',
   },
   {
     key: 'officers',
@@ -81,7 +74,7 @@ export default function AdminDashboardPage() {
       return;
     }
     const u = JSON.parse(raw);
-    if (u.role !== 'ADMIN' && u.role !== 'FACULTY') {
+    if (u.role !== 'ADMIN') {
       navigate('/dashboard');
       return;
     }

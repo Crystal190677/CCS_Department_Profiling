@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\AdminStatsController;
 use App\Http\Controllers\Api\AnnouncementsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CcsCourseWorkspaceController;
-use App\Http\Controllers\Api\FacultyAccountsController;
 use App\Http\Controllers\Api\ConductEntriesController;
 use App\Http\Controllers\Api\EnrollmentsController;
 use App\Http\Controllers\Api\InterestDeclarationsController;
@@ -31,8 +30,6 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('faculty-accounts', [FacultyAccountsController::class, 'store']);
-
     Route::get('announcements', [AnnouncementsController::class, 'index']);
 
     Route::get('profile', [ProfileController::class, 'show']);
@@ -55,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('non-academic-entries', [NonAcademicEntriesController::class, 'index']);
     Route::post('non-academic-entries', [NonAcademicEntriesController::class, 'store']);
     Route::put('non-academic-entries/{id}', [NonAcademicEntriesController::class, 'update']);
+    Route::delete('non-academic-entries/{id}', [NonAcademicEntriesController::class, 'destroy']);
     Route::patch('non-academic-entries/{id}/approve', [NonAcademicEntriesController::class, 'approve']);
     Route::patch('non-academic-entries/{id}/reject', [NonAcademicEntriesController::class, 'reject']);
     Route::patch('non-academic-entries/{id}/flag', [NonAcademicEntriesController::class, 'flag']);
@@ -102,6 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('students/{id}/role', [StudentsController::class, 'updateRole']);
         Route::delete('students/{id}', [StudentsController::class, 'destroy']);
         Route::get('students/{id}/full-profile', [StudentsController::class, 'showFullProfile']);
+        Route::patch('students/{id}/account', [StudentsController::class, 'updateAccount']);
         Route::post('students/enroll', [StudentsController::class, 'enroll']);
         Route::get('activities/{activityId}/rank-overrides', [QualificationRankOverridesController::class, 'index']);
         Route::post('activities/{activityId}/rank-overrides', [QualificationRankOverridesController::class, 'store']);

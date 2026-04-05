@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 class UsersController extends Controller
 {
     /**
-     * Admin-only: update a user (e.g. set is_sports_faculty for PE/sports coordinators).
+     * Admin-only: update a user (e.g. profile flags).
      */
     public function update(Request $request, int $id): JsonResponse
     {

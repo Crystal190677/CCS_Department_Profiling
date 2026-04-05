@@ -33,12 +33,12 @@ export default function AnnouncementsPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const canPost = user && (user.role === 'ADMIN' || user.role === 'FACULTY' || user.role === 'OFFICER');
+  const canPost = user && (user.role === 'ADMIN' || user.role === 'OFFICER');
   const isOfficer = user?.role === 'OFFICER';
 
   const canMutateAnn = (ann) => {
     if (!canPost || !user) return false;
-    if (user.role === 'ADMIN' || user.role === 'FACULTY') return true;
+    if (user.role === 'ADMIN') return true;
     if (user.role === 'OFFICER') {
       const authorId = ann.user_id ?? ann.author?.id;
       return authorId != null && Number(authorId) === Number(user.id);
@@ -199,7 +199,7 @@ export default function AnnouncementsPage() {
           <h1 className="ccs-gradient-hero-title">Announcements</h1>
           <p className="ccs-gradient-hero-subtitle">
             {isOfficer
-              ? 'Share updates with the whole CCS community. Posts appear on student, faculty, and admin dashboards.'
+              ? 'Share updates with the whole CCS community. Posts appear on student and admin dashboards.'
               : `Official updates from CCS.${canPost && !isOfficer ? ' You can post and attach JPEG or PNG images.' : ''}`}
           </p>
         </div>

@@ -52,14 +52,6 @@ function Icon({ name, className }) {
       </svg>
     );
   }
-  if (name === 'school') {
-    return (
-      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-        <path d="M6 12v5c3 3 9 3 12 0v-5" />
-      </svg>
-    );
-  }
   return null;
 }
 
@@ -144,7 +136,19 @@ export default function AdminFacultyLayout() {
 
   useEffect(() => {
     const token = localStorage.getItem('ccs_token');
-    if (!token) navigate('/login');
+    const raw = localStorage.getItem('ccs_user');
+    if (!token || !raw) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const u = JSON.parse(raw);
+      if (u.role !== 'ADMIN') {
+        navigate('/dashboard');
+      }
+    } catch {
+      navigate('/login');
+    }
   }, [navigate]);
 
   const handleLogout = () => {
@@ -265,22 +269,6 @@ export default function AdminFacultyLayout() {
               </button>
             );
           })}
-          {user.role === 'ADMIN' ? (
-            <>
-              <span className="admin-sidebar-section-label">Account management</span>
-              <button
-                type="button"
-                className={`sidebar-item ${location.pathname === '/admin-dashboard/create-faculty' ? 'active' : ''}`}
-                onClick={() => navigate('/admin-dashboard/create-faculty')}
-              >
-                <Icon
-                  name="school"
-                  className={location.pathname === '/admin-dashboard/create-faculty' ? 'active' : ''}
-                />
-                <span>Create faculty</span>
-              </button>
-            </>
-          ) : null}
         </nav>
       </aside>
       <main className="dashboard-content">

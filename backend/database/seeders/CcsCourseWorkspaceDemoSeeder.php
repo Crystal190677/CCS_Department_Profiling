@@ -21,8 +21,8 @@ class CcsCourseWorkspaceDemoSeeder extends Seeder
 
     public function run(): void
     {
-        $faculty = User::query()->where('email', 'faculty@ccs.edu')->first();
-        $profName = $faculty?->name ?? 'Prof. John Faculty';
+        $coordinator = User::query()->where('email', 'admin@ccs.edu')->first();
+        $profName = $coordinator?->name ?? 'Course coordinator';
 
         $student = User::query()->where('email', 'student@ccs.edu')->first();
         $officer = User::query()->where('email', 'officer@ccs.edu')->first();

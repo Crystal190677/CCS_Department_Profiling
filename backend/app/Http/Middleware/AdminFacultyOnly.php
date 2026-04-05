@@ -11,10 +11,10 @@ class AdminFacultyOnly
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        if (!$user || !in_array($user->role, ['ADMIN', 'FACULTY'])) {
+        if (!$user || $user->role !== 'ADMIN') {
             return response()->json([
                 'success' => false,
-                'message' => 'Access denied. Admin or Faculty role required.',
+                'message' => 'Access denied. Admin role required.',
             ], 403);
         }
 

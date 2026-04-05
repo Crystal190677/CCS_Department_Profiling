@@ -5,7 +5,6 @@ import './LoginPage.css';
 const ROLE_OPTIONS = [
   { value: 'ADMIN', label: 'Admin' },
   { value: 'OFFICER', label: 'Officer' },
-  { value: 'FACULTY', label: 'Faculty' },
   { value: 'STUDENT', label: 'Student' },
 ];
 
@@ -93,7 +92,7 @@ export default function LoginPage() {
       localStorage.setItem('ccs_token', data.data.token);
       localStorage.setItem('ccs_user', JSON.stringify(data.data.user));
       const role = data.data.user.role;
-      if (role === 'ADMIN' || role === 'FACULTY') navigate('/admin-dashboard');
+      if (role === 'ADMIN') navigate('/admin-dashboard');
       else navigate('/dashboard');
     } catch {
       setError('Unable to connect. Please ensure the backend is running.');
@@ -251,7 +250,7 @@ export default function LoginPage() {
           </form>
 
           <p className="od-login-demo">
-            Demo: admin@ccs.edu / faculty@ccs.edu — Student #1 / Officer #OFC001 — password123
+            Demo: admin@ccs.edu — Student #1 / Officer #OFC001 — password123
           </p>
           {(form.role === 'STUDENT' || form.role === 'OFFICER') && (
             <p className="od-signup">

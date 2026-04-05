@@ -1456,3 +1456,809 @@
   padding-top: 0.5rem;
   border-top: 1px solid var(--ccs-border);
 }
+
+/* —— Talent Directory (browse) —— */
+.student-profiling-dashboard--talent {
+  max-width: min(100%, 1320px);
+}
+
+.spd-talent-main-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.15rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 10px;
+}
+
+.spd-talent-main-tab {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--ccs-text-muted);
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.spd-talent-main-tab:hover {
+  color: var(--ccs-text);
+  background: rgba(234, 88, 12, 0.08);
+}
+
+.spd-talent-main-tab--active {
+  color: var(--ccs-text);
+  background: rgba(234, 88, 12, 0.16);
+  box-shadow: 0 0 0 1px rgba(234, 88, 12, 0.25);
+}
+
+.spd-tp-wrap {
+  margin-bottom: 2rem;
+}
+
+.spd-tp-intro {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0 0 1rem;
+  max-width: 48rem;
+}
+
+.spd-tp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.spd-tp-filter-chip {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  background: var(--ccs-bg-card);
+  color: var(--ccs-text);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.spd-tp-filter-chip:hover {
+  border-color: #ea580c;
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.spd-tp-filter-chip--active {
+  border-color: #ea580c;
+  background: rgba(249, 115, 22, 0.18);
+  color: #9a3412;
+}
+
+[data-theme='dark'] .spd-tp-filter-chip--active {
+  color: #fdba74;
+}
+
+.spd-tp-empty {
+  color: var(--ccs-text-muted);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.spd-tp-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 1rem;
+}
+
+.spd-tp-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.1rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(234, 88, 12, 0.05);
+}
+
+.spd-tp-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.spd-tp-card-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.spd-tp-card-name {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ccs-text);
+  line-height: 1.3;
+}
+
+.spd-tp-card-meta {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+}
+
+.spd-tp-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.spd-tp-strength {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.spd-tp-strength--academic {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.spd-tp-strength--athletic {
+  background: rgba(234, 88, 12, 0.12);
+  color: #c2410c;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+}
+
+.spd-tp-strength--talented {
+  background: rgba(147, 51, 234, 0.12);
+  color: #6b21a8;
+  border: 1px solid rgba(147, 51, 234, 0.35);
+}
+
+[data-theme='dark'] .spd-tp-strength--academic {
+  color: #93c5fd;
+}
+
+[data-theme='dark'] .spd-tp-strength--athletic {
+  color: #fdba74;
+}
+
+[data-theme='dark'] .spd-tp-strength--talented {
+  color: #e9d5ff;
+}
+
+.spd-tp-rec {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ccs-text);
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(234, 88, 12, 0.08);
+  border: 1px dashed rgba(234, 88, 12, 0.35);
+}
+
+.spd-tp-view-profile {
+  margin-top: auto;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, #ea580c, #f97316);
+}
+
+.spd-tp-view-profile:hover {
+  filter: brightness(1.05);
+}
+
+.spd-talent-shell {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid rgba(234, 88, 12, 0.22);
+  border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(234, 88, 12, 0.06);
+}
+
+.spd-talent-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+}
+
+.spd-talent-row--filters {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ccs-border);
+  align-items: flex-end;
+}
+
+.spd-talent-search {
+  flex: 1 1 220px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--ccs-border);
+  border-radius: 10px;
+  background: var(--ccs-bg);
+}
+
+.spd-talent-search-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--ccs-text-muted);
+  flex-shrink: 0;
+}
+
+.spd-talent-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--ccs-text);
+}
+
+.spd-talent-search-input:focus {
+  outline: none;
+}
+
+.spd-talent-activity-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 11rem;
+}
+
+.spd-talent-inline-label,
+.spd-talent-filter-field label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ccs-text-muted);
+}
+
+.spd-talent-select {
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg-card);
+  color: var(--ccs-text);
+  font-size: 0.875rem;
+}
+
+.spd-talent-search-submit {
+  padding: 0.5rem 1.1rem;
+  border: none;
+  border-radius: 9px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, #ea580c, #f97316);
+}
+
+.spd-talent-search-submit:hover {
+  filter: brightness(1.05);
+}
+
+.spd-talent-layout-toggle {
+  display: inline-flex;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  border-radius: 9px;
+  overflow: hidden;
+  margin-left: auto;
+}
+
+.spd-talent-layout-btn {
+  padding: 0.45rem 0.85rem;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ccs-text-muted);
+  cursor: pointer;
+}
+
+.spd-talent-layout-btn--active {
+  background: rgba(234, 88, 12, 0.15);
+  color: #c2410c;
+}
+
+[data-theme='dark'] .spd-talent-layout-btn--active {
+  color: #fdba74;
+}
+
+.spd-talent-filter-field {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.spd-talent-filter-field--narrow {
+  flex: 0 1 140px;
+}
+
+.spd-talent-filter-input {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--ccs-border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.875rem;
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+}
+
+.spd-talent-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 100%;
+}
+
+@media (min-width: 900px) {
+  .spd-talent-quick {
+    flex: 0 1 auto;
+    margin-left: auto;
+  }
+}
+
+.spd-talent-quick-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ccs-text-muted);
+  margin-right: 0.15rem;
+}
+
+.spd-talent-chip {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(234, 88, 12, 0.45);
+  background: rgba(249, 115, 22, 0.1);
+  color: #c2410c;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.spd-talent-chip:hover {
+  background: rgba(249, 115, 22, 0.18);
+}
+
+.spd-talent-chip--ghost {
+  border-color: var(--ccs-border);
+  background: transparent;
+  color: var(--ccs-text-muted);
+  font-weight: 500;
+}
+
+.spd-talent-chip--ghost:hover {
+  background: var(--ccs-bg);
+}
+
+[data-theme='dark'] .spd-talent-chip {
+  color: #fdba74;
+}
+
+.spd-talent-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--ccs-text-muted);
+}
+
+.spd-talent-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.spd-talent-card {
+  padding: 1rem 1.1rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 12px;
+  border-left: 3px solid #ea580c;
+}
+
+.spd-talent-card-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.spd-talent-card-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.spd-talent-card-name {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ccs-text);
+}
+
+.spd-talent-card-line {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+  line-height: 1.45;
+}
+
+.spd-talent-view-profile {
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, #ea580c, #f97316);
+  white-space: nowrap;
+}
+
+.spd-talent-view-profile--table {
+  width: 100%;
+  max-width: 9rem;
+}
+
+.spd-talent-view-profile:hover {
+  filter: brightness(1.05);
+}
+
+.spd-talent-card-skills {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.spd-talent-no-skills {
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+}
+
+.spd-talent-skill-tag {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  color: var(--ccs-text);
+  background: rgba(249, 115, 22, 0.06);
+}
+
+.spd-talent-skill-tag--match {
+  background: rgba(249, 115, 22, 0.22);
+  border-color: #ea580c;
+  color: #9a3412;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .spd-talent-skill-tag--match {
+  color: #fdba74;
+}
+
+.spd-talent-skill-tags--inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.spd-talent-table-wrap {
+  margin-top: 0.25rem;
+}
+
+.spd-talent-table th {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ccs-text-muted);
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
+}
+
+.spd-talent-th-action {
+  min-width: 10.5rem;
+  width: 11.5rem;
+}
+
+.spd-talent-tr td {
+  vertical-align: middle;
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
+
+.spd-talent-td-student {
+  min-width: 10rem;
+}
+
+.spd-talent-td-student strong {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.spd-talent-email {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ccs-text-muted);
+}
+
+.spd-talent-td-skills {
+  max-width: 28rem;
+}
+
+.spd-talent-td-action {
+  text-align: right;
+  width: 1%;
+}
+
+.spd-talent-action-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: stretch;
+}
+
+.spd-talent-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+@media (min-width: 540px) {
+  .spd-talent-card-actions {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.spd-talent-assign-btn {
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(234, 88, 12, 0.55);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  color: #c2410c;
+  background: transparent;
+  white-space: nowrap;
+}
+
+.spd-talent-assign-btn:hover {
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.spd-talent-assign-btn--table {
+  width: 100%;
+  max-width: 9rem;
+}
+
+[data-theme='dark'] .spd-talent-assign-btn {
+  color: #fdba74;
+  border-color: rgba(251, 146, 60, 0.45);
+}
+
+.spd-talent-enroll-tag {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  border: 1px solid rgba(14, 116, 144, 0.45);
+  color: var(--ccs-text);
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.spd-talent-enroll-tag--match {
+  background: rgba(14, 165, 233, 0.2);
+  border-color: #0891b2;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .spd-talent-enroll-tag--match {
+  color: #a5f3fc;
+}
+
+.spd-talent-activity-manage {
+  margin-bottom: 1.5rem;
+  padding: 0.85rem 1rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 10px;
+}
+
+.spd-talent-activity-manage-summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ccs-text);
+}
+
+.spd-talent-activity-manage-desc {
+  margin-top: 0.75rem;
+}
+
+.spd-modal-assign-activity {
+  max-width: 420px;
+  width: calc(100% - 2rem);
+}
+
+/* Class List — delete student confirmation & success toast (orange theme) */
+.spd-student-delete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  animation: spd-student-delete-fade 0.2s ease;
+}
+
+@keyframes spd-student-delete-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.spd-student-delete-dialog {
+  width: 100%;
+  max-width: 26rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 14px;
+  padding: 1.35rem 1.4rem 1.25rem;
+  box-shadow:
+    0 4px 6px rgba(234, 88, 12, 0.08),
+    0 20px 50px rgba(15, 23, 42, 0.18);
+  animation: spd-student-delete-pop 0.22s ease;
+}
+
+@keyframes spd-student-delete-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.spd-student-delete-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ccs-accent, #ea580c);
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.spd-student-delete-message {
+  margin: 0 0 1.35rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ccs-text-muted);
+  text-align: center;
+}
+
+.spd-student-delete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: center;
+}
+
+.spd-student-delete-btn {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 9px;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.12s;
+}
+
+.spd-student-delete-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.spd-student-delete-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.spd-student-delete-btn--secondary {
+  background: var(--ccs-bg);
+  border-color: var(--ccs-border);
+  color: var(--ccs-text);
+}
+
+.spd-student-delete-btn--secondary:hover:not(:disabled) {
+  border-color: rgba(234, 88, 12, 0.35);
+  color: var(--ccs-accent, #ea580c);
+}
+
+.spd-student-delete-btn--delete {
+  background: linear-gradient(135deg, #c2410c, #ea580c);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 10px rgba(234, 88, 12, 0.4);
+}
+
+.spd-student-delete-btn--delete:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.spd-student-delete-toast {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4100;
+  min-width: min(20rem, calc(100vw - 2rem));
+  padding: 1rem 1.35rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ea580c, #f97316);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow:
+    0 4px 14px rgba(234, 88, 12, 0.45),
+    0 12px 40px rgba(15, 23, 42, 0.2);
+  pointer-events: none;
+  animation: spd-student-delete-toast-in 0.28s ease;
+}
+
+@keyframes spd-student-delete-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.spd-student-delete-toast-text {
+  display: block;
+  line-height: 1.4;
+}

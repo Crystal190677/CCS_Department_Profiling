@@ -21,7 +21,7 @@ class MerchandiseOrdersController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
         }
 
-        if (in_array($user->role, ['ADMIN', 'FACULTY', 'OFFICER'])) {
+        if (in_array($user->role, ['ADMIN', 'OFFICER'], true)) {
             $query = MerchandiseOrder::with(['user:id,name,email,student_number', 'merchandise', 'confirmedByUser:id,name']);
             if ($request->filled('merchandise_id')) {
                 $query->where('merchandise_id', $request->input('merchandise_id'));

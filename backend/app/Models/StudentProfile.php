@@ -13,7 +13,7 @@ class StudentProfile extends Model
 
     public const ACADEMIC_STANDING_ON_HOLD = 'On hold';
 
-    /** Physical data fields (sensitive); restricted for Officers and non-sports Faculty. */
+    /** Physical data fields (sensitive); restricted for Officers in shared student lists. */
     public const PHYSICAL_FIELDS = ['height_cm', 'weight_kg', 'dominant_hand', 'preferred_position'];
 
     protected $fillable = [
@@ -30,6 +30,8 @@ class StudentProfile extends Model
         'gpa_per_semester',
         'academic_standing',
         'section',
+        'address',
+        'birthdate',
         'failed_units',
         'incomplete_grades',
         'enrolled_units',
@@ -49,6 +51,7 @@ class StudentProfile extends Model
         'activity_interests' => 'array',
         'membership_card_availed_at' => 'datetime',
         'academic_semester' => 'integer',
+        'birthdate' => 'date',
     ];
 
     public function user(): BelongsTo

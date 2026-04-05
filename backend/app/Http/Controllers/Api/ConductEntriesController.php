@@ -11,7 +11,7 @@ class ConductEntriesController extends Controller
 {
     /**
      * List conduct entries.
-     * Officers: 403. Student: own only. Faculty: require user_id (that student's). Admin: all or filter by user_id.
+     * Officers: 403. Student: own only. Admin: all or filter by user_id.
      */
     public function index(Request $request): JsonResponse
     {
@@ -30,16 +30,12 @@ class ConductEntriesController extends Controller
 
         if ($authUser->role === 'STUDENT') {
             $query->where('user_id', $authUser->id);
-        } elseif ($authUser->role === 'FACULTY') {
-            if (!$request->filled('user_id')) {
-                return response()->json(['success' => false, 'message' => 'Faculty must specify user_id to view conduct'], 400);
-            }
-            $query->where('user_id', (int) $request->input('user_id'));
-        } else {
-            // Admin: optional user_id filter
+        } elseif ($authUser->role === 'ADMIN') {
             if ($request->filled('user_id')) {
                 $query->where('user_id', (int) $request->input('user_id'));
             }
+        } else {
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
         $perPage = (int) $request->input('per_page', 20);
