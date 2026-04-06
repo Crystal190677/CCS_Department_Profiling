@@ -1202,10 +1202,6 @@ export default function StudentProfilingDashboard() {
     setError('');
     try {
       const payload = {
-        ...profileForm,
-        photo_url: profileForm.photo_url?.trim() || null,
-        height_cm: profileForm.height_cm !== '' ? parseFloat(profileForm.height_cm) : null,
-        weight_kg: profileForm.weight_kg !== '' ? parseFloat(profileForm.weight_kg) : null,
         course: profileForm.course || null,
         year_level: profileForm.year_level || null,
         academic_semester:
@@ -1218,10 +1214,6 @@ export default function StudentProfilingDashboard() {
         failed_units: profileForm.failed_units !== '' ? parseInt(profileForm.failed_units, 10) : null,
         incomplete_grades: profileForm.incomplete_grades !== '' ? parseInt(profileForm.incomplete_grades, 10) : null,
         enrolled_units: profileForm.enrolled_units !== '' ? parseInt(profileForm.enrolled_units, 10) : null,
-        dominant_hand: profileForm.dominant_hand?.trim() || null,
-        preferred_position: profileForm.preferred_position?.trim() || null,
-        skills: profileForm.skills || null,
-        notes: profileForm.notes || null,
       };
       const res = await fetch(`/api/students/${editProfileStudent.id}/profile`, {
         method: 'PUT',
@@ -2554,12 +2546,11 @@ export default function StudentProfilingDashboard() {
               <button type="button" className="spd-modal-close" onClick={() => { setEditProfileStudent(null); setProfileForm(null); }} aria-label="Close">×</button>
             </div>
             <form onSubmit={handleSaveProfile} className="spd-modal-form">
+              <p className="spd-muted spd-modal-admin-hint">
+                Personal details (photo, physical data, interests, notes) are maintained by the student. You can update academic and placement fields below.
+              </p>
               <fieldset className="spd-modal-fieldset">
                 <legend>Academic data</legend>
-                <div className="spd-modal-row">
-                  <label>Photo URL (optional, shown on qualified list)</label>
-                  <input type="url" value={profileForm.photo_url} onChange={(e) => handleProfileFormChange('photo_url', e.target.value)} placeholder="https://…" />
-                </div>
                 <div className="spd-modal-row">
                   <label>Course / Program</label>
                   {editProfileStudent.student_profile?.course &&
@@ -2643,48 +2634,6 @@ export default function StudentProfilingDashboard() {
                     <label>Incomplete grades</label>
                     <input type="number" min="0" value={profileForm.incomplete_grades} onChange={(e) => handleProfileFormChange('incomplete_grades', e.target.value)} />
                   </div>
-                </div>
-              </fieldset>
-              <fieldset className="spd-modal-fieldset">
-                <legend>Other</legend>
-                <div className="spd-modal-row">
-                  <label>Height (cm)</label>
-                  <input type="number" step="0.01" value={profileForm.height_cm} onChange={(e) => handleProfileFormChange('height_cm', e.target.value)} />
-                </div>
-                <div className="spd-modal-row">
-                  <label>Weight (kg)</label>
-                  <input type="number" step="0.01" value={profileForm.weight_kg} onChange={(e) => handleProfileFormChange('weight_kg', e.target.value)} />
-                </div>
-                <div className="spd-modal-row">
-                  <label>Dominant hand</label>
-                  <select value={profileForm.dominant_hand} onChange={(e) => handleProfileFormChange('dominant_hand', e.target.value)}>
-                    <option value="">—</option>
-                    <option value="Right">Right</option>
-                    <option value="Left">Left</option>
-                    <option value="Ambidextrous">Ambidextrous</option>
-                  </select>
-                </div>
-                <div className="spd-modal-row">
-                  <label>Preferred position (sports)</label>
-                  <input value={profileForm.preferred_position} onChange={(e) => handleProfileFormChange('preferred_position', e.target.value)} placeholder="e.g. Point Guard" />
-                </div>
-                <div className="spd-modal-row">
-                  <label>Sports interests (comma-separated)</label>
-                  <input
-                    value={Array.isArray(profileForm.sports_interests) ? profileForm.sports_interests.join(', ') : (profileForm.sports_interests || '')}
-                    onChange={(e) => handleProfileFormChange('sports_interests', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
-                  />
-                </div>
-                <div className="spd-modal-row">
-                  <label>Activity interests (comma-separated)</label>
-                  <input
-                    value={Array.isArray(profileForm.activity_interests) ? profileForm.activity_interests.join(', ') : (profileForm.activity_interests || '')}
-                    onChange={(e) => handleProfileFormChange('activity_interests', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
-                  />
-                </div>
-                <div className="spd-modal-row">
-                  <label>Skills / Notes</label>
-                  <textarea value={profileForm.skills} onChange={(e) => handleProfileFormChange('skills', e.target.value)} rows={2} />
                 </div>
               </fieldset>
               <div className="spd-modal-actions">

@@ -81,13 +81,6 @@ function tagsToString(arr) {
   return arr.filter(Boolean).join(', ');
 }
 
-function stringToTags(s) {
-  return String(s || '')
-    .split(',')
-    .map((x) => x.trim())
-    .filter(Boolean);
-}
-
 function buildDraftFromData(data) {
   const prof = data?.student_profile || {};
   return {
@@ -335,34 +328,11 @@ export default function AdminStudentProfileViewPage() {
     };
 
     try {
-      const accRes = await fetch(`/api/students/${id}/account`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({
-          name: draft.user.name.trim(),
-          email: draft.user.email.trim(),
-          student_number: draft.user.student_number.trim() || null,
-          contact_number: draft.user.contact_number.trim() || null,
-          role: draft.user.role,
-        }),
-      });
-      const accJson = await accRes.json();
-      if (!accJson.success) {
-        fail(accJson.message || 'Could not save account');
-        return;
-      }
-
       const gpaPayload = draft.gpaRows
         .filter((r) => r.semester.trim() && r.gpa.trim() !== '')
         .map((r) => ({ semester: r.semester.trim(), gpa: parseFloat(r.gpa) }));
 
       const profileBody = {
-        photo_url: draft.profile.photo_url.trim() || null,
-        height_cm: draft.profile.height_cm === '' ? null : parseFloat(draft.profile.height_cm),
-        weight_kg: draft.profile.weight_kg === '' ? null : parseFloat(draft.profile.weight_kg),
-        dominant_hand: draft.profile.dominant_hand.trim() || null,
-        preferred_position: draft.profile.preferred_position.trim() || null,
-        notes: draft.profile.notes.trim() || null,
         course: draft.profile.course.trim() || null,
         year_level: draft.profile.year_level.trim() || null,
         section: draft.profile.section.trim() || null,
@@ -372,9 +342,6 @@ export default function AdminStudentProfileViewPage() {
         failed_units: draft.profile.failed_units === '' ? null : parseInt(draft.profile.failed_units, 10),
         incomplete_grades: draft.profile.incomplete_grades === '' ? null : parseInt(draft.profile.incomplete_grades, 10),
         enrolled_units: draft.profile.enrolled_units === '' ? null : parseInt(draft.profile.enrolled_units, 10),
-        skills: draft.profile.skills.trim() || null,
-        sports_interests: stringToTags(draft.sports_interests_str),
-        activity_interests: stringToTags(draft.activity_interests_str),
         gpa_per_semester: gpaPayload,
         membership_card_availed_at: draft.profile.membership_card_availed_at || null,
       };
@@ -388,15 +355,6 @@ export default function AdminStudentProfileViewPage() {
       if (!profJson.success) {
         fail(profJson.message || 'Could not save profile');
         return;
-      }
-
-      for (const rid of removed.interests) {
-        const r = await fetch(`/api/interest-declarations/${rid}`, { method: 'DELETE', headers });
-        const j = await r.json();
-        if (!j.success) {
-          fail(j.message || 'Could not remove an interest declaration');
-          return;
-        }
       }
 
       for (const rid of removed.nonAcademic) {
@@ -542,48 +500,6 @@ export default function AdminStudentProfileViewPage() {
         }
       }
 
-      const usedActivityIds = new Set(
-        draft.interests
-          .filter((r) => r.id != null && !removed.interests.includes(r.id))
-          .map((r) => Number(r.activity_id))
-          .filter((n) => !Number.isNaN(n))
-      );
-
-      for (const row of draft.interests) {
-        if (row.id != null && removed.interests.includes(row.id)) continue;
-        if (row.id != null) {
-          const r = await fetch(`/api/interest-declarations/${row.id}`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({ note: row.note.trim() || null }),
-          });
-          const j = await r.json();
-          if (!j.success) {
-            fail(j.message || 'Could not update interest declaration');
-            return;
-          }
-          continue;
-        }
-        const aid = Number(row.activity_id);
-        if (!row.activity_id || Number.isNaN(aid)) continue;
-        if (usedActivityIds.has(aid)) continue;
-        usedActivityIds.add(aid);
-        const r = await fetch('/api/interest-declarations', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            user_id: id,
-            activity_id: aid,
-            note: row.note.trim() || null,
-          }),
-        });
-        const j = await r.json();
-        if (!j.success) {
-          fail(j.message || 'Could not add interest declaration');
-          return;
-        }
-      }
-
       setEditMode(false);
       setDraft(null);
       setRemoved({ nonAcademic: [], conduct: [], skills: [], interests: [] });
@@ -629,6 +545,30 @@ export default function AdminStudentProfileViewPage() {
   );
 
   const renderPersonal = () => {
+    if (editMode && draft && isAdmin) {
+      return (
+        <section className="aspv-section" aria-labelledby="aspv-personal-heading">
+          <h2 id="aspv-personal-heading" className="aspv-section-title">
+            Personal Information
+          </h2>
+          <p className="aspv-hint aspv-hint--readonly">
+            View only. Name, email, student number, contact, photo, physical details, and notes are maintained by the student (or official records), not by administrators.
+          </p>
+          <div className="aspv-fields">
+            <DlRow label="Full name">{data.name}</DlRow>
+            <DlRow label="Email">{data.email}</DlRow>
+            <DlRow label="Student number">{data.student_number}</DlRow>
+            <DlRow label="Contact number">{data.contact_number}</DlRow>
+            <DlRow label="Role">{data.role}</DlRow>
+            <DlRow label="Height (cm)">{prof?.height_cm != null ? `${prof.height_cm}` : null}</DlRow>
+            <DlRow label="Weight (kg)">{prof?.weight_kg != null ? `${prof.weight_kg}` : null}</DlRow>
+            <DlRow label="Dominant hand">{prof?.dominant_hand}</DlRow>
+            <DlRow label="Preferred position">{prof?.preferred_position}</DlRow>
+            <DlRow label="Notes">{prof?.notes}</DlRow>
+          </div>
+        </section>
+      );
+    }
     if (editMode && draft) {
       return (
         <section className="aspv-section" aria-labelledby="aspv-personal-heading">
@@ -1506,8 +1446,13 @@ export default function AdminStudentProfileViewPage() {
                   Affiliations
                 </h2>
                 <p className="aspv-hint">Activities, declared interests, and sports / org preferences.</p>
+                {editMode && isAdmin ? (
+                  <p className="aspv-hint aspv-hint--readonly">
+                    Administrators cannot edit affiliation preferences or declared interests here; those are student-managed.
+                  </p>
+                ) : null}
 
-                {editMode && draft ? (
+                {editMode && draft && !isAdmin ? (
                   <>
                     <label className="aspv-field aspv-field--full">
                       <span className="aspv-field-label">Sports interests (comma-separated)</span>

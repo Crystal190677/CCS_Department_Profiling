@@ -196,6 +196,15 @@
   color: var(--ccs-text-muted);
 }
 
+.aspv-hint--readonly {
+  margin: -0.5rem 0 1rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  color: var(--ccs-text);
+}
+
 .aspv-fields {
   margin: 0;
   display: flex;

@@ -614,36 +614,20 @@ class StudentsController extends Controller
     }
 
     /**
-     * Admin: update core account fields for a student or officer record.
+     * Personal account fields (name, email, etc.) are not editable by administrators.
+     * Use student/officer self-service or official data processes. Student ↔ officer role may still be toggled via PATCH students/{id}/role.
      */
     public function updateAccount(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
         if (!$authUser || $authUser->role !== 'ADMIN') {
-            return response()->json(['success' => false, 'message' => 'Only Admin can update student account fields'], 403);
+            return response()->json(['success' => false, 'message' => 'Only Admin can access this route'], 403);
         }
-
-        $target = User::query()->find($id);
-        if (!$target || !in_array($target->role, ['STUDENT', 'OFFICER'], true)) {
-            return response()->json(['success' => false, 'message' => 'User not found or not a student/officer'], 404);
-        }
-
-        $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|max:255|unique:users,email,'.$target->id,
-            'student_number' => 'nullable|string|max:50|unique:users,student_number,'.$target->id,
-            'contact_number' => 'nullable|string|max:50',
-            'role' => 'sometimes|required|string|in:STUDENT,OFFICER',
-        ]);
-
-        $target->fill($request->only(['name', 'email', 'student_number', 'contact_number', 'role']));
-        $target->save();
 
         return response()->json([
-            'success' => true,
-            'message' => 'Account updated',
-            'data' => $target->fresh(),
-        ]);
+            'success' => false,
+            'message' => 'Administrators cannot change student personal account information (name, email, student number, contact). Students update their own profile; use role change on the profiling dashboard if needed.',
+        ], 403);
     }
 
 }

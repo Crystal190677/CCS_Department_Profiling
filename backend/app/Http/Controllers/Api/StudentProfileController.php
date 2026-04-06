@@ -105,12 +105,8 @@ class StudentProfileController extends Controller
             return response()->json(['success' => false, 'message' => 'User not found or not a student/officer'], 404);
         }
 
+        // Admins may update academic / placement / card records only — not personal identity, physical, or student-managed interests.
         $request->validate([
-            'photo_url' => 'nullable|string|max:2048',
-            'height_cm' => 'nullable|numeric|min:0',
-            'weight_kg' => 'nullable|numeric|min:0',
-            'dominant_hand' => 'nullable|string|max:50',
-            'preferred_position' => 'nullable|string|max:100',
             'course' => 'nullable|string|max:100',
             'year_level' => 'nullable|string|max:20',
             'academic_semester' => 'nullable|integer|in:1,2',
@@ -123,21 +119,12 @@ class StudentProfileController extends Controller
             'failed_units' => 'nullable|integer|min:0',
             'incomplete_grades' => 'nullable|integer|min:0',
             'enrolled_units' => 'nullable|integer|min:0',
-            'sports_interests' => 'nullable|array',
-            'sports_interests.*' => 'string|max:50',
-            'activity_interests' => 'nullable|array',
-            'activity_interests.*' => 'string|max:50',
-            'skills' => 'nullable|string',
-            'notes' => 'nullable|string',
             'membership_card_availed_at' => 'nullable|date',
         ]);
 
         $allowed = [
-            'photo_url',
-            'height_cm', 'weight_kg', 'dominant_hand', 'preferred_position',
             'course', 'year_level', 'academic_semester', 'current_gpa', 'gpa_per_semester',
             'academic_standing', 'section', 'failed_units', 'incomplete_grades', 'enrolled_units',
-            'sports_interests', 'activity_interests', 'skills', 'notes',
             'membership_card_availed_at',
         ];
 
