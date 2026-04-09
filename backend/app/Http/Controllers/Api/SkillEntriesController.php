@@ -17,10 +17,6 @@ class SkillEntriesController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
         }
 
-        if ($authUser->role === 'OFFICER') {
-            return response()->json(['success' => false, 'message' => 'Officers have no access to skills data'], 403);
-        }
-
         $query = StudentSkillEntry::with(['endorsedByUser:id,name', 'disputedByUser:id,name']);
 
         if ($request->filled('user_id')) {
@@ -63,13 +59,13 @@ class SkillEntriesController extends Controller
         ]);
 
         $userId = $authUser->id;
-        if ($authUser->role === 'ADMIN' && $request->filled('user_id')) {
+        if (in_array($authUser->role, ['ADMIN', 'OFFICER'], true) && $request->filled('user_id')) {
             $target = User::find($request->input('user_id'));
             if ($target && in_array($target->role, ['STUDENT', 'OFFICER'])) {
                 $userId = $target->id;
             }
-        } elseif ($authUser->role !== 'STUDENT') {
-            return response()->json(['success' => false, 'message' => 'Only students can self-submit skills, or Admin can add for a student'], 403);
+        } elseif (!in_array($authUser->role, ['STUDENT', 'OFFICER'], true)) {
+            return response()->json(['success' => false, 'message' => 'Only students or officers can self-submit skills, or Admin/Officer can add for a student'], 403);
         }
 
         $entry = StudentSkillEntry::create([
@@ -96,7 +92,7 @@ class SkillEntriesController extends Controller
 
         $entry = StudentSkillEntry::findOrFail($id);
 
-        if ($authUser->role === 'ADMIN') {
+        if (in_array($authUser->role, ['ADMIN', 'OFFICER'], true)) {
             $request->validate([
                 'skill' => 'sometimes|string|max:100',
                 'proficiency_level' => 'nullable|string|max:50',
@@ -113,7 +109,7 @@ class SkillEntriesController extends Controller
             ]);
             $entry->update($request->only(['skill', 'proficiency_level', 'portfolio_url', 'github_url']));
         } else {
-            return response()->json(['success' => false, 'message' => 'You can only edit your own skills or use Admin to edit any'], 403);
+            return response()->json(['success' => false, 'message' => 'You can only edit your own skills or use Admin/Officer to edit any'], 403);
         }
 
         return response()->json([
@@ -132,7 +128,7 @@ class SkillEntriesController extends Controller
 
         $entry = StudentSkillEntry::findOrFail($id);
 
-        if ($authUser->role !== 'ADMIN' && $entry->user_id !== $authUser->id) {
+        if (!in_array($authUser->role, ['ADMIN', 'OFFICER'], true) && $entry->user_id !== $authUser->id) {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
@@ -166,8 +162,8 @@ class SkillEntriesController extends Controller
     public function dispute(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'ADMIN') {
-            return response()->json(['success' => false, 'message' => 'Only Admin can dispute skills'], 403);
+        if (!$authUser || !in_array($authUser->role, ['ADMIN', 'OFFICER'], true)) {
+            return response()->json(['success' => false, 'message' => 'Only Admin or Officer can dispute skills'], 403);
         }
 
         $entry = StudentSkillEntry::findOrFail($id);

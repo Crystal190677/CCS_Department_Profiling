@@ -28,6 +28,20 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
+        if (in_array($user->role, ['STUDENT', 'OFFICER'], true)) {
+            $validated = $request->validate([
+                'contact_number' => 'nullable|string|max:50',
+            ]);
+            $user->contact_number = $validated['contact_number'] ?? null;
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Contact number updated. Name and email are managed on the official roster.',
+                'data' => $this->profilePayload($user->fresh()),
+            ]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => [

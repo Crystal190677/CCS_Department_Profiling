@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('signup', [AuthController::class, 'signUp']);
+    Route::post('claim/lookup', [AuthController::class, 'claimLookup']);
+    Route::post('claim', [AuthController::class, 'claimAccount']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {

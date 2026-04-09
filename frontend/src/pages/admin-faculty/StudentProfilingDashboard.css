@@ -1408,11 +1408,92 @@
   align-items: flex-start;
 }
 
+.spd-class-lists-card-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.5rem;
+}
+
 .spd-class-lists-card-name {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
   color: var(--ccs-text);
+}
+
+.spd-talent-card-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.spd-admin-account-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 10px;
+}
+
+.spd-admin-account-filter--class-list {
+  margin-bottom: 1.25rem;
+}
+
+.spd-admin-account-filter-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ccs-text-muted);
+  margin-right: 0.15rem;
+}
+
+.spd-admin-account-filter-btn {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.spd-admin-account-filter-btn:hover {
+  border-color: var(--ccs-orange);
+  color: var(--ccs-orange);
+}
+
+.spd-admin-account-filter-btn.is-active {
+  border-color: var(--ccs-orange);
+  background: var(--ccs-orange-glow, rgba(234, 88, 12, 0.12));
+  color: var(--ccs-orange);
+}
+
+.spd-account-status-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.spd-account-status-pill--active {
+  background: rgba(34, 197, 94, 0.18);
+  color: #15803d;
+}
+
+.spd-account-status-pill--inactive {
+  background: rgba(234, 179, 8, 0.22);
+  color: #a16207;
 }
 
 .spd-class-lists-card-meta {
@@ -1761,17 +1842,96 @@
   filter: brightness(1.05);
 }
 
-.spd-talent-layout-toggle {
-  display: inline-flex;
-  border: 1px solid rgba(234, 88, 12, 0.35);
-  border-radius: 9px;
-  overflow: hidden;
-  margin-left: auto;
+.spd-talent-hero-sub {
+  margin-top: 0.35rem;
+  max-width: 40rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  opacity: 0.95;
 }
 
-.spd-talent-layout-btn {
-  padding: 0.45rem 0.85rem;
-  border: none;
+.spd-talent-flow-intro {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ccs-text);
+}
+
+.spd-talent-flow-intro strong {
+  color: var(--ccs-text);
+}
+
+.spd-talent-cat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.spd-talent-cat-pill {
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg-card);
+  color: var(--ccs-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.spd-talent-cat-pill:hover {
+  border-color: rgba(234, 88, 12, 0.45);
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.spd-talent-cat-pill--active {
+  border-color: rgba(234, 88, 12, 0.65);
+  background: rgba(249, 115, 22, 0.18);
+  color: #9a3412;
+}
+
+[data-theme='dark'] .spd-talent-cat-pill--active {
+  color: #fdba74;
+}
+
+.spd-talent-step2 {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg-card);
+}
+
+.spd-talent-step2-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.spd-talent-step2-title {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.spd-talent-step2-sub {
+  font-weight: 400;
+  color: var(--ccs-text-muted);
+  font-size: 0.8125rem;
+}
+
+.spd-talent-step2-back {
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--ccs-border);
   background: transparent;
   font: inherit;
   font-size: 0.8125rem;
@@ -1780,13 +1940,123 @@
   cursor: pointer;
 }
 
-.spd-talent-layout-btn--active {
-  background: rgba(234, 88, 12, 0.15);
-  color: #c2410c;
+.spd-talent-step2-back:hover {
+  color: var(--ccs-text);
+  border-color: var(--ccs-text-muted);
 }
 
-[data-theme='dark'] .spd-talent-layout-btn--active {
+.spd-talent-step2-empty {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ccs-text-muted);
+  line-height: 1.5;
+}
+
+.spd-talent-act-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.spd-talent-act-chip {
+  padding: 0.45rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(234, 88, 12, 0.4);
+  background: rgba(249, 115, 22, 0.06);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #c2410c;
+  cursor: pointer;
+}
+
+.spd-talent-act-chip:hover {
+  background: rgba(249, 115, 22, 0.14);
+}
+
+[data-theme='dark'] .spd-talent-act-chip {
   color: #fdba74;
+}
+
+.spd-talent-select-fallback-label {
+  display: block;
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ccs-text-muted);
+}
+
+.spd-talent-select--full {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.spd-talent-active-activity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+}
+
+.spd-talent-active-label {
+  font-size: 0.8125rem;
+  color: var(--ccs-text-muted);
+}
+
+.spd-talent-active-name {
+  font-size: 0.9375rem;
+  color: var(--ccs-text);
+}
+
+.spd-talent-change-activity {
+  margin-left: auto;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #0369a1;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.spd-talent-change-activity:hover {
+  color: #0c4a6e;
+}
+
+[data-theme='dark'] .spd-talent-change-activity {
+  color: #7dd3fc;
+}
+
+.spd-talent-more-filters {
+  margin-top: 0.75rem;
+  border: 1px solid var(--ccs-border);
+  border-radius: 10px;
+  padding: 0.5rem 0.85rem;
+  background: var(--ccs-bg);
+}
+
+.spd-talent-more-filters-summary {
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: var(--ccs-text);
+}
+
+.spd-talent-more-filters .spd-talent-row--filters {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
 }
 
 .spd-talent-filter-field {
@@ -1923,11 +2193,6 @@
   white-space: nowrap;
 }
 
-.spd-talent-view-profile--table {
-  width: 100%;
-  max-width: 9rem;
-}
-
 .spd-talent-view-profile:hover {
   filter: brightness(1.05);
 }
@@ -1965,67 +2230,6 @@
   color: #fdba74;
 }
 
-.spd-talent-skill-tags--inline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
-.spd-talent-table-wrap {
-  margin-top: 0.25rem;
-}
-
-.spd-talent-table th {
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--ccs-text-muted);
-  padding-top: 0.65rem;
-  padding-bottom: 0.65rem;
-}
-
-.spd-talent-th-action {
-  min-width: 10.5rem;
-  width: 11.5rem;
-}
-
-.spd-talent-tr td {
-  vertical-align: middle;
-  padding-top: 0.55rem;
-  padding-bottom: 0.55rem;
-}
-
-.spd-talent-td-student {
-  min-width: 10rem;
-}
-
-.spd-talent-td-student strong {
-  display: block;
-  margin-bottom: 0.15rem;
-}
-
-.spd-talent-email {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--ccs-text-muted);
-}
-
-.spd-talent-td-skills {
-  max-width: 28rem;
-}
-
-.spd-talent-td-action {
-  text-align: right;
-  width: 1%;
-}
-
-.spd-talent-action-btns {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  align-items: stretch;
-}
-
 .spd-talent-card-actions {
   display: flex;
   flex-direction: column;
@@ -2055,11 +2259,6 @@
 
 .spd-talent-assign-btn:hover {
   background: rgba(249, 115, 22, 0.1);
-}
-
-.spd-talent-assign-btn--table {
-  width: 100%;
-  max-width: 9rem;
 }
 
 [data-theme='dark'] .spd-talent-assign-btn {

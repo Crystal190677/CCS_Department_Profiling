@@ -19,6 +19,7 @@ import {
   countStudentsInClassListYear,
   countStudentsInIrregularSubYear,
 } from '../../constants/academicPlacement';
+import { TALENT_DIRECTORY_CATEGORIES, getActivityTalentCategory } from '../../constants/talentDirectoryCategories';
 import './StudentProfilingDashboard.css';
 
 function ClassListFolderIcon({ className }) {
@@ -57,6 +58,11 @@ function initialsFromName(name) {
   if (parts.length === 0) return '?';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** True if the student/officer has completed first-time password setup (password_set_at from API). */
+function isPortalAccountActivated(student) {
+  return student?.password_set_at != null && student.password_set_at !== '';
 }
 
 function QualifiedStudentAvatar({ name, photoUrl }) {
@@ -352,7 +358,8 @@ export default function StudentProfilingDashboard() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [browseSkill, setBrowseSkill] = useState('');
   const [browseCourse, setBrowseCourse] = useState('');
-  const [studentListLayout, setStudentListLayout] = useState('table');
+  /** Admin: filter roster by portal activation (password_set_at). */
+  const [adminAccountStatusFilter, setAdminAccountStatusFilter] = useState('all');
   const profilingMainView = useMemo(
     () => (location.pathname.includes('/class-lists') ? 'class_lists' : 'browse'),
     [location.pathname],
@@ -382,6 +389,8 @@ export default function StudentProfilingDashboard() {
   const [assignActivityStudent, setAssignActivityStudent] = useState(null);
   const [assignActivityId, setAssignActivityId] = useState('');
   const [talentDirectoryView, setTalentDirectoryView] = useState('all_students');
+  /** When set, user is picking an activity inside this Talent Directory category (null = browse everyone). */
+  const [talentCategoryId, setTalentCategoryId] = useState(null);
   const [topPerformerCategory, setTopPerformerCategory] = useState('all');
   const [performersRoster, setPerformersRoster] = useState([]);
   const [performersLoading, setPerformersLoading] = useState(false);
@@ -389,11 +398,41 @@ export default function StudentProfilingDashboard() {
   const processedOpenEditForClassListRef = useRef(null);
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
 
+  const activeActivities = useMemo(
+    () =>
+      [...activities]
+        .filter((a) => a.is_active !== false)
+        .sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' })),
+    [activities],
+  );
+
+  const activitiesInTalentCategory = useMemo(() => {
+    if (!talentCategoryId) return [];
+    return activeActivities.filter((a) => getActivityTalentCategory(a) === talentCategoryId);
+  }, [activeActivities, talentCategoryId]);
+
+  const talentCategoryMeta = useMemo(
+    () => (talentCategoryId ? TALENT_DIRECTORY_CATEGORIES.find((c) => c.id === talentCategoryId) ?? null : null),
+    [talentCategoryId],
+  );
+
+  const isTalentCategoryPillActive = useCallback(
+    (catId) => {
+      if (!activityFilter) return talentCategoryId === catId;
+      const sel = activeActivities.find((x) => String(x.id) === String(activityFilter));
+      return Boolean(sel && getActivityTalentCategory(sel) === catId);
+    },
+    [activityFilter, activeActivities, talentCategoryId],
+  );
+
   const typeLabels = { past_activity: 'Past activity', award: 'Award', leadership: 'Leadership' };
 
   const fetchStudents = useCallback(async () => {
     const params = new URLSearchParams();
     params.set('include_officers', '1');
+    if (user.role === 'ADMIN' && adminAccountStatusFilter !== 'all') {
+      params.set('account_status', adminAccountStatusFilter);
+    }
     if (search) params.set('search', search);
     if (activityFilter) {
       params.set('qualify_for', activityFilter);
@@ -413,7 +452,67 @@ export default function StudentProfilingDashboard() {
       setStudents(data.data.data || []);
       setClassListRefreshKey((k) => k + 1);
     } else setError(data.message || 'Failed to load students');
-  }, [search, activityFilter, listSection, listYear, listSkill, listInterestOnly, listSort, listSortDir, browseSkill, browseCourse]);
+  }, [
+    user.role,
+    adminAccountStatusFilter,
+    search,
+    activityFilter,
+    listSection,
+    listYear,
+    listSkill,
+    listInterestOnly,
+    listSort,
+    listSortDir,
+    browseSkill,
+    browseCourse,
+  ]);
+
+  const resetQualifiedListFilters = useCallback(() => {
+    setListSection('');
+    setListYear('');
+    setListSkill('');
+    setListInterestOnly(false);
+    setListSort('score');
+    setListSortDir('desc');
+  }, []);
+
+  const goBrowseEveryoneTalent = useCallback(() => {
+    flushSync(() => {
+      setTalentCategoryId(null);
+      setActivityFilter('');
+      resetQualifiedListFilters();
+    });
+    fetchStudents();
+  }, [fetchStudents, resetQualifiedListFilters]);
+
+  const pickTalentCategory = useCallback(
+    (catId) => {
+      flushSync(() => {
+        setTalentCategoryId(catId);
+        setActivityFilter('');
+        resetQualifiedListFilters();
+      });
+      fetchStudents();
+    },
+    [fetchStudents, resetQualifiedListFilters],
+  );
+
+  const pickTalentActivity = useCallback(
+    (id) => {
+      flushSync(() => {
+        setActivityFilter(String(id));
+        resetQualifiedListFilters();
+      });
+      fetchStudents();
+    },
+    [fetchStudents, resetQualifiedListFilters],
+  );
+
+  useEffect(() => {
+    if (!activityFilter || activeActivities.length === 0) return;
+    const a = activeActivities.find((x) => String(x.id) === String(activityFilter));
+    if (a) setTalentCategoryId(getActivityTalentCategory(a));
+  }, [activityFilter, activeActivities]);
 
   const fetchActivities = useCallback(async () => {
     const res = await fetch('/api/activities', { headers: getAuthHeaders() });
@@ -555,7 +654,17 @@ export default function StudentProfilingDashboard() {
   useEffect(() => {
     if (!activityFilter) return;
     fetchStudents();
-  }, [activityFilter, listSection, listYear, listSkill, listInterestOnly, listSort, listSortDir, fetchStudents]);
+  }, [
+    activityFilter,
+    listSection,
+    listYear,
+    listSkill,
+    listInterestOnly,
+    listSort,
+    listSortDir,
+    adminAccountStatusFilter,
+    fetchStudents,
+  ]);
 
   useEffect(() => {
     if (activityFilter) {
@@ -568,7 +677,7 @@ export default function StudentProfilingDashboard() {
     }
     const t = setTimeout(() => fetchStudents(), 320);
     return () => clearTimeout(t);
-  }, [browseSkill, browseCourse, activityFilter, fetchStudents]);
+  }, [browseSkill, browseCourse, adminAccountStatusFilter, activityFilter, fetchStudents]);
 
   const openFullProfile = async (student) => {
     setFullProfile({ student, payload: null, loading: true });
@@ -590,7 +699,13 @@ export default function StudentProfilingDashboard() {
   const fetchClassListRoster = useCallback(async () => {
     setClassListLoading(true);
     try {
-      const res = await fetch('/api/students?per_page=500&include_officers=1', { headers: getAuthHeaders() });
+      const params = new URLSearchParams();
+      params.set('per_page', '500');
+      params.set('include_officers', '1');
+      if (user.role === 'ADMIN' && adminAccountStatusFilter !== 'all') {
+        params.set('account_status', adminAccountStatusFilter);
+      }
+      const res = await fetch(`/api/students?${params}`, { headers: getAuthHeaders() });
       const data = await res.json();
       if (data.success && data.data?.data) setClassListRoster(data.data.data);
       else setClassListRoster([]);
@@ -599,7 +714,7 @@ export default function StudentProfilingDashboard() {
     } finally {
       setClassListLoading(false);
     }
-  }, []);
+  }, [user.role, adminAccountStatusFilter]);
 
   useEffect(() => {
     if (profilingMainView !== 'class_lists') return;
@@ -716,6 +831,9 @@ export default function StudentProfilingDashboard() {
     const params = new URLSearchParams();
     params.set('include_officers', '1');
     params.set('per_page', '500');
+    if (user.role === 'ADMIN' && adminAccountStatusFilter !== 'all') {
+      params.set('account_status', adminAccountStatusFilter);
+    }
     (async () => {
       try {
         const res = await fetch(`/api/students?${params}`, { headers: getAuthHeaders() });
@@ -731,7 +849,7 @@ export default function StudentProfilingDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [isTalentDirectory, talentDirectoryView]);
+  }, [isTalentDirectory, talentDirectoryView, user.role, adminAccountStatusFilter]);
 
   const handleApproveEntry = async (id) => {
     try {
@@ -1306,6 +1424,11 @@ export default function StudentProfilingDashboard() {
             <h1 className="ccs-gradient-hero-title">
               {location.pathname.includes('talent-directory') ? 'Talent Directory' : 'Student Profiling Dashboard'}
             </h1>
+            {location.pathname.includes('talent-directory') && (
+              <p className="ccs-gradient-hero-subtitle spd-talent-hero-sub">
+                Start with a category (quizzes, sports, performances, tech), pick the exact activity, then review ranked students—or browse everyone below.
+              </p>
+            )}
           </div>
         </header>
       )}
@@ -1405,6 +1528,104 @@ export default function StudentProfilingDashboard() {
       {talentDirectoryView === 'all_students' && (
       <>
       <div className="spd-talent-shell">
+        <p className="spd-talent-flow-intro">
+          <strong>Step 1 — What are you looking for?</strong> Choose a category, then tap the specific quiz, sport, or event.
+          {activityFilter ? ' You are viewing the ranked list for one activity.' : ' Or browse everyone without picking an activity.'}
+        </p>
+        <div className="spd-talent-cat-row" role="group" aria-label="Browse or choose activity category">
+          <button
+            type="button"
+            className={`spd-talent-cat-pill ${!activityFilter && talentCategoryId == null ? 'spd-talent-cat-pill--active' : ''}`}
+            onClick={goBrowseEveryoneTalent}
+          >
+            Browse everyone
+          </button>
+          {TALENT_DIRECTORY_CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              className={`spd-talent-cat-pill ${isTalentCategoryPillActive(cat.id) ? 'spd-talent-cat-pill--active' : ''}`}
+              onClick={() => pickTalentCategory(cat.id)}
+              title={cat.hint}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {talentCategoryId && !activityFilter && (
+          <div className="spd-talent-step2">
+            <div className="spd-talent-step2-head">
+              <p className="spd-talent-step2-title">
+                <strong>Step 2 — Pick an activity</strong>
+                {talentCategoryMeta ? (
+                  <span className="spd-talent-step2-sub">{talentCategoryMeta.hint}</span>
+                ) : null}
+              </p>
+              <button type="button" className="spd-talent-step2-back" onClick={goBrowseEveryoneTalent}>
+                Start over
+              </button>
+            </div>
+            {activitiesInTalentCategory.length === 0 ? (
+              <p className="spd-talent-step2-empty">
+                No activities in this category yet. Admins can add spelling bees, sports, clubs, and more under <em>Manage activities</em> below—use
+                names like “Quiz”, “Spelling Bee”, or pick type <strong>Sport</strong> for tryouts.
+              </p>
+            ) : (
+              <>
+                <div className="spd-talent-act-chips" role="listbox" aria-label="Activities in this category">
+                  {activitiesInTalentCategory.map((a) => (
+                    <button key={a.id} type="button" className="spd-talent-act-chip" onClick={() => pickTalentActivity(a.id)}>
+                      {a.name}
+                    </button>
+                  ))}
+                </div>
+                <label className="spd-talent-select-fallback-label" htmlFor="spd-activity-filter-fallback">
+                  Or choose from the list
+                </label>
+                <select
+                  id="spd-activity-filter-fallback"
+                  value=""
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v) pickTalentActivity(v);
+                  }}
+                  className="spd-talent-select spd-talent-select--full"
+                >
+                  <option value="">Select activity…</option>
+                  {activitiesInTalentCategory.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+          </div>
+        )}
+
+        {activityFilter && (
+          <div className="spd-talent-active-activity">
+            <span className="spd-talent-active-label">Showing ranked list for</span>
+            <strong className="spd-talent-active-name">
+              {activeActivities.find((x) => String(x.id) === String(activityFilter))?.name || 'this activity'}
+            </strong>
+            <button
+              type="button"
+              className="spd-talent-change-activity"
+              onClick={() => {
+                flushSync(() => {
+                  setActivityFilter('');
+                  resetQualifiedListFilters();
+                });
+                fetchStudents();
+              }}
+            >
+              Pick a different activity
+            </button>
+          </div>
+        )}
+
         <div className="spd-talent-row spd-talent-row--primary">
           <div className="spd-talent-search">
             <svg className="spd-talent-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1421,101 +1642,88 @@ export default function StudentProfilingDashboard() {
               aria-label="Search students"
             />
           </div>
-          <div className="spd-talent-activity-wrap">
-            <label className="spd-talent-inline-label" htmlFor="spd-activity-filter">Activity</label>
-            <select
-              id="spd-activity-filter"
-              value={activityFilter}
-              onChange={(e) => {
-                flushSync(() => {
-                  setActivityFilter(e.target.value);
-                  setListSection('');
-                  setListYear('');
-                  setListSkill('');
-                  setListInterestOnly(false);
-                  setListSort('score');
-                  setListSortDir('desc');
-                });
-                fetchStudents();
-              }}
-              className="spd-talent-select"
-            >
-              <option value="">All students</option>
-              {activities.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          </div>
           <button type="button" className="spd-talent-search-submit" onClick={fetchStudents}>
             Search
           </button>
-          {!activityFilter && (
-            <div className="spd-talent-layout-toggle" role="group" aria-label="Result layout">
-              <button
-                type="button"
-                className={studentListLayout === 'table' ? 'spd-talent-layout-btn spd-talent-layout-btn--active' : 'spd-talent-layout-btn'}
-                onClick={() => setStudentListLayout('table')}
-              >
-                Table
-              </button>
-              <button
-                type="button"
-                className={studentListLayout === 'cards' ? 'spd-talent-layout-btn spd-talent-layout-btn--active' : 'spd-talent-layout-btn'}
-                onClick={() => setStudentListLayout('cards')}
-              >
-                Cards
-              </button>
-            </div>
-          )}
         </div>
-        {!activityFilter && (
-          <div className="spd-talent-row spd-talent-row--filters">
-            <div className="spd-talent-filter-field">
-              <label htmlFor="spd-browse-skill">Skill or talent</label>
-              <input
-                id="spd-browse-skill"
-                type="text"
-                placeholder="Type a skill (e.g. Programming, Python)…"
-                value={browseSkill}
-                onChange={(e) => setBrowseSkill(e.target.value)}
-                aria-label="Filter by skill or talent"
-                className="spd-talent-filter-input"
-              />
-            </div>
-            <div className="spd-talent-filter-field spd-talent-filter-field--narrow">
-              <label htmlFor="spd-browse-course">Course</label>
-              <input
-                id="spd-browse-course"
-                type="text"
-                placeholder="BSCS, BSIT…"
-                value={browseCourse}
-                onChange={(e) => setBrowseCourse(e.target.value)}
-                aria-label="Filter by course"
-                className="spd-talent-filter-input"
-              />
-            </div>
-            <div className="spd-talent-quick">
-              <span className="spd-talent-quick-label">Quick filters</span>
-              <button type="button" className="spd-talent-chip" onClick={() => setBrowseSkill('Programming')}>
-                Programming
-              </button>
-              <button type="button" className="spd-talent-chip" onClick={() => setBrowseSkill('Basketball')}>
-                Basketball
-              </button>
-              <button
-                type="button"
-                className="spd-talent-chip spd-talent-chip--ghost"
-                onClick={() => {
-                  setBrowseSkill('');
-                  setBrowseCourse('');
-                }}
-              >
-                Clear
-              </button>
-            </div>
+        {user.role === 'ADMIN' && (
+          <div className="spd-admin-account-filter" role="group" aria-label="Portal account activation">
+            <span className="spd-admin-account-filter-label">Portal accounts</span>
+            <button
+              type="button"
+              className={`spd-admin-account-filter-btn${adminAccountStatusFilter === 'all' ? ' is-active' : ''}`}
+              onClick={() => setAdminAccountStatusFilter('all')}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              className={`spd-admin-account-filter-btn${adminAccountStatusFilter === 'active' ? ' is-active' : ''}`}
+              onClick={() => setAdminAccountStatusFilter('active')}
+            >
+              Activated
+            </button>
+            <button
+              type="button"
+              className={`spd-admin-account-filter-btn${adminAccountStatusFilter === 'inactive' ? ' is-active' : ''}`}
+              onClick={() => setAdminAccountStatusFilter('inactive')}
+            >
+              Not activated
+            </button>
           </div>
+        )}
+        {!activityFilter && talentCategoryId == null && (
+          <details className="spd-talent-more-filters">
+            <summary className="spd-talent-more-filters-summary">Refine the card list (skill, course)</summary>
+            <div className="spd-talent-row spd-talent-row--filters">
+              <div className="spd-talent-filter-field">
+                <label htmlFor="spd-browse-skill">Skill or talent</label>
+                <input
+                  id="spd-browse-skill"
+                  type="text"
+                  placeholder="e.g. Programming, Python, Dance…"
+                  value={browseSkill}
+                  onChange={(e) => setBrowseSkill(e.target.value)}
+                  aria-label="Filter by skill or talent"
+                  className="spd-talent-filter-input"
+                />
+              </div>
+              <div className="spd-talent-filter-field spd-talent-filter-field--narrow">
+                <label htmlFor="spd-browse-course">Course</label>
+                <input
+                  id="spd-browse-course"
+                  type="text"
+                  placeholder="BSCS, BSIT…"
+                  value={browseCourse}
+                  onChange={(e) => setBrowseCourse(e.target.value)}
+                  aria-label="Filter by course"
+                  className="spd-talent-filter-input"
+                />
+              </div>
+              <div className="spd-talent-quick">
+                <span className="spd-talent-quick-label">Quick tags</span>
+                <button type="button" className="spd-talent-chip" onClick={() => setBrowseSkill('Programming')}>
+                  Programming
+                </button>
+                <button type="button" className="spd-talent-chip" onClick={() => setBrowseSkill('Basketball')}>
+                  Basketball
+                </button>
+                <button type="button" className="spd-talent-chip" onClick={() => setBrowseSkill('Dance')}>
+                  Dance
+                </button>
+                <button
+                  type="button"
+                  className="spd-talent-chip spd-talent-chip--ghost"
+                  onClick={() => {
+                    setBrowseSkill('');
+                    setBrowseCourse('');
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </details>
         )}
       </div>
 
@@ -1697,6 +1905,13 @@ export default function StudentProfilingDashboard() {
                       <div className="spd-q-main">
                         <div className="spd-q-name-row">
                           <h3 className="spd-q-name">{student.name}</h3>
+                          {user.role === 'ADMIN' && (
+                            <span
+                              className={`spd-account-status-pill${isPortalAccountActivated(student) ? ' spd-account-status-pill--active' : ' spd-account-status-pill--inactive'}`}
+                            >
+                              {isPortalAccountActivated(student) ? 'Activated' : 'Not activated'}
+                            </span>
+                          )}
                           <span className={`spd-q-interest ${q.declared_interest ? 'yes' : 'no'}`}>
                             {q.declared_interest ? 'Expressed interest' : 'No interest declared'}
                           </span>
@@ -1805,7 +2020,7 @@ export default function StudentProfilingDashboard() {
             </ul>
           )}
         </div>
-      ) : studentListLayout === 'cards' ? (
+      ) : (
         <div className="spd-talent-cards-wrap">
           {students.length === 0 ? (
             <p className="spd-talent-empty">No students match your search or filters.</p>
@@ -1826,7 +2041,16 @@ export default function StudentProfilingDashboard() {
                     <div className="spd-talent-card-top">
                       <QualifiedStudentAvatar name={student.name} photoUrl={p.photo_url} />
                       <div className="spd-talent-card-text">
-                        <h3 className="spd-talent-card-name">{student.name}</h3>
+                        <div className="spd-talent-card-name-row">
+                          <h3 className="spd-talent-card-name">{student.name}</h3>
+                          {user.role === 'ADMIN' && (
+                            <span
+                              className={`spd-account-status-pill${isPortalAccountActivated(student) ? ' spd-account-status-pill--active' : ' spd-account-status-pill--inactive'}`}
+                            >
+                              {isPortalAccountActivated(student) ? 'Activated' : 'Not activated'}
+                            </span>
+                          )}
+                        </div>
                         <p className="spd-talent-card-line">
                           {[
                             student.student_number ? `#${student.student_number}` : '—',
@@ -1885,99 +2109,6 @@ export default function StudentProfilingDashboard() {
             </ul>
           )}
         </div>
-      ) : (
-        <div className="spd-table-wrap spd-talent-table-wrap">
-          <table className="spd-table spd-talent-table">
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Student #</th>
-                <th>Course</th>
-                <th>Year</th>
-                <th>Section</th>
-                <th>Skills &amp; talents</th>
-                <th className="spd-talent-th-action"> </th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="spd-empty">
-                    No students found. Try adjusting your search or filters.
-                  </td>
-                </tr>
-              ) : (
-                students.map((student) => {
-                  const p = student.student_profile || {};
-                  const skills = student.skill_entries || [];
-                  const enrollTags = browseEnrollmentDisplayEntries(student);
-                  const hasTalentCol = skills.length > 0 || enrollTags.length > 0;
-                  const sectionDisp = (() => {
-                    const f = formatClassSectionLabel(p);
-                    if (f && f !== '—') return f;
-                    return p.section || '—';
-                  })();
-                  return (
-                    <tr key={student.id} className="spd-talent-tr">
-                      <td className="spd-talent-td-student">
-                        <strong>{student.name}</strong>
-                        <span className="spd-talent-email">{student.email}</span>
-                      </td>
-                      <td>{student.student_number || '—'}</td>
-                      <td>{p.course || '—'}</td>
-                      <td>{p.year_level || '—'}</td>
-                      <td>{sectionDisp}</td>
-                      <td className="spd-talent-td-skills">
-                        {!hasTalentCol ? (
-                          <span className="spd-muted">—</span>
-                        ) : (
-                          <div className="spd-talent-skill-tags spd-talent-skill-tags--inline">
-                            {enrollTags.map((en) => (
-                              <span
-                                key={en.key}
-                                className={enrollmentTagClass(en.name, browseSkill)}
-                                title={en.status}
-                              >
-                                {en.name}
-                                {enrollmentStatusSuffix(en.status)}
-                              </span>
-                            ))}
-                            {skills.map((s) => (
-                              <span key={s.id} className={browseSkillTagClass(s.skill, browseSkill)}>
-                                {s.skill}
-                                {s.proficiency_level ? ` · ${s.proficiency_level}` : ''}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td className="spd-talent-td-action">
-                        <div className="spd-talent-action-btns">
-                          {user.role === 'ADMIN' && isTalentDirectory && !activityFilter && (
-                            <button
-                              type="button"
-                              className="spd-talent-assign-btn spd-talent-assign-btn--table"
-                              onClick={() => openAssignActivityModal(student)}
-                            >
-                              Assign to activity
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="spd-talent-view-profile spd-talent-view-profile--table"
-                            onClick={() => navigate(`/admin-dashboard/profiling/student/${student.id}`)}
-                          >
-                            View Profile
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
       )}
 
       </>
@@ -2034,6 +2165,32 @@ export default function StudentProfilingDashboard() {
 
         return (
           <div className="spd-class-lists-view spd-class-lists-view--folders">
+            {user.role === 'ADMIN' && classListFolderLevel === 'program' && (
+              <div className="spd-admin-account-filter spd-admin-account-filter--class-list" role="group" aria-label="Portal account activation">
+                <span className="spd-admin-account-filter-label">Portal accounts</span>
+                <button
+                  type="button"
+                  className={`spd-admin-account-filter-btn${adminAccountStatusFilter === 'all' ? ' is-active' : ''}`}
+                  onClick={() => setAdminAccountStatusFilter('all')}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  className={`spd-admin-account-filter-btn${adminAccountStatusFilter === 'active' ? ' is-active' : ''}`}
+                  onClick={() => setAdminAccountStatusFilter('active')}
+                >
+                  Activated
+                </button>
+                <button
+                  type="button"
+                  className={`spd-admin-account-filter-btn${adminAccountStatusFilter === 'inactive' ? ' is-active' : ''}`}
+                  onClick={() => setAdminAccountStatusFilter('inactive')}
+                >
+                  Not activated
+                </button>
+              </div>
+            )}
             {classListFolderLevel !== 'program' && (
               <div className="spd-folder-back-row">
                 <button type="button" className="spd-folder-back" onClick={handleClassListBack}>
@@ -2208,7 +2365,16 @@ export default function StudentProfilingDashboard() {
                           <div className="spd-class-lists-card-head">
                             <QualifiedStudentAvatar name={student.name} photoUrl={p.photo_url} />
                             <div className="spd-class-lists-card-info">
-                              <h3 className="spd-class-lists-card-name">{student.name}</h3>
+                              <div className="spd-class-lists-card-name-row">
+                                <h3 className="spd-class-lists-card-name">{student.name}</h3>
+                                {user.role === 'ADMIN' && (
+                                  <span
+                                    className={`spd-account-status-pill${isPortalAccountActivated(student) ? ' spd-account-status-pill--active' : ' spd-account-status-pill--inactive'}`}
+                                  >
+                                    {isPortalAccountActivated(student) ? 'Activated' : 'Not activated'}
+                                  </span>
+                                )}
+                              </div>
                               <p className="spd-class-lists-card-meta">{student.email}</p>
                               <p className="spd-class-lists-card-meta">
                                 #{student.student_number || '—'}

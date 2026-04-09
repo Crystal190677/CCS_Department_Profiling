@@ -198,6 +198,17 @@
   box-shadow: 0 0 0 3px var(--ccs-orange-glow);
 }
 
+.ps-field input.ps-input-readonly {
+  opacity: 0.88;
+  cursor: default;
+  background: var(--ccs-bg-card);
+}
+
+.ps-field input.ps-input-readonly:focus {
+  border-color: var(--ccs-border);
+  box-shadow: none;
+}
+
 .ps-btn-primary {
   padding: 0.55rem 1.1rem;
   border-radius: 10px;

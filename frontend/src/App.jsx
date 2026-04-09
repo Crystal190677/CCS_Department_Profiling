@@ -18,7 +18,6 @@ import StudentProfilingDashboard from './pages/admin-faculty/StudentProfilingDas
 import AdminStudentProfileViewPage from './pages/admin-faculty/AdminStudentProfileViewPage';
 import AdminDashboardPage from './pages/admin-faculty/AdminDashboardPage';
 import AuditLogPage from './pages/admin-faculty/AuditLogPage';
-import AdminAddStudentPage from './pages/admin-faculty/AdminAddStudentPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 
 function App() {
@@ -51,7 +50,6 @@ function App() {
           <Route path="class-lists" element={<StudentProfilingDashboard />} />
           <Route path="student/:studentId" element={<AdminStudentProfileViewPage />} />
         </Route>
-        <Route path="add-student" element={<AdminAddStudentPage />} />
         <Route path="announcements" element={<StudentAnnouncementsPage />} />
         <Route path="profile-settings" element={<ProfileSettingsPage />} />
       </Route>

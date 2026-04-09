@@ -21,6 +21,11 @@ return new class extends Migration
             ['name' => 'Table Tennis', 'type' => 'sport', 'criteria' => []],
             ['name' => 'Track and Field', 'type' => 'sport', 'criteria' => []],
             ['name' => 'Mobile Competition', 'type' => 'activity', 'criteria' => []],
+            ['name' => 'Spelling Bee', 'type' => 'event', 'criteria' => []],
+            ['name' => 'General Knowledge Quiz', 'type' => 'event', 'criteria' => []],
+            ['name' => 'Science Quiz Bowl', 'type' => 'activity', 'criteria' => []],
+            ['name' => 'Chess Club', 'type' => 'activity', 'criteria' => []],
+            ['name' => 'Esports / Online Games', 'type' => 'activity', 'criteria' => []],
         ];
 
         $names = array_column($definitions, 'name');

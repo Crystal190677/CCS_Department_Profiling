@@ -11,7 +11,7 @@ class ConductEntriesController extends Controller
 {
     /**
      * List conduct entries.
-     * Officers: 403. Student: own only. Admin: all or filter by user_id.
+     * Student: own only. Admin / Officer: all or filter by user_id.
      */
     public function index(Request $request): JsonResponse
     {
@@ -20,17 +20,13 @@ class ConductEntriesController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
         }
 
-        if ($authUser->role === 'OFFICER') {
-            return response()->json(['success' => false, 'message' => 'Officers have no access to conduct data'], 403);
-        }
-
         $query = StudentConductEntry::with(['user:id,name,student_number,email', 'recordedByUser:id,name', 'resolvedByUser:id,name'])
             ->orderBy('recorded_at', 'desc')
             ->orderBy('created_at', 'desc');
 
         if ($authUser->role === 'STUDENT') {
             $query->where('user_id', $authUser->id);
-        } elseif ($authUser->role === 'ADMIN') {
+        } elseif (in_array($authUser->role, ['ADMIN', 'OFFICER'], true)) {
             if ($request->filled('user_id')) {
                 $query->where('user_id', (int) $request->input('user_id'));
             }
@@ -48,13 +44,13 @@ class ConductEntriesController extends Controller
     }
 
     /**
-     * Create a violation or commendation. Admin only.
+     * Create a violation or commendation. Admin or Officer.
      */
     public function store(Request $request): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'ADMIN') {
-            return response()->json(['success' => false, 'message' => 'Only Admin can create conduct records'], 403);
+        if (!$authUser || !in_array($authUser->role, ['ADMIN', 'OFFICER'], true)) {
+            return response()->json(['success' => false, 'message' => 'Only Admin or Officer can create conduct records'], 403);
         }
 
         $request->validate([
@@ -114,13 +110,13 @@ class ConductEntriesController extends Controller
     }
 
     /**
-     * Delete a conduct entry. Admin only.
+     * Delete a conduct entry. Admin or Officer.
      */
     public function destroy(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'ADMIN') {
-            return response()->json(['success' => false, 'message' => 'Only Admin can delete conduct records'], 403);
+        if (!$authUser || !in_array($authUser->role, ['ADMIN', 'OFFICER'], true)) {
+            return response()->json(['success' => false, 'message' => 'Only Admin or Officer can delete conduct records'], 403);
         }
 
         $entry = StudentConductEntry::findOrFail($id);
@@ -169,13 +165,13 @@ class ConductEntriesController extends Controller
     }
 
     /**
-     * Resolve a dispute. Admin only.
+     * Resolve a dispute. Admin or Officer.
      */
     public function resolveDispute(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'ADMIN') {
-            return response()->json(['success' => false, 'message' => 'Only Admin can resolve disputes'], 403);
+        if (!$authUser || !in_array($authUser->role, ['ADMIN', 'OFFICER'], true)) {
+            return response()->json(['success' => false, 'message' => 'Only Admin or Officer can resolve disputes'], 403);
         }
 
         $entry = StudentConductEntry::findOrFail($id);

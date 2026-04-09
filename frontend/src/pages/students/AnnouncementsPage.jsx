@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ConfirmModal from '../../components/ConfirmModal';
+import FeedAnnouncementPost from '../../components/FeedAnnouncementPost';
+import '../../components/news-feed.css';
 import './AnnouncementsPage.css';
 
 function getAuthHeadersJson() {
@@ -16,7 +18,7 @@ function authHeaderOnly() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-const ACCEPT_IMAGES = 'image/jpeg,image/jpg,image/png,.jpg,.jpeg,.png';
+const ACCEPT_IMAGES = 'image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp';
 
 export default function AnnouncementsPage() {
   const navigate = useNavigate();
@@ -78,22 +80,38 @@ export default function AnnouncementsPage() {
     setRemoveImageOnSave(false);
   };
 
-  const onPickImage = (e) => {
-    const f = e.target.files?.[0];
-    e.target.value = '';
+  const applyAnnouncementImage = (f) => {
     if (!f) return;
     const ok =
       f.type === 'image/jpeg' ||
       f.type === 'image/png' ||
-      (!f.type && (/\.jpe?g$/i.test(f.name) || /\.png$/i.test(f.name)));
+      f.type === 'image/webp' ||
+      (!f.type && (/\.jpe?g$/i.test(f.name) || /\.png$/i.test(f.name) || /\.webp$/i.test(f.name)));
     if (!ok) {
-      setError('Please choose a JPEG or PNG image (.jpg, .jpeg, .png).');
+      setError('Please choose a JPEG, PNG, or WebP image.');
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      setError('Image must be 5 MB or smaller.');
       return;
     }
     setError('');
     setImageFile(f);
     setRemoveImageOnSave(false);
     setImagePreview(URL.createObjectURL(f));
+  };
+
+  const onPickImage = (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    applyAnnouncementImage(f);
+  };
+
+  const onDropImage = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const f = e.dataTransfer?.files?.[0];
+    applyAnnouncementImage(f);
   };
 
   useEffect(() => {
@@ -199,8 +217,8 @@ export default function AnnouncementsPage() {
           <h1 className="ccs-gradient-hero-title">Announcements</h1>
           <p className="ccs-gradient-hero-subtitle">
             {isOfficer
-              ? 'Share updates with the whole CCS community. Posts appear on student and admin dashboards.'
-              : `Official updates from CCS.${canPost && !isOfficer ? ' You can post and attach JPEG or PNG images.' : ''}`}
+              ? 'Share updates with the whole CCS community. Posts appear on everyone’s dashboard feed.'
+              : 'Official updates from CCS. Admins can post with an optional cover image (photo or graphic).'}
           </p>
         </div>
       </header>
@@ -255,44 +273,72 @@ export default function AnnouncementsPage() {
                 <option value="urgent">Urgent</option>
               </select>
             </div>
-            {(!isOfficer || (editing?.image_url && !removeImageOnSave)) && (
-              <div className="ann-form-row">
-                <label htmlFor="ann-image">{isOfficer ? 'Current photo' : 'Photo (optional)'}</label>
-                {!isOfficer && (
-                  <>
-                    <input
-                      id="ann-image"
-                      type="file"
-                      accept={ACCEPT_IMAGES}
-                      onChange={onPickImage}
-                      disabled={saving}
-                    />
-                    <p className="ann-form-hint">JPEG, JPG, or PNG only. Max 5 MB.</p>
-                  </>
-                )}
-                {(imagePreview || (editing?.image_url && !removeImageOnSave)) && (
-                  <div className="ann-image-preview-wrap">
-                    <img
-                      src={imagePreview || editing?.image_url}
-                      alt=""
-                      className="ann-image-preview"
-                    />
-                    {editing?.image_url && !imageFile && (
-                      <button
-                        type="button"
-                        className="ann-remove-image-btn"
-                        disabled={saving}
-                        onClick={() => {
-                          setRemoveImageOnSave(true);
-                          setImagePreview(null);
-                          setImageFile(null);
-                        }}
-                      >
-                        Remove image
-                      </button>
-                    )}
-                  </div>
-                )}
+            {canPost && (
+              <div className="ann-form-row ann-form-row--image">
+                <label htmlFor="ann-image">Cover image (optional)</label>
+                <p className="ann-form-hint">
+                  Shown at the top of this post on dashboards. JPEG, PNG, or WebP — max 5 MB. Drag and drop or click to upload.
+                </p>
+                <div
+                  className={`ann-image-dropzone ${imagePreview || (editing?.image_url && !removeImageOnSave) ? 'ann-image-dropzone--filled' : ''}`}
+                  onDragOver={(ev) => {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                  }}
+                  onDrop={onDropImage}
+                >
+                  <input
+                    id="ann-image"
+                    type="file"
+                    accept={ACCEPT_IMAGES}
+                    onChange={onPickImage}
+                    disabled={saving}
+                    className="ann-image-file-input"
+                  />
+                  {!imagePreview && !(editing?.image_url && !removeImageOnSave) && (
+                    <label htmlFor="ann-image" className="ann-image-dropzone-label">
+                      <span className="ann-image-dropzone-icon" aria-hidden>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <path d="M21 15l-5-5L5 21" />
+                        </svg>
+                      </span>
+                      <span className="ann-image-dropzone-text">
+                        <strong>Upload a cover image</strong>
+                        <span className="ann-image-dropzone-sub">Click or drag file here</span>
+                      </span>
+                    </label>
+                  )}
+                  {(imagePreview || (editing?.image_url && !removeImageOnSave)) && (
+                    <div className="ann-image-preview-wrap ann-image-preview-wrap--in-dropzone">
+                      <img
+                        src={imagePreview || editing?.image_url}
+                        alt=""
+                        className="ann-image-preview"
+                      />
+                      <div className="ann-image-preview-actions">
+                        <label htmlFor="ann-image" className="ann-btn-text ann-replace-image-label">
+                          Replace image
+                        </label>
+                        {(editing?.image_url || imageFile) && (
+                          <button
+                            type="button"
+                            className="ann-remove-image-btn"
+                            disabled={saving}
+                            onClick={() => {
+                              setRemoveImageOnSave(true);
+                              setImagePreview(null);
+                              setImageFile(null);
+                            }}
+                          >
+                            Remove image
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             <div className="ann-form-actions">
@@ -316,25 +362,12 @@ export default function AnnouncementsPage() {
         ) : list.length === 0 ? (
           <p className="ann-muted">No announcements yet.</p>
         ) : (
-          <ul className="ann-list">
+          <ul className="ann-list nf-feed-list">
             {list.map((ann) => (
-              <li key={ann.id} className="ann-card ccs-surface-gradient">
-                <div className="ann-card-head">
-                  <h3 className="ann-card-title">{ann.title}</h3>
-                  <span className={`ann-tag ann-tag-${ann.tag || 'general'}`}>{ann.tag || 'general'}</span>
-                </div>
-                {ann.image_url && (
-                  <div className="ann-card-image-wrap">
-                    <img src={ann.image_url} alt="" className="ann-card-image" />
-                  </div>
-                )}
-                <p className="ann-card-body">{ann.content}</p>
-                <div className="ann-card-meta">
-                  <span>By {ann.author?.name ?? 'Staff'}</span>
-                  <span>{new Date(ann.created_at).toLocaleDateString()}</span>
-                </div>
+              <li key={ann.id} className="ann-feed-item">
+                <FeedAnnouncementPost announcement={ann} />
                 {canMutateAnn(ann) && (
-                  <div className="ann-card-actions">
+                  <div className="ann-card-actions ann-card-actions--feed">
                     <button type="button" className="ann-btn-text" onClick={() => startEdit(ann)}>
                       Edit
                     </button>

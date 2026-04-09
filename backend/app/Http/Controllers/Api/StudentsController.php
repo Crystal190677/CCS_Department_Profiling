@@ -20,8 +20,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class StudentsController extends Controller
 {
@@ -40,6 +38,15 @@ class StudentsController extends Controller
             $query->where('role', 'STUDENT');
         } else {
             $query->whereIn('role', ['STUDENT', 'OFFICER']);
+        }
+
+        if ($request->filled('account_status')) {
+            $st = strtolower(trim((string) $request->input('account_status')));
+            if ($st === 'active') {
+                $query->whereNotNull('password_set_at');
+            } elseif ($st === 'inactive') {
+                $query->whereNull('password_set_at');
+            }
         }
 
         // Search: name, student_number, email
@@ -144,161 +151,14 @@ class StudentsController extends Controller
     }
 
     /**
-     * Admin: create a student user, profile, and optional related records (non-academic, conduct, skills).
+     * Disabled: students are pre-enrolled on the department roster; they activate with student number + password on the login page.
      */
     public function store(Request $request): JsonResponse
     {
-        $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'ADMIN') {
-            return response()->json(['success' => false, 'message' => 'Admin only'], 403);
-        }
-
-        $yearLevels = ['1st yr', '2nd yr', '3rd yr', '4th yr', '5th yr'];
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email',
-            'student_number' => 'required|string|max:50|unique:users,student_number',
-            'password' => 'nullable|string|min:6',
-            'contact_number' => 'nullable|string|max:50',
-            'course' => 'required|string|in:BSCS,BSIT',
-            'section' => 'required|string|in:A,B,C,D,E',
-            'year_level' => ['required', 'string', Rule::in($yearLevels)],
-            'academic_standing' => 'required|string|in:Regular,Irregular',
-            'academic_semester' => 'nullable|integer|in:1,2',
-            'current_gpa' => 'nullable|numeric|min:0|max:5',
-            'address' => 'nullable|string|max:5000',
-            'birthdate' => 'nullable|date',
-            'skills_notes' => 'nullable|string|max:10000',
-            'sports_interests' => 'nullable|array',
-            'sports_interests.*' => 'string|max:80',
-            'activity_interests' => 'nullable|array',
-            'activity_interests.*' => 'string|max:80',
-            'technical_skills' => 'nullable|array',
-            'technical_skills.*' => 'string|max:100',
-            'non_technical_skills' => 'nullable|array',
-            'non_technical_skills.*' => 'string|max:100',
-            'non_academic_entries' => 'nullable|array',
-            'non_academic_entries.*.type' => ['nullable', 'string', Rule::in([
-                StudentNonAcademicEntry::TYPE_PAST_ACTIVITY,
-                StudentNonAcademicEntry::TYPE_AWARD,
-                StudentNonAcademicEntry::TYPE_LEADERSHIP,
-            ])],
-            'non_academic_entries.*.title' => 'nullable|string|max:255',
-            'non_academic_entries.*.description' => 'nullable|string|max:5000',
-            'violations' => 'nullable|array',
-            'violations.*.title' => 'nullable|string|max:255',
-            'violations.*.description' => 'nullable|string|max:5000',
-            'violations.*.severity' => ['nullable', 'string', Rule::in([
-                StudentConductEntry::SEVERITY_MINOR,
-                StudentConductEntry::SEVERITY_MAJOR,
-                StudentConductEntry::SEVERITY_GRAVE,
-            ])],
-            'violations.*.recorded_at' => 'nullable|date',
-        ]);
-
-        $payload = DB::transaction(function () use ($validated, $authUser) {
-            $hasInitialPassword = !empty($validated['password']);
-            $userData = [
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'student_number' => $validated['student_number'],
-                'password' => $hasInitialPassword ? $validated['password'] : Str::password(32),
-                'password_set_at' => $hasInitialPassword ? now() : null,
-                'role' => 'STUDENT',
-            ];
-            if (array_key_exists('contact_number', $validated) && $validated['contact_number'] !== null && $validated['contact_number'] !== '') {
-                $userData['contact_number'] = $validated['contact_number'];
-            }
-            $user = User::create($userData);
-
-            $sports = $validated['sports_interests'] ?? [];
-            $activities = $validated['activity_interests'] ?? [];
-            $sports = is_array($sports) ? array_values(array_filter(array_map('trim', $sports))) : [];
-            $activities = is_array($activities) ? array_values(array_filter(array_map('trim', $activities))) : [];
-
-            $profile = StudentProfile::create([
-                'user_id' => $user->id,
-                'course' => $validated['course'],
-                'year_level' => $validated['year_level'],
-                'section' => $validated['section'],
-                'academic_standing' => $validated['academic_standing'],
-                'academic_semester' => $validated['academic_semester'] ?? null,
-                'current_gpa' => $validated['current_gpa'] ?? null,
-                'address' => $validated['address'] ?? null,
-                'birthdate' => $validated['birthdate'] ?? null,
-                'skills' => $validated['skills_notes'] ?? null,
-                'sports_interests' => $sports !== [] ? $sports : null,
-                'activity_interests' => $activities !== [] ? $activities : null,
-            ]);
-
-            foreach ($validated['non_academic_entries'] ?? [] as $row) {
-                $title = isset($row['title']) ? trim((string) $row['title']) : '';
-                if ($title === '') {
-                    continue;
-                }
-                $type = $row['type'] ?? StudentNonAcademicEntry::TYPE_PAST_ACTIVITY;
-                StudentNonAcademicEntry::create([
-                    'user_id' => $user->id,
-                    'type' => $type,
-                    'title' => $title,
-                    'description' => isset($row['description']) && $row['description'] !== '' ? (string) $row['description'] : null,
-                    'status' => StudentNonAcademicEntry::STATUS_APPROVED,
-                    'approved_by' => $authUser->id,
-                    'approved_at' => now(),
-                ]);
-            }
-
-            foreach ($validated['violations'] ?? [] as $row) {
-                $title = isset($row['title']) ? trim((string) $row['title']) : '';
-                if ($title === '') {
-                    continue;
-                }
-                $recordedAt = $row['recorded_at'] ?? null;
-                StudentConductEntry::create([
-                    'user_id' => $user->id,
-                    'type' => StudentConductEntry::TYPE_VIOLATION,
-                    'severity' => $row['severity'] ?? null,
-                    'title' => $title,
-                    'description' => isset($row['description']) && $row['description'] !== '' ? (string) $row['description'] : null,
-                    'recorded_at' => $recordedAt ? \Carbon\Carbon::parse($recordedAt)->toDateString() : now()->toDateString(),
-                    'recorded_by' => $authUser->id,
-                ]);
-            }
-
-            foreach ($validated['technical_skills'] ?? [] as $skill) {
-                $s = is_string($skill) ? trim($skill) : '';
-                if ($s === '') {
-                    continue;
-                }
-                StudentSkillEntry::create([
-                    'user_id' => $user->id,
-                    'skill' => $s,
-                    'proficiency_level' => null,
-                ]);
-            }
-            foreach ($validated['non_technical_skills'] ?? [] as $skill) {
-                $s = is_string($skill) ? trim($skill) : '';
-                if ($s === '') {
-                    continue;
-                }
-                StudentSkillEntry::create([
-                    'user_id' => $user->id,
-                    'skill' => $s,
-                    'proficiency_level' => null,
-                ]);
-            }
-
-            return ['user' => $user, 'profile' => $profile];
-        });
-
-        $user = $payload['user'];
-
         return response()->json([
-            'success' => true,
-            'message' => 'Student created',
-            'data' => $user->fresh()->load(['studentProfile', 'skillEntries', 'nonAcademicEntries', 'conductEntries']),
-        ], 201);
+            'success' => false,
+            'message' => 'Creating students from the admin panel is disabled. Accounts are pre-provisioned on the official roster (by section). Students sign in with their student number and set a password the first time.',
+        ], 403);
     }
 
     /**
@@ -373,7 +233,7 @@ class StudentsController extends Controller
     public function showFullProfile(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'ADMIN') {
+        if (!$authUser || !in_array($authUser->role, ['ADMIN', 'OFFICER'], true)) {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 

@@ -90,13 +90,9 @@ class ClassListIrregularStudentsSeeder extends Seeder
         DB::transaction(function () use ($faker, $password, $blueprint): void {
             User::query()->where('email', 'like', '%@'.self::EMAIL_DOMAIN)->delete();
 
-            foreach ($blueprint as $row) {
-                $studentNumber = sprintf(
-                    'IRREG-%s-%s-%s',
-                    $row['course'],
-                    $row['num_slug'],
-                    $row['slot'] === 1 ? 'A' : 'B',
-                );
+            foreach ($blueprint as $idx => $row) {
+                // Seven-digit numbers only (same login rules as official roster).
+                $studentNumber = sprintf('%07d', 2_270_001 + $idx);
                 $email = sprintf(
                     'irreg-%s-%s-%d@%s',
                     strtolower($row['course']),

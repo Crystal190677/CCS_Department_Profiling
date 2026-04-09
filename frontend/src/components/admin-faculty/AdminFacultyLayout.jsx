@@ -42,16 +42,6 @@ function Icon({ name, className }) {
       </svg>
     );
   }
-  if (name === 'user-plus') {
-    return (
-      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="8.5" cy="7" r="4" />
-        <line x1="20" y1="8" x2="20" y2="14" />
-        <line x1="23" y1="11" x2="17" y2="11" />
-      </svg>
-    );
-  }
   return null;
 }
 
@@ -95,17 +85,14 @@ export default function AdminFacultyLayout() {
   const { isDark, toggleDarkMode } = useDarkMode();
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
 
-  const profilingBranchActive =
-    location.pathname.startsWith('/admin-dashboard/profiling') ||
-    location.pathname === '/admin-dashboard/add-student';
+  const profilingBranchActive = location.pathname.startsWith('/admin-dashboard/profiling');
 
   const profilingSubItems = useMemo(
     () => [
-      ...(user.role === 'ADMIN' ? [{ path: '/admin-dashboard/add-student', label: 'Add Student' }] : []),
       { path: '/admin-dashboard/profiling/class-lists', label: 'Class List' },
       { path: '/admin-dashboard/profiling/talent-directory', label: 'Talent Directory' },
     ],
-    [user.role],
+    [],
   );
 
   const [profilingMenuOpen, setProfilingMenuOpen] = useState(profilingBranchActive);
@@ -143,7 +130,7 @@ export default function AdminFacultyLayout() {
     }
     try {
       const u = JSON.parse(raw);
-      if (u.role !== 'ADMIN') {
+      if (u.role !== 'ADMIN' && u.role !== 'OFFICER') {
         navigate('/dashboard');
       }
     } catch {
@@ -156,6 +143,9 @@ export default function AdminFacultyLayout() {
     localStorage.removeItem('ccs_user');
     navigate('/login');
   };
+
+  const dashboardRoleLabel =
+    user.role === 'ADMIN' ? 'Admin' : user.role === 'OFFICER' ? 'Officer' : user.role || 'User';
 
   const getInitial = (name) => {
     if (!name) return '?';
@@ -184,7 +174,7 @@ export default function AdminFacultyLayout() {
             <div className="dashboard-avatar">{getInitial(user.name)}</div>
             <div className="dashboard-user-info">
               <span className="dashboard-user-name">{user.name || 'User'}</span>
-              <span className="dashboard-user-role">{user.role || 'Admin'}</span>
+              <span className="dashboard-user-role">{dashboardRoleLabel}</span>
             </div>
             <button type="button" className="dashboard-logout-btn" onClick={handleLogout} aria-label="Logout">
               <LogoutIcon />

@@ -19,8 +19,8 @@ class DatabaseSeeder extends Seeder
 
         $users = [
             ['name' => 'System Admin', 'email' => 'admin@ccs.edu', 'student_number' => null, 'role' => 'ADMIN'],
-            ['name' => 'Jane Officer', 'email' => 'officer@ccs.edu', 'student_number' => 'OFC001', 'role' => 'OFFICER'],
-            ['name' => 'Alex Student', 'email' => 'student@ccs.edu', 'student_number' => '1', 'role' => 'STUDENT'],
+            ['name' => 'Jane Officer', 'email' => 'officer@ccs.edu', 'student_number' => '2299998', 'role' => 'OFFICER'],
+            ['name' => 'Alex Student', 'email' => 'student@ccs.edu', 'student_number' => '2299999', 'role' => 'STUDENT'],
         ];
 
         foreach ($users as $data) {
@@ -76,6 +76,11 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Table Tennis', 'type' => 'sport', 'criteria' => []],
             ['name' => 'Track and Field', 'type' => 'sport', 'criteria' => []],
             ['name' => 'Mobile Competition', 'type' => 'activity', 'criteria' => []],
+            ['name' => 'Spelling Bee', 'type' => 'event', 'criteria' => []],
+            ['name' => 'General Knowledge Quiz', 'type' => 'event', 'criteria' => []],
+            ['name' => 'Science Quiz Bowl', 'type' => 'activity', 'criteria' => []],
+            ['name' => 'Chess Club', 'type' => 'activity', 'criteria' => []],
+            ['name' => 'Esports / Online Games', 'type' => 'activity', 'criteria' => []],
         ];
 
         foreach ($activities as $data) {
@@ -88,8 +93,8 @@ class DatabaseSeeder extends Seeder
         $adminUser = User::where('email', 'admin@ccs.edu')->first();
         if ($adminUser && AuditLog::query()->count() === 0) {
             $samples = [
-                ['created', 'Student: Alex Student (#1)', now()->subDays(3)],
-                ['updated', 'Student/officer role → OFFICER: Jane Officer (#OFC001)', now()->subDays(2)],
+                ['created', 'Student: Alex Student (#2299999)', now()->subDays(3)],
+                ['updated', 'Student/officer role → OFFICER: Jane Officer (#2299998)', now()->subDays(2)],
                 ['deleted', 'Student: Archived record (#9999)', now()->subDay()],
                 ['created', 'Merchandise catalog seeded', now()->subHours(20)],
                 ['updated', 'Announcement: Intramurals & sportsfest schedule', now()->subHours(6)],
@@ -120,6 +125,7 @@ class DatabaseSeeder extends Seeder
         $this->call(CcsCourseWorkspaceDemoSeeder::class);
         $this->call(StudentClassScheduleSeeder::class);
         $this->call(MerchandiseCatalogSeeder::class);
+        $this->call(StudentRosterSeeder::class);
         $this->call(ClassListIrregularStudentsSeeder::class);
 
         $this->command->info('✓ Seed data created.');

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import FeedAnnouncementPost from '../../components/FeedAnnouncementPost';
+import '../../components/news-feed.css';
 import './DashboardPage.css';
 
 function getAuthHeaders() {
@@ -9,6 +11,8 @@ function getAuthHeaders() {
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 }
+
+const FEED_LIMIT = 25;
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -44,73 +48,69 @@ export default function DashboardPage() {
 
   if (!user) return null;
 
+  const roleLabel =
+    user.role === 'STUDENT' ? 'Student' : user.role === 'OFFICER' ? 'Officer' : user.role === 'ADMIN' ? 'Admin' : user.role;
+
+  const feedSlice = announcements.slice(0, FEED_LIMIT);
+
   return (
-    <div className="student-dashboard">
-      <header className="dashboard-welcome ccs-gradient-hero">
-        <div className="ccs-gradient-hero-pattern" aria-hidden />
-        <div className="ccs-gradient-hero-inner">
-          <h1 className="ccs-gradient-hero-title">Welcome, {user.name}!</h1>
-          <p className="ccs-gradient-hero-subtitle">{user.role} Dashboard</p>
-        </div>
+    <div className="student-dashboard nf-page">
+      <header className="nf-feed-header">
+        <h1 className="nf-feed-title">Your feed</h1>
+        <p className="nf-feed-sub">Stay current with CCS announcements and your latest notifications.</p>
       </header>
 
+      <div className="nf-welcome-card">
+        <h2 className="nf-welcome-title">Welcome back, {user.name}!</h2>
+        <p className="nf-welcome-sub">{roleLabel} · CCS Student Profiling</p>
+      </div>
+
       {notifications.length > 0 && (
-        <section className="dashboard-notifications ccs-surface-gradient">
-          <h2 className="notifications-title">Your Notifications</h2>
-          <div className="notifications-list">
-            {notifications.slice(0, 5).map((n) => (
-              <div key={n.id} className={`notification-item ${n.read_at ? '' : 'unread'}`}>
-                <strong>{n.title}</strong>
-                <p>{n.message}</p>
-                <span className="notification-date">
-                  {new Date(n.created_at).toLocaleDateString()}
-                </span>
+        <section className="nf-notifications-block" aria-labelledby="nf-notif-heading">
+          <h2 id="nf-notif-heading" className="nf-section-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            Notifications
+          </h2>
+          <div className="nf-notifications-stack">
+            {notifications.slice(0, 6).map((n) => (
+              <div key={n.id} className={`nf-notif-card ${n.read_at ? '' : 'nf-notif-card--unread'}`}>
+                <span className="nf-notif-dot" aria-hidden />
+                <div className="nf-notif-body">
+                  <strong>{n.title}</strong>
+                  <p>{n.message}</p>
+                  <span className="nf-notif-time">{new Date(n.created_at).toLocaleString()}</span>
+                </div>
               </div>
             ))}
           </div>
         </section>
       )}
 
-      <section className="dashboard-announcements ccs-surface-gradient">
-        <div className="announcements-header">
-          <div className="announcements-title-row">
-            <svg className="announcements-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 11l18-5v12L3 14v-3z" />
-              <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
-            </svg>
-            <div>
-              <h2 className="announcements-title">Recent Announcements</h2>
-              <p className="announcements-subtitle">Latest updates from CCS</p>
-            </div>
-          </div>
-        </div>
+      <section className="nf-timeline" aria-labelledby="nf-announce-heading">
+        <h2 id="nf-announce-heading" className="nf-section-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M3 11l18-5v12L3 14v-3z" />
+            <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+          </svg>
+          Latest announcements
+        </h2>
 
-        <div className="announcements-list">
-          {announcements.length === 0 ? (
-            <p className="announcements-empty">No announcements yet. Check back soon.</p>
-          ) : (
-            announcements.slice(0, 5).map((ann) => (
-              <article key={ann.id} className="announcement-card">
-                <h3 className="announcement-title">{ann.title}</h3>
-                {ann.image_url && (
-                  <div className="announcement-image-wrap">
-                    <img src={ann.image_url} alt="" className="announcement-image" />
-                  </div>
-                )}
-                <p className="announcement-content">{ann.content}</p>
-                <div className="announcement-meta">
-                  <div className="announcement-meta-left">
-                    <span className="announcement-author">By {ann.author?.name ?? 'Staff'}</span>
-                    <span className={`announcement-tag tag-${ann.tag || 'general'}`}>{ann.tag || 'general'}</span>
-                  </div>
-                  <span className="announcement-date">
-                    {ann.created_at ? new Date(ann.created_at).toLocaleDateString() : ''}
-                  </span>
-                </div>
-              </article>
-            ))
-          )}
-        </div>
+        {feedSlice.length === 0 ? (
+          <p className="nf-empty">No announcements yet. Check back soon for news and events.</p>
+        ) : (
+          <div className="nf-feed-list">
+            {feedSlice.map((ann) => (
+              <FeedAnnouncementPost key={ann.id} announcement={ann} />
+            ))}
+          </div>
+        )}
+
+        <button type="button" className="nf-see-all" onClick={() => navigate('/dashboard/announcements')}>
+          Open announcements page →
+        </button>
       </section>
     </div>
   );

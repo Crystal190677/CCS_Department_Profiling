@@ -43,6 +43,7 @@ export default function ProfileSettingsPage() {
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [completion, setCompletion] = useState(0);
   const [role, setRole] = useState('');
+  const [studentNumber, setStudentNumber] = useState('');
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [pwdCurrent, setPwdCurrent] = useState('');
@@ -73,6 +74,7 @@ export default function ProfileSettingsPage() {
     setAvatarUrl(p.avatar_url || null);
     setCompletion(typeof p.profile_completion_percent === 'number' ? p.profile_completion_percent : 0);
     setRole(p.role || '');
+    setStudentNumber(p.student_number || '');
     setLoading(false);
   }, []);
 
@@ -156,19 +158,24 @@ export default function ProfileSettingsPage() {
     }
   };
 
+  const rosterIdentityLocked = role === 'STUDENT' || role === 'OFFICER';
+
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError('');
     try {
+      const body = rosterIdentityLocked
+        ? { contact_number: contactNumber.trim() || null }
+        : {
+            name: name.trim(),
+            email: email.trim(),
+            contact_number: contactNumber.trim() || null,
+          };
       const res = await fetch('/api/profile/update', {
         method: 'PUT',
         headers: getAuthHeadersJson(),
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim(),
-          contact_number: contactNumber.trim() || null,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (data.success) {
@@ -259,7 +266,11 @@ export default function ProfileSettingsPage() {
         <div className="ps-progress-track" role="progressbar" aria-valuenow={displayCompletion} aria-valuemin={0} aria-valuemax={100}>
           <div className="ps-progress-fill" style={{ width: `${displayCompletion}%` }} />
         </div>
-        <p className="ps-completion-hint">Add a photo, name, email, and contact number to reach 100%.</p>
+        <p className="ps-completion-hint">
+          {rosterIdentityLocked
+            ? 'Add a photo and contact number to complete your profile. Name and email come from the official roster.'
+            : 'Add a photo, name, email, and contact number to reach 100%.'}
+        </p>
       </section>
 
       <div className="ps-grid">
@@ -288,14 +299,42 @@ export default function ProfileSettingsPage() {
 
         <section className="ps-card ccs-surface-gradient">
           <h2 className="ps-card-title">Account details</h2>
+          {rosterIdentityLocked && (
+            <p className="ps-card-desc">
+              Your legal name, email, and student number are set by the department. You can update your contact number below.
+            </p>
+          )}
           <form onSubmit={handleSaveProfile} className="ps-form">
+            {rosterIdentityLocked && studentNumber && (
+              <div className="ps-field">
+                <label htmlFor="ps-student-no">Student number</label>
+                <input id="ps-student-no" value={studentNumber} readOnly className="ps-input-readonly" tabIndex={-1} />
+              </div>
+            )}
             <div className="ps-field">
               <label htmlFor="ps-name">Display name</label>
-              <input id="ps-name" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
+              <input
+                id="ps-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required={!rosterIdentityLocked}
+                readOnly={rosterIdentityLocked}
+                className={rosterIdentityLocked ? 'ps-input-readonly' : undefined}
+                autoComplete="name"
+              />
             </div>
             <div className="ps-field">
               <label htmlFor="ps-email">Email</label>
-              <input id="ps-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+              <input
+                id="ps-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required={!rosterIdentityLocked}
+                readOnly={rosterIdentityLocked}
+                className={rosterIdentityLocked ? 'ps-input-readonly' : undefined}
+                autoComplete="email"
+              />
             </div>
             <div className="ps-field">
               <label htmlFor="ps-phone">Contact number</label>

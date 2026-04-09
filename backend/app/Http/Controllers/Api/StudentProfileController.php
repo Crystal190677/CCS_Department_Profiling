@@ -96,8 +96,8 @@ class StudentProfileController extends Controller
     public function updateForStudent(Request $request, int $userId): JsonResponse
     {
         $authUser = $request->user();
-        if (!$authUser || $authUser->role !== 'ADMIN') {
-            return response()->json(['success' => false, 'message' => 'Only Admin can edit student academic data'], 403);
+        if (!$authUser || !in_array($authUser->role, ['ADMIN', 'OFFICER'], true)) {
+            return response()->json(['success' => false, 'message' => 'Only Admin or Officer can edit student academic data'], 403);
         }
 
         $targetUser = User::find($userId);

@@ -217,7 +217,7 @@ export default function AdminStudentProfileViewPage() {
   const [activities, setActivities] = useState([]);
 
   const user = useMemo(() => JSON.parse(localStorage.getItem('ccs_user') || '{}'), []);
-  const isAdmin = user?.role === 'ADMIN';
+  const canStaffProfile = user?.role === 'ADMIN' || user?.role === 'OFFICER';
 
   const load = useCallback(async () => {
     if (!studentId) return;
@@ -256,8 +256,8 @@ export default function AdminStudentProfileViewPage() {
   }, [load]);
 
   useEffect(() => {
-    if (isAdmin && editMode) fetchActivities();
-  }, [isAdmin, editMode, fetchActivities]);
+    if (canStaffProfile && editMode) fetchActivities();
+  }, [canStaffProfile, editMode, fetchActivities]);
 
   useEffect(() => {
     if (!showSuccessToast) return undefined;
@@ -545,7 +545,7 @@ export default function AdminStudentProfileViewPage() {
   );
 
   const renderPersonal = () => {
-    if (editMode && draft && isAdmin) {
+    if (editMode && draft && canStaffProfile) {
       return (
         <section className="aspv-section" aria-labelledby="aspv-personal-heading">
           <h2 id="aspv-personal-heading" className="aspv-section-title">
@@ -955,12 +955,12 @@ export default function AdminStudentProfileViewPage() {
           ← Back
         </button>
         <div className="aspv-toolbar-actions">
-          {isAdmin && !editMode && (
+          {canStaffProfile && !editMode && (
             <button type="button" className="aspv-btn aspv-btn--primary" onClick={enterEdit}>
               Edit
             </button>
           )}
-          {isAdmin && editMode && (
+          {canStaffProfile && editMode && (
             <>
               <button type="button" className="aspv-btn aspv-btn--ghost" onClick={handleCancelEditClick} disabled={saving}>
                 Cancel
@@ -1446,13 +1446,13 @@ export default function AdminStudentProfileViewPage() {
                   Affiliations
                 </h2>
                 <p className="aspv-hint">Activities, declared interests, and sports / org preferences.</p>
-                {editMode && isAdmin ? (
+                {editMode && canStaffProfile ? (
                   <p className="aspv-hint aspv-hint--readonly">
                     Administrators cannot edit affiliation preferences or declared interests here; those are student-managed.
                   </p>
                 ) : null}
 
-                {editMode && draft && !isAdmin ? (
+                {editMode && draft && !canStaffProfile ? (
                   <>
                     <label className="aspv-field aspv-field--full">
                       <span className="aspv-field-label">Sports interests (comma-separated)</span>

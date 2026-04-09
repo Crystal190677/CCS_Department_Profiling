@@ -13,7 +13,7 @@ class AdminStatsController extends Controller
     public function stats(Request $request): JsonResponse
     {
         $auth = $request->user();
-        if (!$auth || $auth->role !== 'ADMIN') {
+        if (!$auth || !in_array($auth->role, ['ADMIN', 'OFFICER'], true)) {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 

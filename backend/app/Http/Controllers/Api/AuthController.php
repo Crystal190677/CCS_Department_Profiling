@@ -12,6 +12,9 @@ class AuthController extends Controller
 {
     private const ROLES = ['ADMIN', 'OFFICER', 'STUDENT'];
 
+    /** Official roster uses exactly seven numeric digits (e.g. 2203428). */
+    private const STUDENT_NUMBER_PATTERN = '/^\d{7}$/';
+
     public function login(Request $request): JsonResponse
     {
         $request->validate([
@@ -20,7 +23,16 @@ class AuthController extends Controller
             'role' => 'required|string|in:' . implode(',', self::ROLES),
         ]);
 
-        $user = $this->findUser($request->input('identifier'), $request->input('role'));
+        $role = $request->input('role');
+        $identifier = trim((string) $request->input('identifier'));
+        if (in_array($role, ['STUDENT', 'OFFICER'], true)) {
+            $invalidSn = $this->invalidSevenDigitStudentNumberResponse($identifier);
+            if ($invalidSn !== null) {
+                return $invalidSn;
+            }
+        }
+
+        $user = $this->findUser($identifier, $role);
 
         if (!$user) {
             return response()->json([
@@ -73,6 +85,10 @@ class AuthController extends Controller
         ]);
 
         $sn = trim($request->input('student_number'));
+        $invalidSn = $this->invalidSevenDigitStudentNumberResponse($sn);
+        if ($invalidSn !== null) {
+            return $invalidSn;
+        }
 
         $user = User::query()
             ->whereIn('role', ['STUDENT', 'OFFICER'])
@@ -115,6 +131,10 @@ class AuthController extends Controller
         ]);
 
         $sn = trim($request->input('student_number'));
+        $invalidSn = $this->invalidSevenDigitStudentNumberResponse($sn);
+        if ($invalidSn !== null) {
+            return $invalidSn;
+        }
 
         $user = User::query()
             ->whereIn('role', ['STUDENT', 'OFFICER'])
@@ -149,6 +169,19 @@ class AuthController extends Controller
                 'user' => $this->formatUser($user),
             ],
         ], 201);
+    }
+
+    private function invalidSevenDigitStudentNumberResponse(string $sn): ?JsonResponse
+    {
+        if (preg_match(self::STUDENT_NUMBER_PATTERN, $sn) === 1) {
+            return null;
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Student number must be exactly 7 digits (numbers only).',
+            'code' => 'INVALID_STUDENT_NUMBER',
+        ], 422);
     }
 
     private function findUser(string $identifier, string $role): ?User

@@ -55,12 +55,28 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 body {
   font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
-  background: var(--ccs-bg);
+  background-color: var(--ccs-bg);
+  background-image: radial-gradient(ellipse 100% 70% at 50% -20%, rgba(249, 115, 22, 0.09), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, rgba(59, 130, 246, 0.05), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 0% 100%, rgba(249, 115, 22, 0.04), transparent 45%);
+  background-attachment: fixed;
   color: var(--ccs-text);
   min-height: 100vh;
   line-height: 1.5;
+}
+
+html[data-theme='dark'] body {
+  background-image: radial-gradient(ellipse 100% 70% at 50% -20%, rgba(249, 115, 22, 0.14), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, rgba(59, 130, 246, 0.07), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 0% 100%, rgba(249, 115, 22, 0.06), transparent 45%);
 }
 
 #root {

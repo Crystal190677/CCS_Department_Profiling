@@ -1,15 +1,36 @@
 .adm-dash {
-  max-width: 1200px;
   margin: 0 auto;
   padding: 0 0.25rem 2rem;
 }
 
-.adm-dash-hero-inner {
+.adm-dash-hero--feed {
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(249, 115, 22, 0.12);
+}
+
+[data-theme='dark'] .adm-dash-hero--feed {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+
+.adm-dash-hero-inner--feed {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.adm-dash-hero-tagline {
+  max-width: 36rem;
+  line-height: 1.45;
+}
+
+.adm-dash-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .adm-dash-link-profiling {
@@ -21,6 +42,8 @@
   font-weight: 600;
   font-size: 0.875rem;
   backdrop-filter: blur(8px);
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .adm-dash-link-profiling:hover {
@@ -38,181 +61,32 @@
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
-.adm-stats-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.1rem;
-}
-
-@media (min-width: 640px) {
-  .adm-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .adm-stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.adm-stat-card {
-  position: relative;
-  border-radius: 16px;
-  padding: 1.25rem 1.35rem;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  animation: adm-card-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-  min-height: 132px;
-}
-
-[data-theme='dark'] .adm-stat-card {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-}
-
-@keyframes adm-card-enter {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.adm-card-students {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #1e3a8a 100%);
-  color: #fff;
-}
-
-.adm-card-faculty {
-  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 45%, #4c1d95 100%);
-  color: #fff;
-}
-
-.adm-card-officers {
-  background: linear-gradient(135deg, #ea580c 0%, #c2410c 50%, #9a3412 100%);
-  color: #fff;
-}
-
-.adm-card-violations {
-  background: linear-gradient(135deg, #e11d48 0%, #be123c 50%, #881337 100%);
-  color: #fff;
-}
-
-.adm-stat-card-inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.adm-stat-icon-wrap {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
-}
-
-.adm-icon-students {
-  background: rgba(255, 255, 255, 0.22);
-}
-
-.adm-icon-faculty {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.adm-icon-officers {
-  background: rgba(255, 255, 255, 0.22);
-}
-
-.adm-icon-violations {
-  background: rgba(255, 255, 255, 0.22);
-}
-
-.adm-stat-lucide {
-  width: 26px;
-  height: 26px;
-}
-
-.adm-stat-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.adm-stat-label {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0.88;
-  margin: 0 0 0.35rem 0;
-  line-height: 1.3;
-}
-
-.adm-stat-value {
-  font-size: 2.125rem;
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.adm-stat-glow {
-  position: absolute;
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  right: -40px;
-  bottom: -50px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Loading skeleton */
-.adm-skeleton {
-  min-height: 132px;
-  background: var(--ccs-bg-card) !important;
-  border: 1px solid var(--ccs-border) !important;
-  color: transparent;
+.adm-stat-skeleton {
+  min-height: 88px;
   position: relative;
   overflow: hidden;
 }
 
-.adm-skeleton-shimmer {
+.adm-stat-skeleton-shimmer {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(249, 115, 22, 0.08) 45%,
-    rgba(249, 115, 22, 0.14) 50%,
-    rgba(249, 115, 22, 0.08) 55%,
+    rgba(255, 255, 255, 0.12) 45%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.12) 55%,
     transparent 100%
   );
   background-size: 200% 100%;
-  animation: adm-shimmer 1.2s ease-in-out infinite;
+  animation: adm-mini-shimmer 1.1s ease-in-out infinite;
 }
 
-@keyframes adm-shimmer {
+@keyframes adm-mini-shimmer {
   0% {
     background-position: 200% 0;
   }
   100% {
     background-position: -200% 0;
   }
-}
-
-.adm-dash-announcements {
-  margin-top: 2rem;
 }

@@ -118,6 +118,13 @@
   gap: 0.4rem;
 }
 
+.od-field-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #7a726a;
+  line-height: 1.35;
+}
+
 .od-label {
   font-size: 0.8125rem;
   font-weight: 600;

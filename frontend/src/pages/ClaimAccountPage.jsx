@@ -2,6 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './SignUpPage.css';
 
+const STUDENT_NUMBER_LEN = 7;
+
+function normalizeSevenDigitStudentNumber(raw) {
+  return String(raw || '')
+    .replace(/\D/g, '')
+    .slice(0, STUDENT_NUMBER_LEN);
+}
+
 export default function ClaimAccountPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -15,12 +23,17 @@ export default function ClaimAccountPage() {
   const handleLookup = async (e) => {
     e.preventDefault();
     setError('');
+    const sn = normalizeSevenDigitStudentNumber(studentNumber);
+    if (sn.length !== STUDENT_NUMBER_LEN) {
+      setError(`Student number must be exactly ${STUDENT_NUMBER_LEN} digits.`);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch('/api/auth/claim/lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_number: studentNumber.trim() }),
+        body: JSON.stringify({ student_number: sn }),
       });
       const data = await res.json();
       if (!data.success) {
@@ -46,11 +59,17 @@ export default function ClaimAccountPage() {
     }
     setLoading(true);
     try {
+      const sn = normalizeSevenDigitStudentNumber(studentNumber);
+      if (sn.length !== STUDENT_NUMBER_LEN) {
+        setError(`Student number must be exactly ${STUDENT_NUMBER_LEN} digits.`);
+        setLoading(false);
+        return;
+      }
       const res = await fetch('/api/auth/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          student_number: studentNumber.trim(),
+          student_number: sn,
           password,
           password_confirmation: passwordConfirmation,
         }),
@@ -86,14 +105,17 @@ export default function ClaimAccountPage() {
                 <input
                   id="claim_student_number"
                   type="text"
-                  placeholder="e.g. 2024-001"
+                  placeholder="e.g. 2203428"
                   value={studentNumber}
                   onChange={(e) => {
-                    setStudentNumber(e.target.value);
+                    setStudentNumber(normalizeSevenDigitStudentNumber(e.target.value));
                     setError('');
                   }}
                   required
                   disabled={loading}
+                  maxLength={STUDENT_NUMBER_LEN}
+                  inputMode="numeric"
+                  autoComplete="username"
                 />
               </div>
               {error && (

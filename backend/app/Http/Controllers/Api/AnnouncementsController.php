@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
 
 class AnnouncementsController extends Controller
 {
-    private const IMAGE_RULE = 'nullable|file|mimes:jpeg,jpg,png|max:5120';
+    private const IMAGE_RULE = 'nullable|file|mimes:jpeg,jpg,png,webp|max:5120';
 
     public function index(Request $request): JsonResponse
     {

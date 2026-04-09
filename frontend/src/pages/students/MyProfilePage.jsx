@@ -1,11 +1,33 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import ConfirmModal from '../../components/ConfirmModal';
-import './PlaceholderPage.css';
+import './MyProfilePage.css';
+
+function initialsFromName(name) {
+  if (!name || typeof name !== 'string') return '?';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 function getAuthHeaders() {
   const token = localStorage.getItem('ccs_token');
   return { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) };
+}
+
+function MyProfileSectionHead({ icon, title, subtitle }) {
+  return (
+    <div className="my-profile-section-head">
+      <div className="my-profile-section-icon" aria-hidden>
+        {icon}
+      </div>
+      <div className="my-profile-section-titles">
+        <h2 className="my-profile-section-title">{title}</h2>
+        {subtitle ? <p className="my-profile-section-sub">{subtitle}</p> : null}
+      </div>
+    </div>
+  );
 }
 
 export default function MyProfilePage() {
@@ -398,23 +420,42 @@ export default function MyProfilePage() {
     });
   };
 
-  if (!user) return null;
-
-  const hasAcademic = profile && (
-    profile.current_gpa != null ||
-    profile.academic_standing ||
-    profile.course ||
-    profile.year_level ||
-    profile.academic_semester != null ||
-    profile.section != null ||
-    profile.failed_units != null ||
-    profile.incomplete_grades != null ||
-    profile.enrolled_units != null ||
-    (Array.isArray(profile.gpa_per_semester) && profile.gpa_per_semester.length > 0)
+  const hasAcademic = Boolean(
+    user &&
+      profile &&
+      (profile.current_gpa != null ||
+        profile.academic_standing ||
+        profile.course ||
+        profile.year_level ||
+        profile.academic_semester != null ||
+        profile.section != null ||
+        profile.failed_units != null ||
+        profile.incomplete_grades != null ||
+        profile.enrolled_units != null ||
+        (Array.isArray(profile.gpa_per_semester) && profile.gpa_per_semester.length > 0)),
   );
 
+  const academicStats = useMemo(() => {
+    if (!profile) return [];
+    const sem =
+      profile.academic_semester === 2 ? '2nd semester' : profile.academic_semester === 1 ? '1st semester' : '—';
+    return [
+      { label: 'Course / program', value: profile.course || '—' },
+      { label: 'Year level', value: profile.year_level || '—' },
+      { label: 'Semester', value: sem },
+      { label: 'Section', value: profile.section != null && profile.section !== '' ? String(profile.section) : '—' },
+      { label: 'Current GPA', value: profile.current_gpa != null ? Number(profile.current_gpa).toFixed(2) : '—' },
+      { label: 'Academic standing', value: profile.academic_standing || '—' },
+      { label: 'Enrolled units', value: profile.enrolled_units ?? '—' },
+      { label: 'Failed units', value: profile.failed_units ?? '—' },
+      { label: 'Incomplete grades', value: profile.incomplete_grades ?? '—' },
+    ];
+  }, [profile]);
+
+  if (!user) return null;
+
   return (
-    <div className="placeholder-page">
+    <div className="my-profile-page">
       <ConfirmModal
         open={confirmModal.open}
         title={confirmModal.title}
@@ -430,72 +471,118 @@ export default function MyProfilePage() {
         <div className="ccs-gradient-hero-inner">
           <h1 className="ccs-gradient-hero-title">My Profile</h1>
           <p className="ccs-gradient-hero-subtitle">
-            View your academic data (read-only) and manage your interests and profile details below.
+            Your CCS One Dangal record — academic details from the registrar, plus interests and activities you control.
           </p>
         </div>
       </header>
 
-      <div className="profile-info">
-        <p><strong>Name:</strong> {user.name}</p>
-        <p><strong>Email:</strong> {user.email}</p>
-        <p><strong>Student #:</strong> {user.student_number || '—'}</p>
-      </div>
+      <nav className="my-profile-toc" aria-label="On this page">
+        <span className="my-profile-toc-label">Jump to</span>
+        <a href="#my-profile-identity">Identity</a>
+        {hasAcademic ? <a href="#my-profile-academic">Academic record</a> : null}
+        <a href="#my-profile-about">Interests &amp; skills</a>
+        {canSubmitNonAcademic ? <a href="#my-profile-nonacademic">Non-academic</a> : null}
+        {canManageSkills ? <a href="#my-profile-skills">Tagged skills</a> : null}
+        {user?.role === 'STUDENT' ? <a href="#my-profile-interests">Activity interests</a> : null}
+        {user?.role === 'STUDENT' ? <a href="#my-profile-enrollments">Enrollments</a> : null}
+        {user?.role === 'STUDENT' ? <a href="#my-profile-conduct">Conduct</a> : null}
+      </nav>
+
+      <section id="my-profile-identity" className="my-profile-section">
+        <div className="my-profile-card my-profile-card--identity">
+          <div className="my-profile-identity-visual">
+            {user.avatar_url ? (
+              <img src={user.avatar_url} alt="" className="my-profile-avatar my-profile-avatar--photo" />
+            ) : (
+              <div className="my-profile-avatar" aria-hidden>
+                {initialsFromName(user.name)}
+              </div>
+            )}
+          </div>
+          <div className="my-profile-identity-body">
+            <div className="my-profile-identity-top">
+              <h2 className="my-profile-identity-name">{user.name}</h2>
+              <span className="my-profile-role-pill">{user.role === 'OFFICER' ? 'Officer' : 'Student'}</span>
+            </div>
+            <dl className="my-profile-identity-meta">
+              <dt>Email</dt>
+              <dd>{user.email || '—'}</dd>
+              <dt>Student number</dt>
+              <dd>{user.student_number || '—'}</dd>
+            </dl>
+            <Link to="/dashboard/profile-settings" className="my-profile-settings-link">
+              Contact number &amp; profile photo → Profile settings
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {hasAcademic && (
-        <div className="profile-info profile-academic">
-          <h2 className="profile-academic-title">Academic Data (read-only)</h2>
-          <p><strong>Course / Program:</strong> {profile.course || '—'}</p>
-          <p><strong>Year Level:</strong> {profile.year_level || '—'}</p>
-          <p>
-            <strong>Academic semester:</strong>{' '}
-            {profile.academic_semester === 2 ? '2nd semester' : profile.academic_semester === 1 ? '1st semester' : '—'}
-          </p>
-          <p><strong>Section:</strong> {profile.section ?? '—'}</p>
-          <p><strong>Current GPA:</strong> {profile.current_gpa != null ? Number(profile.current_gpa).toFixed(2) : '—'}</p>
-          <p><strong>Academic Standing:</strong> {profile.academic_standing || '—'}</p>
-          <p><strong>Enrolled Units:</strong> {profile.enrolled_units ?? '—'}</p>
-          <p><strong>Failed Units:</strong> {profile.failed_units ?? '—'}</p>
-          <p><strong>Incomplete Grades:</strong> {profile.incomplete_grades ?? '—'}</p>
-          {Array.isArray(profile.gpa_per_semester) && profile.gpa_per_semester.length > 0 && (
-            <div className="profile-gpa-list">
-              <strong>GPA per semester:</strong>
-              <ul>
-                {profile.gpa_per_semester.map((item, i) => (
-                  <li key={i}>{item.semester || `Semester ${i + 1}`}: {Number(item.gpa).toFixed(2)}</li>
-                ))}
-              </ul>
+        <section id="my-profile-academic" className="my-profile-section">
+          <div className="my-profile-card">
+            <MyProfileSectionHead
+              icon="📋"
+              title="Academic record"
+              subtitle="Maintained by the department. Contact the office if something needs correction."
+            />
+            <div className="my-profile-stat-grid">
+              {academicStats.map((row) => (
+                <div key={row.label} className="my-profile-stat">
+                  <span className="my-profile-stat-label">{row.label}</span>
+                  <span className="my-profile-stat-value">{row.value}</span>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+            {Array.isArray(profile.gpa_per_semester) && profile.gpa_per_semester.length > 0 && (
+              <div className="my-profile-gpa-block">
+                <strong>GPA per semester</strong>
+                <ul>
+                  {profile.gpa_per_semester.map((item, i) => (
+                    <li key={i}>
+                      {item.semester || `Semester ${i + 1}`}: {Number(item.gpa).toFixed(2)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
       )}
 
-      <form className="profile-form" onSubmit={handleSubmit}>
-        <h2>Editable Profile Data</h2>
-        <p className="profile-form-hint">You can edit these fields. Academic data is managed by Admin only.</p>
+      <section id="my-profile-about" className="my-profile-section">
+      <form className="my-profile-card my-profile-card--form" onSubmit={handleSubmit}>
+        <MyProfileSectionHead
+          icon="✏️"
+          title="Interests & profile details"
+          subtitle="You can edit these fields anytime. They help advisors and activity leads understand your strengths."
+        />
+        <p className="profile-form-hint">Academic placement above is read-only; only admins can change it.</p>
         {user.role === 'STUDENT' && (
           <>
-            <h3 className="profile-academic-title">Physical data (optional — sports)</h3>
-            <p className="profile-form-hint">Optional. You can update anytime. Used for sports/PE context; only sports coordinators can view.</p>
-            <div className="profile-form-row">
-              <label>Height (cm)</label>
-              <input type="number" name="height_cm" value={form.height_cm} onChange={handleChange} placeholder="170" step="0.01" />
-            </div>
-            <div className="profile-form-row">
-              <label>Weight (kg)</label>
-              <input type="number" name="weight_kg" value={form.weight_kg} onChange={handleChange} placeholder="65" step="0.01" />
-            </div>
-            <div className="profile-form-row">
-              <label>Dominant hand</label>
-              <select name="dominant_hand" value={form.dominant_hand} onChange={handleChange}>
-                <option value="">— Optional —</option>
-                <option value="Right">Right</option>
-                <option value="Left">Left</option>
-                <option value="Ambidextrous">Ambidextrous</option>
-              </select>
-            </div>
-            <div className="profile-form-row">
-              <label>Preferred position (e.g. Guard, Forward)</label>
-              <input type="text" name="preferred_position" value={form.preferred_position} onChange={handleChange} placeholder="e.g. Point Guard" />
+            <h3 className="my-profile-subhead">Physical data (optional — sports)</h3>
+            <p className="profile-form-hint">Optional. Used for sports/PE context; only sports coordinators can view.</p>
+            <div className="my-profile-form-grid-2">
+              <div className="profile-form-row">
+                <label htmlFor="mp-height">Height (cm)</label>
+                <input id="mp-height" type="number" name="height_cm" value={form.height_cm} onChange={handleChange} placeholder="170" step="0.01" />
+              </div>
+              <div className="profile-form-row">
+                <label htmlFor="mp-weight">Weight (kg)</label>
+                <input id="mp-weight" type="number" name="weight_kg" value={form.weight_kg} onChange={handleChange} placeholder="65" step="0.01" />
+              </div>
+              <div className="profile-form-row">
+                <label htmlFor="mp-hand">Dominant hand</label>
+                <select id="mp-hand" name="dominant_hand" value={form.dominant_hand} onChange={handleChange}>
+                  <option value="">— Optional —</option>
+                  <option value="Right">Right</option>
+                  <option value="Left">Left</option>
+                  <option value="Ambidextrous">Ambidextrous</option>
+                </select>
+              </div>
+              <div className="profile-form-row">
+                <label htmlFor="mp-position">Preferred position</label>
+                <input id="mp-position" type="text" name="preferred_position" value={form.preferred_position} onChange={handleChange} placeholder="e.g. Point Guard" />
+              </div>
             </div>
           </>
         )}
@@ -513,15 +600,20 @@ export default function MyProfilePage() {
         </div>
         {message && <p className="profile-message">{message}</p>}
         <button type="submit" disabled={saving} className="profile-save-btn">
-          {saving ? 'Saving...' : 'Save Profile'}
+          {saving ? 'Saving...' : 'Save changes'}
         </button>
       </form>
+      </section>
 
       {canSubmitNonAcademic && (
         <>
-          <div className="profile-info profile-academic">
-            <h2 className="profile-academic-title">Non-academic (awards, activities, leadership)</h2>
-            <p className="profile-form-hint">Submit entries for Admin approval. They will appear on your profile once verified.</p>
+          <section id="my-profile-nonacademic" className="my-profile-section">
+            <div className="my-profile-card">
+              <MyProfileSectionHead
+                icon="🏅"
+                title="Non-academic achievements"
+                subtitle="Awards, activities, and leadership roles. Submissions are reviewed by an admin before they appear on your record."
+              />
             {nonAcademicEntries.length > 0 ? (
               <ul className="profile-na-list">
                 {nonAcademicEntries.map((entry) => (
@@ -535,9 +627,10 @@ export default function MyProfilePage() {
             ) : (
               <p className="spd-muted">No entries yet.</p>
             )}
-          </div>
-          <form className="profile-form" onSubmit={handleNonAcademicSubmit}>
-            <h2>Submit new entry</h2>
+            </div>
+          <form className="my-profile-card my-profile-card--form" onSubmit={handleNonAcademicSubmit} style={{ marginTop: '1rem' }}>
+            <h2 className="my-profile-section-title" style={{ marginBottom: '0.5rem' }}>Submit a new entry</h2>
+            <p className="profile-form-hint">Attach proof if you have a certificate or photo (PDF, JPG, PNG).</p>
             <div className="profile-form-row">
               <label>Type</label>
               <select value={naForm.type} onChange={(e) => setNaForm((f) => ({ ...f, type: e.target.value }))}>
@@ -563,14 +656,19 @@ export default function MyProfilePage() {
               {naSubmitting ? 'Submitting…' : 'Submit for approval'}
             </button>
           </form>
+          </section>
         </>
       )}
 
       {canManageSkills && (
         <>
-          <div className="profile-info profile-academic">
-            <h2 className="profile-academic-title">Skills (tagged with proficiency, portfolio &amp; GitHub)</h2>
-            <p className="profile-form-hint">Add your skills and optional links. Admins can endorse or dispute entries.</p>
+          <section id="my-profile-skills" className="my-profile-section">
+            <div className="my-profile-card">
+              <MyProfileSectionHead
+                icon="⚡"
+                title="Tagged skills"
+                subtitle="Show proficiency and link a portfolio or GitHub. Staff may endorse skills for official activities."
+              />
             {skillEntries.length > 0 ? (
               <ul className="profile-skill-list">
                 {skillEntries.map((entry) => (
@@ -593,9 +691,9 @@ export default function MyProfilePage() {
             ) : (
               <p className="profile-form-hint">No skills added yet.</p>
             )}
-          </div>
-          <form className="profile-form" onSubmit={handleSkillSubmit}>
-            <h2>{editingSkillId ? 'Edit skill' : 'Add skill'}</h2>
+            </div>
+          <form className="my-profile-card my-profile-card--form" onSubmit={handleSkillSubmit} style={{ marginTop: '1rem' }}>
+            <h2 className="my-profile-section-title" style={{ marginBottom: '0.5rem' }}>{editingSkillId ? 'Edit skill' : 'Add a skill'}</h2>
             <div className="profile-form-row">
               <label>Skill / tag</label>
               <input type="text" value={skillForm.skill} onChange={(e) => setSkillForm((f) => ({ ...f, skill: e.target.value }))} placeholder="e.g. JavaScript, React" required />
@@ -621,16 +719,33 @@ export default function MyProfilePage() {
             <button type="submit" disabled={skillSubmitting} className="profile-save-btn">
               {skillSubmitting ? 'Saving…' : (editingSkillId ? 'Update skill' : 'Add skill')}
             </button>
-            {editingSkillId && <button type="button" className="spd-modal-cancel" style={{ marginLeft: '0.5rem' }} onClick={() => { setEditingSkillId(null); setSkillForm({ skill: '', proficiency_level: 'Intermediate', portfolio_url: '', github_url: '' }); }}>Cancel</button>}
+            {editingSkillId && (
+              <button
+                type="button"
+                className="profile-save-btn profile-save-btn--secondary"
+                style={{ marginLeft: '0.5rem' }}
+                onClick={() => {
+                  setEditingSkillId(null);
+                  setSkillForm({ skill: '', proficiency_level: 'Intermediate', portfolio_url: '', github_url: '' });
+                }}
+              >
+                Cancel edit
+              </button>
+            )}
           </form>
+          </section>
         </>
       )}
 
       {user?.role === 'STUDENT' && (
         <>
-          <div className="profile-info profile-academic">
-            <h2 className="profile-academic-title">Interest declarations</h2>
-            <p className="profile-form-hint">Activities you are willing to join. Add, update, or retract anytime. Visible to admins for enrollment and ranking.</p>
+          <section id="my-profile-interests" className="my-profile-section">
+            <div className="my-profile-card">
+              <MyProfileSectionHead
+                icon="🎯"
+                title="Activity interests"
+                subtitle="Tell us which activities you want to join. You can retract interest anytime."
+              />
             {interestLoading ? (
               <p className="profile-form-hint">Loading…</p>
             ) : interestDeclarations.length === 0 ? (
@@ -646,9 +761,9 @@ export default function MyProfilePage() {
                 ))}
               </ul>
             )}
-          </div>
-          <form className="profile-form" onSubmit={handleAddInterest}>
-            <h2>Add interest</h2>
+            </div>
+          <form className="my-profile-card my-profile-card--form" onSubmit={handleAddInterest} style={{ marginTop: '1rem' }}>
+            <h2 className="my-profile-section-title" style={{ marginBottom: '0.5rem' }}>Declare interest</h2>
             <div className="profile-form-row">
               <label>Activity</label>
               <select value={addInterestActivityId} onChange={(e) => setAddInterestActivityId(e.target.value)} required>
@@ -670,15 +785,18 @@ export default function MyProfilePage() {
               {addInterestSubmitting ? 'Adding…' : 'Add interest'}
             </button>
           </form>
+          </section>
         </>
       )}
 
       {user?.role === 'STUDENT' && (
-        <div className="profile-info profile-academic">
-          <h2 className="profile-academic-title">Activity enrollments</h2>
-          <p className="profile-form-hint">
-            When an admin selects you, the enrollment is recorded here. Confirm roster spots in your profile to finalize your place.
-          </p>
+        <section id="my-profile-enrollments" className="my-profile-section">
+        <div className="my-profile-card">
+          <MyProfileSectionHead
+            icon="📌"
+            title="Activity enrollments"
+            subtitle="When you are selected for a roster, confirm here to finalize your spot when prompted."
+          />
           {enrollmentNotice && <p className="profile-message">{enrollmentNotice}</p>}
           {enrollmentsLoading ? (
             <p className="profile-form-hint">Loading…</p>
@@ -702,7 +820,7 @@ export default function MyProfilePage() {
                     <button
                       type="button"
                       className="profile-save-btn"
-                      style={{ marginTop: '0.5rem', display: 'block' }}
+                      style={{ marginTop: '0.65rem', display: 'inline-block' }}
                       disabled={confirmingEnrollmentId === enr.id}
                       onClick={() => handleConfirmEnrollment(enr.id)}
                     >
@@ -714,13 +832,18 @@ export default function MyProfilePage() {
             </ul>
           )}
         </div>
+        </section>
       )}
 
       {user?.role === 'STUDENT' && (
         <>
-          <div className="profile-info profile-academic">
-            <h2 className="profile-academic-title">Conduct (violations &amp; commendations)</h2>
-            <p className="profile-form-hint">Read-only. You may submit a formal dispute if you believe a violation record is incorrect. Only Admin can create or edit records.</p>
+          <section id="my-profile-conduct" className="my-profile-section">
+          <div className="my-profile-card">
+            <MyProfileSectionHead
+              icon="⚖️"
+              title="Conduct record"
+              subtitle="Violations and commendations are read-only. You may dispute a violation you believe is incorrect."
+            />
             {conductLoading ? (
               <p className="profile-form-hint">Loading…</p>
             ) : conductEntries.length === 0 ? (
@@ -751,6 +874,7 @@ export default function MyProfilePage() {
               </ul>
             )}
           </div>
+          </section>
           {disputeModalEntry && (
             <div className="profile-modal-overlay" onClick={() => { setDisputeModalEntry(null); setDisputeReason(''); setDisputeMessage(''); }}>
               <div className="profile-modal" onClick={(e) => e.stopPropagation()}>
