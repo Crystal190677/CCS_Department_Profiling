@@ -10,10 +10,7 @@ const PROFILE_ROLES_FOR_CURRICULUM = new Set(['STUDENT', 'OFFICER']);
 
 const MENU_ITEMS_BASE = [
   { path: '/dashboard', label: 'Dashboard', icon: 'grid' },
-  { path: '/dashboard/announcements', label: 'Announcements', icon: 'megaphone' },
   { path: '/dashboard/merch-store', label: 'Merch Store', icon: 'tag' },
-  { path: '/dashboard/my-profile', label: 'My Profile', icon: 'person' },
-  { path: '/dashboard/profile-settings', label: 'Profile settings', icon: 'settings' },
 ];
 
 const MENU_ITEM_OFFICER_MERCH = { path: '/dashboard/manage-merch', label: 'Manage Merchandise', icon: 'package', officerOnly: true };
@@ -312,7 +309,7 @@ export default function StudentLayout() {
           </button>
           <MerchCartPanel />
           <NotificationsBell />
-          {user?.role === 'OFFICER' ? (
+          {user?.role === 'OFFICER' || user?.role === 'STUDENT' ? (
             <div className="dashboard-user-menu-wrap" ref={userMenuRef}>
               <button
                 type="button"

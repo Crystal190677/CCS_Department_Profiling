@@ -452,6 +452,40 @@ export default function MyProfilePage() {
     ];
   }, [profile]);
 
+  const hobbiesList = useMemo(() => {
+    const raw = [
+      ...(Array.isArray(profile?.sports_interests) ? profile.sports_interests : []),
+      ...(Array.isArray(profile?.activity_interests) ? profile.activity_interests : []),
+    ];
+    return raw.map((x) => String(x || '').trim()).filter(Boolean);
+  }, [profile]);
+
+  const talentsList = useMemo(() => {
+    const set = new Set();
+    for (const s of skillEntries) {
+      const k = String(s?.skill || '').trim();
+      if (k) set.add(k);
+    }
+    const freeText = String(profile?.skills || '').trim();
+    if (freeText) {
+      freeText
+        .split(/[,;\n]/)
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .forEach((x) => set.add(x));
+    }
+    return [...set];
+  }, [skillEntries, profile]);
+
+  const achievementsList = useMemo(
+    () =>
+      nonAcademicEntries
+        .filter((entry) => entry?.type === 'award')
+        .map((entry) => String(entry?.title || '').trim())
+        .filter(Boolean),
+    [nonAcademicEntries],
+  );
+
   if (!user) return null;
 
   return (
@@ -514,6 +548,81 @@ export default function MyProfilePage() {
               Contact number &amp; profile photo → Profile settings
             </Link>
           </div>
+        </div>
+      </section>
+
+      <section className="my-profile-section">
+        <div className="my-profile-summary-grid">
+          <article className="my-profile-card">
+            <MyProfileSectionHead icon="👤" title="Personal Information" />
+            <dl className="my-profile-kv-list">
+              <dt>Full Name</dt>
+              <dd>{user.name || '—'}</dd>
+              <dt>Email Address</dt>
+              <dd>{user.email || '—'}</dd>
+              <dt>Phone Number</dt>
+              <dd>{user.contact_number || profile?.contact_number || '—'}</dd>
+              <dt>Profile Picture</dt>
+              <dd>{user.avatar_url ? 'Uploaded' : 'Not uploaded'}</dd>
+              <dt>Address</dt>
+              <dd>{profile?.address || user.address || '—'}</dd>
+            </dl>
+          </article>
+
+          <article className="my-profile-card">
+            <MyProfileSectionHead icon="🏫" title="School Information" />
+            <dl className="my-profile-kv-list">
+              <dt>School Name</dt>
+              <dd>Pamantasan ng Cabuyao</dd>
+              <dt>Department</dt>
+              <dd>College of Computing Studies</dd>
+              <dt>Year Level / Section</dt>
+              <dd>
+                {profile?.year_level || '—'}
+                {profile?.section ? ` / ${profile.section}` : ''}
+              </dd>
+            </dl>
+          </article>
+
+          <article className="my-profile-card">
+            <MyProfileSectionHead icon="🎨" title="Hobbies & Talents" />
+            <div className="my-profile-list-wrap">
+              <p className="my-profile-list-label">List of hobbies</p>
+              {hobbiesList.length === 0 ? (
+                <p className="my-profile-list-empty">—</p>
+              ) : (
+                <ul className="my-profile-inline-list">
+                  {hobbiesList.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
+              <p className="my-profile-list-label">List of talents/skills</p>
+              {talentsList.length === 0 ? (
+                <p className="my-profile-list-empty">—</p>
+              ) : (
+                <ul className="my-profile-inline-list">
+                  {talentsList.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </article>
+
+          <article className="my-profile-card">
+            <MyProfileSectionHead icon="🏆" title="Achievements" />
+            <p className="my-profile-list-label">List of achievements/awards</p>
+            {achievementsList.length === 0 ? (
+              <p className="my-profile-list-empty">—</p>
+            ) : (
+              <ul className="my-profile-inline-list">
+                {achievementsList.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            )}
+          </article>
         </div>
       </section>
 

@@ -62,9 +62,9 @@ function FolderIcon() {
   );
 }
 
-function isExactIrregularsHub(pathname) {
+function isExactIrregularsHub(pathname, basePath) {
   const p = pathname.replace(/\/$/, '') || '/';
-  return p === '/dashboard/membership-cards/irregulars';
+  return p === `${basePath}/irregulars`;
 }
 
 function hasMembershipCardRecorded(p) {
@@ -104,7 +104,14 @@ export default function MembershipCardListPage() {
   /** '01'–'12' calendar month of card availed date (any year), or '' for all months */
   const [membershipMonthKey, setMembershipMonthKey] = useState('');
 
-  const irregularsHub = isExactIrregularsHub(location.pathname);
+  const membershipBasePath = useMemo(() => {
+    if (location.pathname.startsWith('/admin-dashboard/membership-cards')) {
+      return '/admin-dashboard/membership-cards';
+    }
+    return '/dashboard/membership-cards';
+  }, [location.pathname]);
+
+  const irregularsHub = isExactIrregularsHub(location.pathname, membershipBasePath);
   const yearConfig = yearSegment && yearSegment !== 'irregulars' ? SEGMENT_CONFIG[yearSegment] : null;
 
   /** When URL is `/membership-cards/irregulars/:slug` and slug is a year segment (not section letter). */
@@ -288,7 +295,7 @@ export default function MembershipCardListPage() {
               key={f.slug}
               type="button"
               className="membership-section-folder"
-              onClick={() => navigate(`/dashboard/membership-cards/irregulars/${f.slug}`)}
+              onClick={() => navigate(`${membershipBasePath}/irregulars/${f.slug}`)}
             >
               <span className="membership-section-folder-icon-wrap">
                 <FolderIcon />
@@ -318,7 +325,7 @@ export default function MembershipCardListPage() {
               key={f.key}
               type="button"
               className="membership-section-folder"
-              onClick={() => navigate(`/dashboard/membership-cards/${yearSegment}/${f.key}`)}
+              onClick={() => navigate(`${membershipBasePath}/${yearSegment}/${f.key}`)}
             >
               <span className="membership-section-folder-icon-wrap">
                 <FolderIcon />
@@ -344,12 +351,12 @@ export default function MembershipCardListPage() {
             <p className="ccs-gradient-hero-subtitle">{pageSubtitle}</p>
           </div>
           {viewMode === 'section-list' && yearSegment && (
-            <button type="button" className="membership-back-btn" onClick={() => navigate(`/dashboard/membership-cards/${yearSegment}`)}>
+            <button type="button" className="membership-back-btn" onClick={() => navigate(`${membershipBasePath}/${yearSegment}`)}>
               ← Sections
             </button>
           )}
           {viewMode === 'irregulars-year-list' && (
-            <button type="button" className="membership-back-btn" onClick={() => navigate('/dashboard/membership-cards/irregulars')}>
+            <button type="button" className="membership-back-btn" onClick={() => navigate(`${membershipBasePath}/irregulars`)}>
               ← Year levels
             </button>
           )}

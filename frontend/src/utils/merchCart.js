@@ -1,6 +1,23 @@
 export const MERCH_CART_KEY = 'ccs_merch_cart';
 export const MERCH_CART_UPDATED_EVENT = 'ccs-merch-cart-updated';
 
+export function getMerchCartStorageKey() {
+  try {
+    const raw = localStorage.getItem('ccs_user');
+    if (!raw) return `${MERCH_CART_KEY}:guest`;
+    const user = JSON.parse(raw);
+    const id = user?.id;
+    if (id == null || id === '') return `${MERCH_CART_KEY}:guest`;
+    return `${MERCH_CART_KEY}:${String(id)}`;
+  } catch {
+    return `${MERCH_CART_KEY}:guest`;
+  }
+}
+
+function merchName(item) {
+  return String(item?.name || '').toLowerCase();
+}
+
 function firstNonEmpty(...vals) {
   for (const v of vals) {
     if (v != null && String(v).trim() !== '') return String(v).trim();
@@ -28,6 +45,14 @@ export function normalizeMerchColors(item) {
       };
     });
   }
+  const name = merchName(item);
+  if (/\b(hoodie|shirt)\b/i.test(name)) {
+    return [
+      { key: 'white', label: 'White', hex: '#f8fafc' },
+      { key: 'black', label: 'Black', hex: '#111827' },
+      { key: 'orange', label: 'Orange', hex: '#ea580c' },
+    ];
+  }
   return [{ key: 'default', label: item?.category_label || 'Classic', hex: '#ea580c' }];
 }
 
@@ -35,6 +60,10 @@ export function normalizeMerchSizes(item) {
   const raw = item?.available_sizes;
   if (Array.isArray(raw) && raw.length > 0) {
     return raw.map((s) => String(s));
+  }
+  const name = merchName(item);
+  if (/\blanyard\b/i.test(name)) {
+    return ['BSIT', 'BSCS'];
   }
   return ['S', 'M', 'L'];
 }
@@ -113,7 +142,7 @@ export function backfillMerchCartFromCatalog(catalogItems) {
 
 export function readMerchCart() {
   try {
-    const raw = localStorage.getItem(MERCH_CART_KEY);
+    const raw = localStorage.getItem(getMerchCartStorageKey());
     const parsed = JSON.parse(raw || '[]');
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -122,7 +151,7 @@ export function readMerchCart() {
 }
 
 export function writeMerchCart(cart) {
-  localStorage.setItem(MERCH_CART_KEY, JSON.stringify(cart));
+  localStorage.setItem(getMerchCartStorageKey(), JSON.stringify(cart));
   notifyMerchCartUpdated();
 }
 

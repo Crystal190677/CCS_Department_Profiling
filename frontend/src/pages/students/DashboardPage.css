@@ -1,9 +1,181 @@
-/* Student home: layout tweaks only — feed look lives in news-feed.css */
+/* Student dashboard redesign (CCS theme) */
 
 .student-dashboard {
   width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
-.nf-notifications-block {
+.dbx-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.dbx-hero {
   margin-bottom: 0.25rem;
+}
+
+.dbx-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 1100px) {
+  .dbx-grid {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+  }
+}
+
+.dbx-main,
+.dbx-side {
+  display: grid;
+  gap: 1rem;
+}
+
+.dbx-welcome-card,
+.dbx-side-card,
+.dbx-announcements {
+  background: var(--ccs-bg-card);
+  border: 1px solid var(--ccs-border);
+  border-radius: 14px;
+  padding: 1rem 1rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.dbx-welcome-card h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.dbx-welcome-card p {
+  margin: 0.35rem 0 0;
+  color: var(--ccs-text-muted);
+  font-size: 0.92rem;
+}
+
+.dbx-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.dbx-section-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.dbx-link-btn {
+  background: transparent;
+  border: 1px solid var(--ccs-border);
+  border-radius: 9px;
+  padding: 0.35rem 0.65rem;
+  color: var(--ccs-orange);
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.dbx-link-btn--inline {
+  border: none;
+  padding: 0;
+  text-align: left;
+}
+
+.dbx-ann-card .nf-post {
+  border-radius: 12px;
+}
+
+.dbx-side-card h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+}
+
+.dbx-side-card--datetime {
+  background: linear-gradient(135deg, #0a674d 0%, #176b56 100%);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.dbx-side-date {
+  margin: 0;
+  opacity: 0.95;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.dbx-side-year {
+  margin: 0.1rem 0;
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.dbx-side-day,
+.dbx-side-time {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.dbx-weather-top {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  margin-bottom: 0.5rem;
+}
+
+.dbx-weather-top strong {
+  font-size: 1.7rem;
+}
+
+.dbx-weather-top span {
+  color: var(--ccs-text-muted);
+  font-size: 0.88rem;
+}
+
+.dbx-weather-meta p {
+  margin: 0.18rem 0;
+  font-size: 0.83rem;
+  color: var(--ccs-text-muted);
+}
+
+.dbx-hourly {
+  margin-top: 0.55rem;
+  border-top: 1px dashed var(--ccs-border);
+  padding-top: 0.55rem;
+  display: grid;
+  gap: 0.28rem;
+}
+
+.dbx-hour-row {
+  display: grid;
+  grid-template-columns: 50px 48px 1fr;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+}
+
+.dbx-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.dbx-links a {
+  color: var(--ccs-orange);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+.dbx-links a:hover {
+  text-decoration: underline;
+}
+
+.dbx-muted {
+  margin: 0;
+  color: var(--ccs-text-muted);
+  font-size: 0.86rem;
 }

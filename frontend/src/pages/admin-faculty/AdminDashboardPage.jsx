@@ -46,9 +46,19 @@ export default function AdminDashboardPage() {
   const [countKey, setCountKey] = useState(0);
   const [announcements, setAnnouncements] = useState([]);
 
+  const handleUnauthenticated = useCallback(() => {
+    localStorage.removeItem('ccs_token');
+    localStorage.removeItem('ccs_user');
+    navigate('/login');
+  }, [navigate]);
+
   const loadStats = useCallback(async () => {
     setError('');
     const res = await fetch('/api/admin/stats', { headers: getAuthHeaders() });
+    if (res.status === 401) {
+      handleUnauthenticated();
+      return;
+    }
     const data = await res.json();
     if (!data.success) {
       setError(data.message || 'Could not load statistics');
@@ -58,13 +68,17 @@ export default function AdminDashboardPage() {
     setStats(data.data);
     setCountKey((k) => k + 1);
     setLoading(false);
-  }, []);
+  }, [handleUnauthenticated]);
 
   const loadAnnouncements = useCallback(async () => {
     const res = await fetch('/api/announcements', { headers: getAuthHeaders() });
+    if (res.status === 401) {
+      handleUnauthenticated();
+      return;
+    }
     const data = await res.json();
     if (data.success) setAnnouncements(data.data || []);
-  }, []);
+  }, [handleUnauthenticated]);
 
   useEffect(() => {
     const token = localStorage.getItem('ccs_token');

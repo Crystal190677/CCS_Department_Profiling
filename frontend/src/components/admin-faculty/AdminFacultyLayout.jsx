@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from '../../context/DarkModeContext';
 import NotificationsBell from '../NotificationsBell';
@@ -39,6 +39,34 @@ function Icon({ name, className }) {
         <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
         <rect x="9" y="3" width="6" height="4" rx="1" />
         <path d="M9 12h6M9 16h4" />
+      </svg>
+    );
+  }
+  if (name === 'person-plus') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="8.5" cy="7" r="4" />
+        <line x1="20" y1="8" x2="20" y2="14" />
+        <line x1="17" y1="11" x2="23" y2="11" />
+      </svg>
+    );
+  }
+  if (name === 'id-card') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="5" width="16" height="14" rx="2" />
+        <circle cx="9" cy="10" r="2" />
+        <path d="M8 15h3M14 15h2M14 10h2" />
+      </svg>
+    );
+  }
+  if (name === 'package') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+        <line x1="12" y1="22.08" x2="12" y2="12" />
       </svg>
     );
   }
@@ -85,22 +113,51 @@ export default function AdminFacultyLayout() {
   const { isDark, toggleDarkMode } = useDarkMode();
   const user = JSON.parse(localStorage.getItem('ccs_user') || '{}');
 
-  const profilingBranchActive = location.pathname.startsWith('/admin-dashboard/profiling');
+  const profilingBranchActive =
+    location.pathname.startsWith('/admin-dashboard/profiling') ||
+    location.pathname === '/admin-dashboard/add-student';
 
-  const profilingSubItems = useMemo(
-    () => [
+  const profilingSubItems = useMemo(() => {
+    const items = [
       { path: '/admin-dashboard/profiling/class-lists', label: 'Class List' },
       { path: '/admin-dashboard/profiling/talent-directory', label: 'Talent Directory' },
-    ],
-    [],
-  );
+    ];
+    if (user.role === 'ADMIN') {
+      return [{ path: '/admin-dashboard/add-student', label: 'Add Student' }, ...items];
+    }
+    return items;
+  }, [user.role]);
 
   const [profilingMenuOpen, setProfilingMenuOpen] = useState(profilingBranchActive);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     if (profilingBranchActive) setProfilingMenuOpen(true);
     else setProfilingMenuOpen(false);
   }, [profilingBranchActive]);
+
+  useEffect(() => {
+    setUserMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onDoc = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setUserMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [userMenuOpen]);
 
   const topNavItems = useMemo(() => {
     const dash = { path: '/admin-dashboard', label: 'Dashboard', icon: 'dashboard', exact: true };
@@ -110,16 +167,23 @@ export default function AdminFacultyLayout() {
         { path: '/admin/audit-log', label: 'Audit log', icon: 'audit' },
       ];
     }
+    if (user.role === 'OFFICER') {
+      return [
+        dash,
+        { path: '/admin-dashboard/membership-cards/irregulars', label: 'Membership card', icon: 'id-card' },
+        { path: '/admin-dashboard/manage-merch', label: 'Manage merchandise', icon: 'package' },
+      ];
+    }
     return [dash];
   }, [user.role]);
 
-  const bottomNavItems = useMemo(
-    () => [
-      { path: '/admin-dashboard/announcements', label: 'Announcements', icon: 'megaphone' },
-      { path: '/admin-dashboard/profile-settings', label: 'Profile settings', icon: 'settings' },
-    ],
-    [],
-  );
+  const bottomNavItems = useMemo(() => {
+    const items = [{ path: '/admin-dashboard/announcements', label: 'Announcements', icon: 'megaphone' }];
+    if (user.role !== 'ADMIN') {
+      items.push({ path: '/admin-dashboard/profile-settings', label: 'Profile settings', icon: 'settings' });
+    }
+    return items;
+  }, [user.role]);
 
   useEffect(() => {
     const token = localStorage.getItem('ccs_token');
@@ -170,17 +234,76 @@ export default function AdminFacultyLayout() {
             {isDark ? <SunIcon /> : <MoonIcon />}
           </button>
           <NotificationsBell />
-          <div className="dashboard-user">
-            <div className="dashboard-avatar">{getInitial(user.name)}</div>
-            <div className="dashboard-user-info">
-              <span className="dashboard-user-name">{user.name || 'User'}</span>
-              <span className="dashboard-user-role">{dashboardRoleLabel}</span>
+          {user.role === 'ADMIN' || user.role === 'OFFICER' ? (
+            <div className="dashboard-user-menu-wrap" ref={userMenuRef}>
+              <button
+                type="button"
+                className="dashboard-user dashboard-user--trigger"
+                onClick={() => setUserMenuOpen((o) => !o)}
+                aria-expanded={userMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Account menu"
+              >
+                <div className="dashboard-avatar">{getInitial(user.name)}</div>
+                <div className="dashboard-user-info">
+                  <span className="dashboard-user-name">{user.name || 'User'}</span>
+                  <span className="dashboard-user-role">{dashboardRoleLabel}</span>
+                </div>
+                <svg
+                  className={`dashboard-user-menu-chevron ${userMenuOpen ? 'dashboard-user-menu-chevron--open' : ''}`}
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {userMenuOpen && (
+                <div className="dashboard-user-dropdown" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="dashboard-user-dropdown-item"
+                    onClick={() => {
+                      navigate('/dashboard/my-profile');
+                      setUserMenuOpen(false);
+                    }}
+                  >
+                    My Profile
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="dashboard-user-dropdown-item dashboard-user-dropdown-item--danger"
+                    onClick={() => {
+                      handleLogout();
+                      setUserMenuOpen(false);
+                    }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
-            <button type="button" className="dashboard-logout-btn" onClick={handleLogout} aria-label="Logout">
-              <LogoutIcon />
-              <span className="dashboard-logout-text">Logout</span>
-            </button>
-          </div>
+          ) : (
+            <div className="dashboard-user">
+              <div className="dashboard-avatar">{getInitial(user.name)}</div>
+              <div className="dashboard-user-info">
+                <span className="dashboard-user-name">{user.name || 'User'}</span>
+                <span className="dashboard-user-role">{dashboardRoleLabel}</span>
+              </div>
+              <button type="button" className="dashboard-logout-btn" onClick={handleLogout} aria-label="Logout">
+                <LogoutIcon />
+                <span className="dashboard-logout-text">Logout</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
       <aside className="dashboard-sidebar">

@@ -10,6 +10,16 @@ use Illuminate\Support\Facades\Storage;
 
 class MerchandiseController extends Controller
 {
+    public function image(int $id)
+    {
+        $merchandise = Merchandise::findOrFail($id);
+        $path = $merchandise->image_path;
+        if (!$path || !Storage::disk('public')->exists($path)) {
+            abort(404);
+        }
+        return Storage::disk('public')->response($path);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Merchandise::with('createdByUser:id,name');

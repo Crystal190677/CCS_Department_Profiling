@@ -1362,6 +1362,18 @@
   margin-bottom: 1rem;
 }
 
+.spd-class-lists-searchbar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.7rem;
+}
+
+.spd-class-lists-searchbar .spd-talent-search {
+  flex: 1 1 320px;
+}
+
 .spd-class-lists-cap--over {
   color: #b91c1c;
   font-weight: 600;

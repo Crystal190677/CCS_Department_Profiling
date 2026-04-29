@@ -42,7 +42,7 @@ export default function MerchCartPanel() {
 
   useEffect(() => {
     const onStorage = (e) => {
-      if (e.key === MERCH_CART_KEY || e.key === null) refresh();
+      if ((typeof e.key === 'string' && e.key.startsWith(`${MERCH_CART_KEY}:`)) || e.key === null) refresh();
     };
     const onCustom = () => refresh();
     window.addEventListener('storage', onStorage);

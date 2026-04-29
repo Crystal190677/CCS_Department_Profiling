@@ -1,5 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { Agent } from 'node:http';
+
+const backendTarget = 'http://127.0.0.1:8000';
+const backendAgent = new Agent({ keepAlive: false });
 
 export default defineConfig({
   plugins: [react()],
@@ -8,12 +12,14 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: backendTarget,
         changeOrigin: true,
+        agent: backendAgent,
       },
       '/storage': {
-        target: 'http://localhost:8000',
+        target: backendTarget,
         changeOrigin: true,
+        agent: backendAgent,
       },
     },
   },

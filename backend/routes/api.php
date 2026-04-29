@@ -31,6 +31,8 @@ Route::prefix('auth')->group(function () {
     Route::post('claim', [AuthController::class, 'claimAccount']);
 });
 
+Route::get('merchandise/{id}/image', [MerchandiseController::class, 'image']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('announcements', [AnnouncementsController::class, 'index']);
 

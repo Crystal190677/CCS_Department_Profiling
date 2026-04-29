@@ -13,7 +13,7 @@ class StudentProfileController extends Controller
     /** Physical + non-academic fields that students may update (Officers cannot update physical). */
     private const STUDENT_EDITABLE = [
         'height_cm', 'weight_kg', 'dominant_hand', 'preferred_position',
-        'sports_interests', 'activity_interests', 'skills', 'notes',
+        'address', 'sports_interests', 'activity_interests', 'skills', 'notes',
     ];
 
     private const PHYSICAL_FIELDS = StudentProfile::PHYSICAL_FIELDS;
@@ -66,6 +66,7 @@ class StudentProfileController extends Controller
         $allowed = array_values($allowed);
 
         $request->validate([
+            'address' => 'nullable|string|max:1000',
             'height_cm' => 'nullable|numeric|min:0',
             'weight_kg' => 'nullable|numeric|min:0',
             'dominant_hand' => 'nullable|string|max:50',

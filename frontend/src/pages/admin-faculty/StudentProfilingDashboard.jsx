@@ -376,6 +376,8 @@ export default function StudentProfilingDashboard() {
   const [classListRoster, setClassListRoster] = useState([]);
   const [classListLoading, setClassListLoading] = useState(false);
   const [classListRefreshKey, setClassListRefreshKey] = useState(0);
+  const [classListSearchInput, setClassListSearchInput] = useState('');
+  const [classListSearchQuery, setClassListSearchQuery] = useState('');
   const [roleUpdatingId, setRoleUpdatingId] = useState(null);
   const [deleteStudentId, setDeleteStudentId] = useState(null);
   const [deletingStudent, setDeletingStudent] = useState(false);
@@ -699,16 +701,32 @@ export default function StudentProfilingDashboard() {
   const fetchClassListRoster = useCallback(async () => {
     setClassListLoading(true);
     try {
-      const params = new URLSearchParams();
-      params.set('per_page', '500');
-      params.set('include_officers', '1');
-      if (user.role === 'ADMIN' && adminAccountStatusFilter !== 'all') {
-        params.set('account_status', adminAccountStatusFilter);
-      }
-      const res = await fetch(`/api/students?${params}`, { headers: getAuthHeaders() });
-      const data = await res.json();
-      if (data.success && data.data?.data) setClassListRoster(data.data.data);
-      else setClassListRoster([]);
+      const perPage = 500;
+      let page = 1;
+      let lastPage = 1;
+      const allRows = [];
+
+      do {
+        const params = new URLSearchParams();
+        params.set('per_page', String(perPage));
+        params.set('page', String(page));
+        if (user.role === 'ADMIN' && adminAccountStatusFilter !== 'all') {
+          params.set('account_status', adminAccountStatusFilter);
+        }
+
+        const res = await fetch(`/api/students?${params}`, { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (!data.success || !Array.isArray(data.data?.data)) {
+          setClassListRoster([]);
+          return;
+        }
+
+        allRows.push(...data.data.data);
+        lastPage = Number(data.data.last_page || 1);
+        page += 1;
+      } while (page <= lastPage);
+
+      setClassListRoster(allRows);
     } catch {
       setClassListRoster([]);
     } finally {
@@ -731,6 +749,11 @@ export default function StudentProfilingDashboard() {
   }, [profilingMainView]);
 
   const classListYearTree = useMemo(() => buildClassListTreeByYear(classListRoster), [classListRoster]);
+
+  useEffect(() => {
+    setClassListSearchInput('');
+    setClassListSearchQuery('');
+  }, [classListCourse, classListYear, classListSection, classListIrregularSubYear, classListFolderLevel]);
 
   const fetchRankAudit = async () => {
     if (!activityFilter) return;
@@ -1645,6 +1668,11 @@ export default function StudentProfilingDashboard() {
           <button type="button" className="spd-talent-search-submit" onClick={fetchStudents}>
             Search
           </button>
+          {compareIds.length >= 2 && (
+            <button type="button" className="spd-search-btn" onClick={() => setCompareModalOpen(true)}>
+              Compare ({compareIds.length})
+            </button>
+          )}
         </div>
         {user.role === 'ADMIN' && (
           <div className="spd-admin-account-filter" role="group" aria-label="Portal account activation">
@@ -2061,6 +2089,14 @@ export default function StudentProfilingDashboard() {
                         </p>
                       </div>
                       <div className="spd-talent-card-actions">
+                        <label className="spd-q-compare-label">
+                          <input
+                            type="checkbox"
+                            checked={compareIds.includes(student.id)}
+                            onChange={() => toggleCompare(student.id)}
+                          />
+                          Compare
+                        </label>
                         {user.role === 'ADMIN' && isTalentDirectory && !activityFilter && (
                           <button
                             type="button"
@@ -2126,6 +2162,15 @@ export default function StudentProfilingDashboard() {
             : classListCourse && classListYear && classListYear !== 'Irregulars' && classListSection != null
               ? classListYearTree[classListCourse]?.[classListYear]?.[classListSection] || []
               : [];
+        const classListSearchNeedle = classListSearchQuery.trim().toLowerCase();
+        const filteredListForRoster = classListSearchNeedle
+          ? listForRoster.filter((student) => {
+              const name = String(student.name || '').toLowerCase();
+              const sn = String(student.student_number || '').toLowerCase();
+              return name.includes(classListSearchNeedle) || sn.includes(classListSearchNeedle);
+            })
+          : listForRoster;
+        const classListSearchActive = classListSearchNeedle.length > 0;
         const overCap = listForRoster.length > SECTION_CAPACITY;
         const extraYearKeys =
           classListCourse != null
@@ -2312,12 +2357,49 @@ export default function StudentProfilingDashboard() {
               ((classListYear === 'Irregulars' && classListIrregularSubYear != null) ||
                 (classListYear !== 'Irregulars' && classListSection != null)) && (
               <>
+                <div className="spd-class-lists-searchbar">
+                  <div className="spd-talent-search">
+                    <svg className="spd-talent-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="m20 20-3.5-3.5" />
+                    </svg>
+                    <input
+                      type="search"
+                      placeholder="Search by name or student number..."
+                      value={classListSearchInput}
+                      onChange={(e) => setClassListSearchInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') setClassListSearchQuery(classListSearchInput.trim());
+                      }}
+                      className="spd-talent-search-input"
+                      aria-label="Search class list students"
+                    />
+                  </div>
+                  <button type="button" className="spd-talent-search-submit" onClick={() => setClassListSearchQuery(classListSearchInput.trim())}>
+                    Search
+                  </button>
+                  {classListSearchActive && (
+                    <button
+                      type="button"
+                      className="spd-admin-account-filter-btn"
+                      onClick={() => {
+                        setClassListSearchInput('');
+                        setClassListSearchQuery('');
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
                 <div className="spd-class-lists-meta">
                   {classListLoading ? (
                     <span className="spd-muted">Loading roster…</span>
                   ) : (
                     <>
-                      <strong>{listForRoster.length}</strong>
+                      <strong>{filteredListForRoster.length}</strong>
+                      {classListSearchActive && (
+                        <span className="spd-muted"> of {listForRoster.length}</span>
+                      )}
                       {classListYear === 'Irregulars' && classListIrregularSubYear != null ? (
                         <>
                           {' '}
@@ -2341,9 +2423,11 @@ export default function StudentProfilingDashboard() {
                 </div>
                 {classListLoading ? (
                   <div className="spd-loading">Loading class list…</div>
-                ) : listForRoster.length === 0 ? (
+                ) : filteredListForRoster.length === 0 ? (
                   <p className="spd-qualified-empty">
-                    {classListYear === 'Irregulars' && classListIrregularSubYear != null ? (
+                    {classListSearchActive ? (
+                      <>No students matched your search in this class list.</>
+                    ) : classListYear === 'Irregulars' && classListIrregularSubYear != null ? (
                       <>
                         No irregular students in {CLASS_LIST_YEAR_FOLDER_LABELS[classListIrregularSubYear] || classListIrregularSubYear}{' '}
                         for {classListCourse}.
@@ -2357,7 +2441,7 @@ export default function StudentProfilingDashboard() {
                   </p>
                 ) : (
                   <ul className="spd-class-lists-cards">
-                    {listForRoster.map((student) => {
+                    {filteredListForRoster.map((student) => {
                       const p = student.student_profile || {};
                       const skills = student.skill_entries || [];
                       return (

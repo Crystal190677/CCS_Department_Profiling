@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MERCH_CART_KEY, normalizeMerchColors, normalizeMerchSizes, notifyMerchCartUpdated } from '../../utils/merchCart';
+import { normalizeMerchColors, normalizeMerchSizes, readMerchCart, writeMerchCart } from '../../utils/merchCart';
 import './MerchStorePage.css';
 
 function getAuthHeaders(json = true) {
@@ -12,20 +12,26 @@ function getAuthHeaders(json = true) {
 }
 
 function getMerchImageSrc(item) {
-  const path = item?.image_path;
-  if (path && typeof path === 'string') {
-    const clean = path.replace(/^\/+/, '').replace(/^storage\//, '');
-    return `/storage/${clean}`;
-  }
   if (item?.image_url) {
     try {
-      const u = new URL(item.image_url);
+      const u = new URL(item.image_url, window.location.origin);
       if (u.pathname.startsWith('/storage/')) {
-        return u.pathname;
+        return `${window.location.origin}${u.pathname}${u.search}${u.hash}`;
       }
+      return u.toString();
     } catch {
-      /* ignore */
+      if (typeof item.image_url === 'string' && item.image_url.trim()) {
+        return item.image_url;
+      }
     }
+  }
+
+  const path = item?.image_path;
+  if (path && typeof path === 'string') {
+    if (/^https?:\/\//i.test(path)) return path;
+    if (path.startsWith('/')) return path;
+    const clean = path.replace(/^\/+/, '').replace(/^storage\//, '');
+    return `/storage/${clean}`;
   }
   return null;
 }
@@ -34,7 +40,7 @@ function addToMerchCart(item, color, size) {
   const color_key = color?.key ?? 'default';
   const color_label = color?.label ?? 'Default';
   const sz = String(size);
-  const cart = JSON.parse(localStorage.getItem(MERCH_CART_KEY) || '[]');
+  const cart = readMerchCart();
   const id = Number(item.id);
   const idx = cart.findIndex(
     (x) => Number(x.merchandise_id) === id && x.color_key === color_key && String(x.size) === sz,
@@ -52,8 +58,7 @@ function addToMerchCart(item, color, size) {
       size: sz,
     });
   }
-  localStorage.setItem(MERCH_CART_KEY, JSON.stringify(cart));
-  notifyMerchCartUpdated();
+  writeMerchCart(cart);
 }
 
 export default function MerchStorePage() {
@@ -91,6 +96,14 @@ export default function MerchStorePage() {
   const current = n ? items[Math.min(activeIndex, n - 1)] : null;
   const colors = useMemo(() => (current ? normalizeMerchColors(current) : []), [current]);
   const sizes = useMemo(() => (current ? normalizeMerchSizes(current) : []), [current]);
+  const requiresColorPick = useMemo(
+    () => Boolean(current && /\b(hoodie|shirt)\b/i.test(String(current.name || ''))),
+    [current],
+  );
+  const requiresVariantPick = useMemo(
+    () => Boolean(current && /\blanyard\b/i.test(String(current.name || ''))),
+    [current],
+  );
 
   useEffect(() => {
     if (!n) return;
@@ -99,25 +112,26 @@ export default function MerchStorePage() {
 
   useEffect(() => {
     if (!current) return;
-    setColorIndex(0);
+    setColorIndex(requiresColorPick ? -1 : 0);
     const sz = normalizeMerchSizes(current);
-    setSizeChoice(sz.includes('M') ? 'M' : sz[0]);
-  }, [current?.id]);
+    if (requiresVariantPick) setSizeChoice('');
+    else setSizeChoice(sz.includes('M') ? 'M' : sz[0]);
+  }, [current?.id, requiresColorPick, requiresVariantPick]);
 
   const prevIndex = n ? (activeIndex - 1 + n) % n : 0;
   const nextIndex = n ? (activeIndex + 1) % n : 0;
   const prevItem = n > 1 ? items[prevIndex] : null;
   const nextItem = n > 1 ? items[nextIndex] : null;
 
-  const effectiveColorIndex = colors.length ? Math.min(colorIndex, colors.length - 1) : 0;
-  const selectedColor = colors[effectiveColorIndex] || colors[0];
+  const effectiveColorIndex = colors.length ? Math.min(Math.max(colorIndex, 0), colors.length - 1) : 0;
+  const selectedColor = colorIndex >= 0 ? colors[effectiveColorIndex] || null : null;
   const subtitleText = useMemo(() => {
     if (selectedColor?.label) return String(selectedColor.label).toUpperCase();
     return (current?.category_label || 'ORANGE').toUpperCase();
   }, [selectedColor, current]);
 
   const handleAddToCart = () => {
-    if (!current?.is_available || !selectedColor) return;
+    if (!current?.is_available || !selectedColor || !sizeChoice) return;
     addToMerchCart(current, selectedColor, sizeChoice);
     setMessage({
       type: 'success',
@@ -246,7 +260,7 @@ export default function MerchStorePage() {
                   </div>
                 </div>
                 <div className="merch-store-option-block">
-                  <span className="merch-store-option-label">Size</span>
+                  <span className="merch-store-option-label">{requiresVariantPick ? 'Course / Variant' : 'Size'}</span>
                   <div className="merch-store-sizes">
                     {sizes.map((s) => (
                       <button
@@ -268,10 +282,15 @@ export default function MerchStorePage() {
                   type="button"
                   className="merch-store-add-cart"
                   onClick={handleAddToCart}
-                  disabled={!current.is_available}
+                  disabled={!current.is_available || !selectedColor || !sizeChoice}
                 >
                   Add to cart
                 </button>
+                {(!selectedColor || !sizeChoice) && (
+                  <p className="merch-store-detail-desc" style={{ marginTop: '0.6rem' }}>
+                    Please select {requiresColorPick && !selectedColor ? 'a color' : ''}{requiresColorPick && !selectedColor && !sizeChoice ? ' and ' : ''}{!sizeChoice ? (requiresVariantPick ? 'a course/variant' : 'a size') : ''} before adding to cart.
+                  </p>
+                )}
               </div>
             </footer>
           </div>

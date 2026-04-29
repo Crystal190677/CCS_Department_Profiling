@@ -38,7 +38,7 @@ class Merchandise extends Model
             return null;
         }
         return Storage::disk('public')->exists($this->image_path)
-            ? url(Storage::disk('public')->url($this->image_path))
+            ? "/api/merchandise/{$this->id}/image"
             : null;
     }
 

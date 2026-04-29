@@ -70,10 +70,21 @@
   gap: 1.25rem;
 }
 
+.ps-admin-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
 @media (min-width: 768px) {
   .ps-grid {
     grid-template-columns: 1fr 1fr;
     align-items: start;
+  }
+
+  .ps-admin-summary-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .ps-card-wide {
@@ -102,6 +113,34 @@
   color: var(--ccs-text-muted);
   margin: 0 0 1.1rem 0;
   line-height: 1.45;
+}
+
+.ps-admin-info-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.ps-admin-info-row {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--ccs-border);
+  border-radius: 10px;
+  background: var(--ccs-bg);
+}
+
+.ps-admin-info-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ccs-text-muted);
+}
+
+.ps-admin-info-value {
+  font-size: 0.95rem;
+  color: var(--ccs-text);
+  word-break: break-word;
 }
 
 .ps-avatar-block {
@@ -192,7 +231,24 @@
   font-size: 0.9375rem;
 }
 
+.ps-field textarea {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--ccs-border);
+  background: var(--ccs-bg);
+  color: var(--ccs-text);
+  font-size: 0.9375rem;
+  resize: vertical;
+}
+
 .ps-field input:focus {
+  outline: none;
+  border-color: var(--ccs-orange);
+  box-shadow: 0 0 0 3px var(--ccs-orange-glow);
+}
+
+.ps-field textarea:focus {
   outline: none;
   border-color: var(--ccs-orange);
   box-shadow: 0 0 0 3px var(--ccs-orange-glow);

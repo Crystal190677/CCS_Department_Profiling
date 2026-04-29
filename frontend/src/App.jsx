@@ -17,6 +17,7 @@ import AdminFacultyLayout from './components/admin-faculty/AdminFacultyLayout';
 import StudentProfilingDashboard from './pages/admin-faculty/StudentProfilingDashboard';
 import AdminStudentProfileViewPage from './pages/admin-faculty/AdminStudentProfileViewPage';
 import AdminDashboardPage from './pages/admin-faculty/AdminDashboardPage';
+import AdminAddStudentPage from './pages/admin-faculty/AdminAddStudentPage';
 import AuditLogPage from './pages/admin-faculty/AuditLogPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 
@@ -50,7 +51,12 @@ function App() {
           <Route path="class-lists" element={<StudentProfilingDashboard />} />
           <Route path="student/:studentId" element={<AdminStudentProfileViewPage />} />
         </Route>
+        <Route path="add-student" element={<AdminAddStudentPage />} />
         <Route path="announcements" element={<StudentAnnouncementsPage />} />
+        <Route path="membership-cards/irregulars" element={<MembershipCardListPage />} />
+        <Route path="membership-cards/:yearSegment/:sectionKey" element={<MembershipCardListPage />} />
+        <Route path="membership-cards/:yearSegment" element={<MembershipCardListPage />} />
+        <Route path="manage-merch" element={<ManageMerchPage />} />
         <Route path="profile-settings" element={<ProfileSettingsPage />} />
       </Route>
       <Route path="/admin" element={<AdminFacultyLayout />}>

@@ -44,6 +44,7 @@ export default function ProfileSettingsPage() {
   const [completion, setCompletion] = useState(0);
   const [role, setRole] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
+  const [adminIdentifier, setAdminIdentifier] = useState('');
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [pwdCurrent, setPwdCurrent] = useState('');
@@ -51,12 +52,22 @@ export default function ProfileSettingsPage() {
   const [pwdConfirm, setPwdConfirm] = useState('');
   const [error, setError] = useState('');
   const [toast, setToast] = useState({ message: '', variant: 'success' });
+  const [studentProfileForm, setStudentProfileForm] = useState({
+    address: '',
+    sports_interests: '',
+    activity_interests: '',
+    skills: '',
+    notes: '',
+  });
+  const [savingStudentProfile, setSavingStudentProfile] = useState(false);
 
   const showToast = (message, variant = 'success') => {
     setToast({ message, variant });
   };
 
   const dismissToast = () => setToast((t) => ({ ...t, message: '' }));
+
+  const isAdmin = role === 'ADMIN';
 
   const loadProfile = useCallback(async () => {
     setError('');
@@ -75,7 +86,31 @@ export default function ProfileSettingsPage() {
     setCompletion(typeof p.profile_completion_percent === 'number' ? p.profile_completion_percent : 0);
     setRole(p.role || '');
     setStudentNumber(p.student_number || '');
+    setAdminIdentifier(p.employee_id || p.admin_id || p.admin_identifier || p.staff_id || p.user_id || p.id || '');
     setLoading(false);
+  }, []);
+
+  const loadStudentProfile = useCallback(async () => {
+    const res = await fetch('/api/student-profile', { headers: getAuthHeadersJson() });
+    const data = await res.json();
+    if (!data.success || !data.data) {
+      setStudentProfileForm({
+        address: '',
+        sports_interests: '',
+        activity_interests: '',
+        skills: '',
+        notes: '',
+      });
+      return;
+    }
+    const p = data.data;
+    setStudentProfileForm({
+      address: p.address || '',
+      sports_interests: Array.isArray(p.sports_interests) ? p.sports_interests.join(', ') : (p.sports_interests || ''),
+      activity_interests: Array.isArray(p.activity_interests) ? p.activity_interests.join(', ') : (p.activity_interests || ''),
+      skills: p.skills || '',
+      notes: p.notes || '',
+    });
   }, []);
 
   useEffect(() => {
@@ -86,6 +121,11 @@ export default function ProfileSettingsPage() {
     }
     loadProfile();
   }, [navigate, loadProfile]);
+
+  useEffect(() => {
+    if (role !== 'STUDENT' && role !== 'OFFICER') return;
+    loadStudentProfile();
+  }, [role, loadStudentProfile]);
 
   useEffect(() => {
     return () => {
@@ -232,6 +272,41 @@ export default function ProfileSettingsPage() {
     }
   };
 
+  const handleSaveStudentProfile = async (e) => {
+    e.preventDefault();
+    if (role !== 'STUDENT' && role !== 'OFFICER') return;
+    setSavingStudentProfile(true);
+    setError('');
+    try {
+      const body = {
+        address: studentProfileForm.address.trim() || null,
+        sports_interests: studentProfileForm.sports_interests
+          ? studentProfileForm.sports_interests.split(',').map((s) => s.trim()).filter(Boolean)
+          : [],
+        activity_interests: studentProfileForm.activity_interests
+          ? studentProfileForm.activity_interests.split(',').map((s) => s.trim()).filter(Boolean)
+          : [],
+        skills: studentProfileForm.skills.trim() || null,
+        notes: studentProfileForm.notes.trim() || null,
+      };
+      const res = await fetch('/api/student-profile', {
+        method: 'POST',
+        headers: getAuthHeadersJson(),
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Personal details updated');
+      } else {
+        showToast(data.message || 'Could not save personal details', 'error');
+      }
+    } catch {
+      showToast('Network error', 'error');
+    } finally {
+      setSavingStudentProfile(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="ps-page">
@@ -247,8 +322,10 @@ export default function ProfileSettingsPage() {
       <header className="ccs-gradient-hero">
         <div className="ccs-gradient-hero-pattern" aria-hidden />
         <div className="ccs-gradient-hero-inner">
-          <h1 className="ccs-gradient-hero-title">Profile settings</h1>
-          <p className="ccs-gradient-hero-subtitle">Manage how you appear in CCS One Dangal · {role}</p>
+          <h1 className="ccs-gradient-hero-title">{isAdmin ? 'My Profile' : 'Profile settings'}</h1>
+          <p className="ccs-gradient-hero-subtitle">
+            {isAdmin ? 'System Administrator profile details' : `Manage how you appear in CCS One Dangal · ${role}`}
+          </p>
         </div>
       </header>
 
@@ -272,6 +349,53 @@ export default function ProfileSettingsPage() {
             : 'Add a photo, name, email, and contact number to reach 100%.'}
         </p>
       </section>
+
+      {isAdmin && (
+        <section className="ps-admin-summary-grid">
+          <article className="ps-card ccs-surface-gradient">
+            <h2 className="ps-card-title">Personal Information</h2>
+            <div className="ps-admin-info-list">
+              <div className="ps-admin-info-row">
+                <span className="ps-admin-info-label">Full Name</span>
+                <span className="ps-admin-info-value">{name || '—'}</span>
+              </div>
+              <div className="ps-admin-info-row">
+                <span className="ps-admin-info-label">Email Address</span>
+                <span className="ps-admin-info-value">{email || '—'}</span>
+              </div>
+              <div className="ps-admin-info-row">
+                <span className="ps-admin-info-label">Phone Number</span>
+                <span className="ps-admin-info-value">{contactNumber || '—'}</span>
+              </div>
+              <div className="ps-admin-info-row">
+                <span className="ps-admin-info-label">Profile Picture</span>
+                <span className="ps-admin-info-value">{avatarUrl || avatarPreview ? 'Uploaded' : 'Not uploaded'}</span>
+              </div>
+            </div>
+          </article>
+          <article className="ps-card ccs-surface-gradient">
+            <h2 className="ps-card-title">School/Admin Information</h2>
+            <div className="ps-admin-info-list">
+              <div className="ps-admin-info-row">
+                <span className="ps-admin-info-label">School Name</span>
+                <span className="ps-admin-info-value">Pamantasan ng Cabuyao</span>
+              </div>
+              <div className="ps-admin-info-row">
+                <span className="ps-admin-info-label">Department</span>
+                <span className="ps-admin-info-value">College of Computing Studies</span>
+              </div>
+              <div className="ps-admin-info-row">
+                <span className="ps-admin-info-label">Position/Role</span>
+                <span className="ps-admin-info-value">{role || 'System Admin'}</span>
+              </div>
+              <div className="ps-admin-info-row">
+                <span className="ps-admin-info-label">Employee/Admin ID</span>
+                <span className="ps-admin-info-value">{adminIdentifier ? String(adminIdentifier) : '—'}</span>
+              </div>
+            </div>
+          </article>
+        </section>
+      )}
 
       <div className="ps-grid">
         <section className="ps-card ps-card-accent ccs-surface-gradient">
@@ -352,6 +476,67 @@ export default function ProfileSettingsPage() {
             </button>
           </form>
         </section>
+
+        {(role === 'STUDENT' || role === 'OFFICER') && (
+          <section className="ps-card ccs-surface-gradient">
+            <h2 className="ps-card-title">Personal details</h2>
+            <p className="ps-card-desc">
+              Update profile details used by your My Profile page (address, hobbies, talents/skills, achievements notes).
+            </p>
+            <form onSubmit={handleSaveStudentProfile} className="ps-form">
+              <div className="ps-field">
+                <label htmlFor="ps-address">Address</label>
+                <input
+                  id="ps-address"
+                  value={studentProfileForm.address}
+                  onChange={(e) => setStudentProfileForm((f) => ({ ...f, address: e.target.value }))}
+                  placeholder="Street, city, province"
+                />
+              </div>
+              <div className="ps-field">
+                <label htmlFor="ps-hobbies">Hobbies (comma-separated)</label>
+                <input
+                  id="ps-hobbies"
+                  value={studentProfileForm.activity_interests}
+                  onChange={(e) => setStudentProfileForm((f) => ({ ...f, activity_interests: e.target.value }))}
+                  placeholder="Coding, gaming, chess"
+                />
+              </div>
+              <div className="ps-field">
+                <label htmlFor="ps-sports">Sports interests (comma-separated)</label>
+                <input
+                  id="ps-sports"
+                  value={studentProfileForm.sports_interests}
+                  onChange={(e) => setStudentProfileForm((f) => ({ ...f, sports_interests: e.target.value }))}
+                  placeholder="Basketball, volleyball"
+                />
+              </div>
+              <div className="ps-field">
+                <label htmlFor="ps-talents">Talents / skills</label>
+                <textarea
+                  id="ps-talents"
+                  rows={3}
+                  value={studentProfileForm.skills}
+                  onChange={(e) => setStudentProfileForm((f) => ({ ...f, skills: e.target.value }))}
+                  placeholder="Programming, UI design, public speaking"
+                />
+              </div>
+              <div className="ps-field">
+                <label htmlFor="ps-achievements">Achievements notes</label>
+                <textarea
+                  id="ps-achievements"
+                  rows={3}
+                  value={studentProfileForm.notes}
+                  onChange={(e) => setStudentProfileForm((f) => ({ ...f, notes: e.target.value }))}
+                  placeholder="Recent awards and achievements"
+                />
+              </div>
+              <button type="submit" className="ps-btn-primary ps-btn-wide" disabled={savingStudentProfile}>
+                {savingStudentProfile ? 'Saving…' : 'Save personal details'}
+              </button>
+            </form>
+          </section>
+        )}
 
         <section className="ps-card ps-card-wide ccs-surface-gradient">
           <h2 className="ps-card-title">Change password</h2>
