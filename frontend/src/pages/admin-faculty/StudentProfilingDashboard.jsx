@@ -701,32 +701,18 @@ export default function StudentProfilingDashboard() {
   const fetchClassListRoster = useCallback(async () => {
     setClassListLoading(true);
     try {
-      const perPage = 500;
-      let page = 1;
-      let lastPage = 1;
-      const allRows = [];
+      const params = new URLSearchParams();
+      if (user.role === 'ADMIN' && adminAccountStatusFilter !== 'all') {
+        params.set('account_status', adminAccountStatusFilter);
+      }
 
-      do {
-        const params = new URLSearchParams();
-        params.set('per_page', String(perPage));
-        params.set('page', String(page));
-        if (user.role === 'ADMIN' && adminAccountStatusFilter !== 'all') {
-          params.set('account_status', adminAccountStatusFilter);
-        }
-
-        const res = await fetch(`/api/students?${params}`, { headers: getAuthHeaders() });
-        const data = await res.json();
-        if (!data.success || !Array.isArray(data.data?.data)) {
-          setClassListRoster([]);
-          return;
-        }
-
-        allRows.push(...data.data.data);
-        lastPage = Number(data.data.last_page || 1);
-        page += 1;
-      } while (page <= lastPage);
-
-      setClassListRoster(allRows);
+      const res = await fetch(`/api/students/class-list?${params}`, { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setClassListRoster(data.data);
+      } else {
+        setClassListRoster([]);
+      }
     } catch {
       setClassListRoster([]);
     } finally {

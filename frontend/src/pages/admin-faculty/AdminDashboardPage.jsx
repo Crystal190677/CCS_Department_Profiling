@@ -155,6 +155,12 @@ export default function AdminDashboardPage() {
                   <p className="nf-stat-mini-value" aria-live="polite">
                     <CountUp key={countKey} end={endVal} duration={1.2} separator="," preserveValue />
                   </p>
+                  {c.key === 'students' && stats && (
+                    <div style={{ fontSize: '0.85rem', marginTop: '0.5rem', opacity: 0.85, display: 'flex', gap: '1rem', fontWeight: 500 }}>
+                      <span>BSIT: {stats.bsit_students || 0}</span>
+                      <span>BSCS: {stats.bscs_students || 0}</span>
+                    </div>
+                  )}
                 </div>
               );
             })}

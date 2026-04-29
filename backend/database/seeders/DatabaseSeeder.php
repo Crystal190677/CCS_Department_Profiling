@@ -125,8 +125,13 @@ class DatabaseSeeder extends Seeder
         $this->call(CcsCourseWorkspaceDemoSeeder::class);
         $this->call(StudentClassScheduleSeeder::class);
         $this->call(MerchandiseCatalogSeeder::class);
-        $this->call(StudentRosterSeeder::class);
-        $this->call(ClassListIrregularStudentsSeeder::class);
+        
+        // This will generate exactly 500 BSIT and 500 BSCS students (1,000 total)
+        $this->call(StudentSeeder::class);
+        
+        // Commenting these out to maintain the exact 1,000 student requirement 
+        // $this->call(StudentRosterSeeder::class);
+        // $this->call(ClassListIrregularStudentsSeeder::class);
 
         $this->command->info('✓ Seed data created.');
     }

@@ -151,6 +151,36 @@ class StudentsController extends Controller
     }
 
     /**
+     * Dedicated fast endpoint for the Class List dashboard to load all students at once.
+     */
+    public function classListRoster(Request $request): JsonResponse
+    {
+        $authUser = $request->user();
+        if (!$authUser || !in_array($authUser->role, ['ADMIN', 'FACULTY'], true)) {
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+        }
+
+        $query = User::query()
+            ->whereIn('role', ['STUDENT', 'OFFICER'])
+            ->with(['studentProfile', 'skillEntries'])
+            ->orderBy('name');
+
+        if ($request->filled('account_status')) {
+            $st = strtolower(trim((string) $request->input('account_status')));
+            if ($st === 'active') {
+                $query->whereNotNull('password_set_at');
+            } elseif ($st === 'inactive') {
+                $query->whereNull('password_set_at');
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $query->get(),
+        ]);
+    }
+
+    /**
      * Disabled: students are pre-enrolled on the department roster; they activate with student number + password on the login page.
      */
     public function store(Request $request): JsonResponse

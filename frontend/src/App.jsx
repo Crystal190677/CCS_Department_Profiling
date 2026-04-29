@@ -20,6 +20,7 @@ import AdminDashboardPage from './pages/admin-faculty/AdminDashboardPage';
 import AdminAddStudentPage from './pages/admin-faculty/AdminAddStudentPage';
 import AuditLogPage from './pages/admin-faculty/AuditLogPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
+import ReportsPage from './pages/Reports/ReportsPage';
 
 function App() {
   return (
@@ -58,6 +59,7 @@ function App() {
         <Route path="membership-cards/:yearSegment" element={<MembershipCardListPage />} />
         <Route path="manage-merch" element={<ManageMerchPage />} />
         <Route path="profile-settings" element={<ProfileSettingsPage />} />
+        <Route path="reports" element={<ReportsPage />} />
       </Route>
       <Route path="/admin" element={<AdminFacultyLayout />}>
         <Route path="audit-log" element={<AuditLogPage />} />

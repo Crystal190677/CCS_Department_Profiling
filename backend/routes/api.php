@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\NotificationsController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\QualificationRankOverridesController;
 use App\Http\Controllers\Api\OfficerPositionsController;
+use App\Http\Controllers\Api\ReportsController;
 use App\Http\Controllers\Api\SkillEntriesController;
 use App\Http\Controllers\Api\StudentProfileController;
 use App\Http\Controllers\Api\StudentCalendarController;
@@ -99,6 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('admin/stats', [AdminStatsController::class, 'stats']);
 
         Route::get('activities', [ActivitiesController::class, 'index']);
+        Route::get('students/class-list', [StudentsController::class, 'classListRoster']);
         Route::get('students', [StudentsController::class, 'index']);
         Route::post('students', [StudentsController::class, 'store']);
         Route::patch('students/{id}/role', [StudentsController::class, 'updateRole']);
@@ -119,6 +121,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('admin.only')->group(function () {
         Route::get('admin/audit-log', [AdminAuditLogController::class, 'index']);
+        
+        Route::get('reports/masterlist', [ReportsController::class, 'masterlist']);
+        Route::get('reports/talent-directory', [ReportsController::class, 'talentDirectory']);
+        Route::get('reports/violations', [ReportsController::class, 'violations']);
+        Route::get('reports/audit-logs', [ReportsController::class, 'auditLogs']);
     });
 
     Route::middleware('officer.or.admin.faculty')->group(function () {

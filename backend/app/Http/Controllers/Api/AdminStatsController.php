@@ -25,14 +25,23 @@ class AdminStatsController extends Controller
             ->whereMonth('recorded_at', $now->month)
             ->count();
 
+        $bsitStudents = User::query()
+            ->where('role', 'STUDENT')
+            ->whereHas('studentProfile', fn ($q) => $q->where('course', 'BSIT'))
+            ->count();
+
+        $bscsStudents = User::query()
+            ->where('role', 'STUDENT')
+            ->whereHas('studentProfile', fn ($q) => $q->where('course', 'BSCS'))
+            ->count();
+
         return response()->json([
             'success' => true,
             'data' => [
                 // Dashboard student KPI mirrors Class List "All" population (BSIT/BSCS student accounts).
-                'students' => User::query()
-                    ->where('role', 'STUDENT')
-                    ->whereHas('studentProfile', fn ($q) => $q->whereIn('course', ['BSIT', 'BSCS']))
-                    ->count(),
+                'students' => $bsitStudents + $bscsStudents,
+                'bsit_students' => $bsitStudents,
+                'bscs_students' => $bscsStudents,
                 'officers' => User::query()->where('role', 'OFFICER')->count(),
                 'violations_this_month' => $violationsThisMonth,
             ],
