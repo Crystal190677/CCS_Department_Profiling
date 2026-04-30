@@ -1,0 +1,10 @@
+.git
+.gitignore
+backend/vendor/
+backend/node_modules/
+frontend/node_modules/
+frontend/dist/
+backend/public/build/
+.env
+phpunit.xml
+tests/

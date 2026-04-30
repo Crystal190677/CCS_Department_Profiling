@@ -7,6 +7,14 @@ const backendAgent = new Agent({ keepAlive: false });
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    outDir: '../backend/public/build',
+    emptyOutDir: true,
+    manifest: true,
+    rollupOptions: {
+      input: 'index.html',
+    },
+  },
   server: {
     port: 5174,
     strictPort: true,
