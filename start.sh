@@ -14,11 +14,17 @@ echo "Running configuration and route caches..."
 echo "Configuring database connection for Render (PostgreSQL)..."
 export DB_CONNECTION=pgsql
 
+# Provide default Render PostgreSQL credentials if not explicitly set
+export DB_HOST="${DB_HOST:-dpg-d7pmifpkh4rs73ea13s0-a}"
+export DB_PORT="${DB_PORT:-5432}"
+export DB_DATABASE="${DB_DATABASE:-studentprofiling_db}"
+export DB_USERNAME="${DB_USERNAME:-studentprofiling_db_user}"
+
 # If Render provides a DATABASE_URL, export it as DB_URL so Laravel can use it
 if [ -n "$DATABASE_URL" ]; then
     export DB_URL="$DATABASE_URL"
 else
-    echo "Warning: DATABASE_URL is not set. Make sure you connected the PostgreSQL database to this Web Service in Render!"
+    echo "Warning: DATABASE_URL is not set. Using individual DB_ variables."
 fi
 
 php artisan config:cache
