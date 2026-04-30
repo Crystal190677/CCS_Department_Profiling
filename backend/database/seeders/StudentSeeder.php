@@ -33,10 +33,10 @@ class StudentSeeder extends Seeder
 
         $courses = ['BSIT', 'BSCS'];
         $categories = [
-            '1st yr' => '1',
-            '2nd yr' => '2',
-            '3rd yr' => '3',
-            '4th yr' => '4',
+            '1st Year' => '1',
+            '2nd Year' => '2',
+            '3rd Year' => '3',
+            '4th Year' => '4',
             'Irregular' => 'IRR'
         ];
         $sections = ['A', 'B', 'C', 'D', 'E'];
