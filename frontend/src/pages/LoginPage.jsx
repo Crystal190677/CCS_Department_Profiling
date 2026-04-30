@@ -265,7 +265,7 @@ export default function LoginPage() {
           <div className="od-login-hero-content">
             <div className="od-login-hero-logo-ring">
               <img
-                src="/ccs-logo.png"
+                src={`${import.meta.env.BASE_URL}ccs-logo.png`}
                 alt="College of Computing Studies — Pamantasan ng Cabuyao official seal"
                 className="od-login-hero-logo"
                 width={200}

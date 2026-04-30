@@ -188,7 +188,6 @@ class AuthController extends Controller
     {
         if (in_array($role, ['STUDENT', 'OFFICER'], true)) {
             return User::query()
-                ->where('role', $role)
                 ->where('student_number', $identifier)
                 ->first();
         }

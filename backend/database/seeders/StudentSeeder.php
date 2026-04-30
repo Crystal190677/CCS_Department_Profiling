@@ -14,7 +14,9 @@ class StudentSeeder extends Seeder
     {
         $this->command->info('Truncating existing students...');
         
-        $studentIds = User::where('role', 'STUDENT')->pluck('id')->toArray();
+        $studentIds = User::where('role', 'STUDENT')
+            ->where('student_number', '!=', '2299999')
+            ->pluck('id')->toArray();
         if (!empty($studentIds)) {
             StudentProfile::whereIn('user_id', $studentIds)->delete();
             User::whereIn('id', $studentIds)->delete();
