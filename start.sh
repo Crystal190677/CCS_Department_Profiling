@@ -9,6 +9,18 @@ sed -i "s/:80/:${PORT}/g" /etc/apache2/sites-available/000-default.conf
 
 # Run Laravel optimizations
 echo "Running configuration and route caches..."
+
+# Force DB_CONNECTION to pgsql for the Render environment
+echo "Configuring database connection for Render (PostgreSQL)..."
+export DB_CONNECTION=pgsql
+
+# If Render provides a DATABASE_URL, export it as DB_URL so Laravel can use it
+if [ -n "$DATABASE_URL" ]; then
+    export DB_URL="$DATABASE_URL"
+else
+    echo "Warning: DATABASE_URL is not set. Make sure you connected the PostgreSQL database to this Web Service in Render!"
+fi
+
 php artisan config:cache
 php artisan event:cache
 php artisan route:cache
@@ -25,5 +37,8 @@ if [ "$SEED_DB" = "true" ]; then
 fi
 
 # Start Apache in foreground
+echo "Fixing permissions..."
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
 echo "Starting Apache server..."
 apache2-foreground
