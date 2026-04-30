@@ -19,6 +19,7 @@ export DB_HOST="${DB_HOST:-dpg-d7pmifpkh4rs73ea13s0-a}"
 export DB_PORT="${DB_PORT:-5432}"
 export DB_DATABASE="${DB_DATABASE:-studentprofiling_db}"
 export DB_USERNAME="${DB_USERNAME:-studentprofiling_db_user}"
+export DB_PASSWORD="${DB_PASSWORD:-fG6aT6H9Y4ZifezouzZdWicvkAKdQFdh}"
 
 # If Render provides a DATABASE_URL, export it as DB_URL so Laravel can use it
 if [ -n "$DATABASE_URL" ]; then
