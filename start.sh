@@ -37,9 +37,13 @@ php artisan view:cache
 echo "Running database migrations..."
 php artisan migrate --force
 
-# Run Seeders if explicitly requested via environment variable
+# Always ensure the core users (Admin, Demo Officer/Student) exist
+echo "Running core database seeders..."
+php artisan db:seed --class=CoreSeeder --force
+
+# Run full Seeders if explicitly requested via environment variable
 if [ "$SEED_DB" = "true" ]; then
-    echo "Running database seeders..."
+    echo "Running full database seeders..."
     php artisan db:seed --force
 fi
 
