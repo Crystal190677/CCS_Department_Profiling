@@ -7,6 +7,7 @@ const backendAgent = new Agent({ keepAlive: false });
 
 export default defineConfig({
   plugins: [react()],
+  base: '/build/',
   build: {
     outDir: '../backend/public/build',
     emptyOutDir: true,
